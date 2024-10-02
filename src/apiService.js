@@ -206,7 +206,7 @@ export const apiService = {
             }
         }
     },
-    getShop2Screens: async (token, page) => {
+    getShop2Screens: async (token, page,navigate) => {
         try {
             const response = await axios.get(`${API_URL}/api/get_shop2_stock`, {
                 headers: {
@@ -221,7 +221,7 @@ export const apiService = {
             };
         } catch (e) {
             if (e.response?.status === 401) {
-                // Handle unauthorized error
+                navigate("/Login")
                 return { message: 'Unauthorized, please login again' };
             }
             return {
@@ -229,7 +229,7 @@ export const apiService = {
             };
         }
     },
-    getAccessories: async (token, page) => {
+    getAccessories: async (token, page,navigate) => {
         try {
             const response = await axios.get(`${API_URL}/nodeapp/FindAll`, {
                 headers: {
@@ -244,6 +244,7 @@ export const apiService = {
             };
         } catch (e) {
             if (e.response?.status === 401) {
+                navigate("/Login")
                 return { message: 'Unauthorized, please login again' };
             }
             return {

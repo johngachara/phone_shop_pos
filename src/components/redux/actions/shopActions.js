@@ -1,4 +1,5 @@
 import {apiService} from "../../../apiService.js";
+import {useNavigate} from "react-router-dom";
 
 export const SET_SEARCH_RESULTS = 'SET_SEARCH_RESULTS';
 export const setSearchResults = (results) => ({
@@ -33,7 +34,7 @@ export const setError = (error) => ({ type: SET_ERROR, payload: error });
 export const fetchShopData = (token, page,navigate,toast) => async (dispatch) => {
     dispatch(setLoading(true));
     try {
-        const {data} = await apiService.getShop2Screens(token,page)
+        const {data} = await apiService.getShop2Screens(token,page,navigate)
         dispatch(setShopData(data.results));
     } catch (error) {
         toast({
@@ -49,7 +50,7 @@ export const  fetchAccessories =  (token,page,navigate,toast) => async (dispatch
     dispatch(setAccessoryLoading(true))
     try {
 
-        const {data} = await apiService.getAccessories(token,page)
+        const {data} = await apiService.getAccessories(token,page,navigate)
         dispatch(setAccessoryData(data.items))
     } catch (err) {
         toast({
