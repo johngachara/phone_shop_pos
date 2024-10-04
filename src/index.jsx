@@ -6,19 +6,7 @@ import theme from '../src/components/theme'
 import { Provider } from 'react-redux';
 import store from 'components/redux/store.js';
 const root = ReactDOM.createRoot(document.getElementById('root'));
-
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/serviceWorker.js')
-        .then(registration => {
-          console.log('SW registered: ', registration);
-        })
-        .catch(error => {
-          console.error('SW registration failed:', error);
-          alert('Service Worker registration failed. The app may not work offline.');
-        });
-  });
-}
+import { registerSW } from 'virtual:pwa-register';
 
 root.render(
     <ChakraProvider theme={theme}>
@@ -30,3 +18,5 @@ root.render(
     </ChakraProvider>
 );
 reportWebVitals();
+registerSW();
+

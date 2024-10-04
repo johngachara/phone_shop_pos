@@ -4,25 +4,14 @@ import path from 'path';
 import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig({
-    optimizeDeps: {
-        esbuildOptions: {
-            loader: {
-                '.js': 'jsx',
-            },
-        },
-    },
-    base: './',
+    base: '/',
     plugins: [
         react(),
         VitePWA({
-            strategies: 'injectManifest',
-            srcDir: 'public',
-            filename: 'serviceWorker.js',
-            injectRegister: 'auto',
+            registerType: 'autoUpdate',
             workbox: {
-                swSrc: 'public/serviceWorker.js',
                 globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
-                runtimeCaching: [],
+                runtimeCaching: []
             },
             manifest: {
                 name: 'SHOP 2',
@@ -31,19 +20,17 @@ export default defineConfig({
                 theme_color: '#ffffff',
                 icons: [
                     {
-                        src: 'public/logo192.png',
+                        src: 'logo192.png',
                         sizes: [96, 128, 192, 256, 384, 512],
                         type: 'image/png',
                     },
                 ],
             },
+            strategies: 'injectManifest',
+            srcDir: 'public',
+            filename: 'service-worker.js',
         }),
     ],
-    server: {
-        open: false,
-        port: 3000,
-        historyApiFallback: true,
-    },
     resolve: {
         alias: {
             screens: path.resolve(__dirname, './src/screens'),
@@ -53,11 +40,5 @@ export default defineConfig({
     },
     build: {
         outDir: 'build',
-        rollupOptions: {
-            input: {
-                main: 'index.html',
-                'service-worker': 'public/serviceWorker.js',
-            }
-        }
     },
 });

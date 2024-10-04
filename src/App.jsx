@@ -1,4 +1,4 @@
-import React, { Suspense, lazy } from 'react';
+import  { Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import SkeletonLoader from "components/SkeletonLoader.jsx";
 import NotFound from "components/NotFound.jsx";
@@ -16,7 +16,7 @@ const DetailedDataView = lazy(() => import("./components/DetailedDataView"));
 const LowStock = lazy(() => import("./components/LowStock"));
 function App() {
     return (
-        <Router>
+        <Router basename='/'>
             <Suspense fallback={<SkeletonLoader />}>
                 <Routes>
                     <Route path="/" element={<Shopstock />} />
