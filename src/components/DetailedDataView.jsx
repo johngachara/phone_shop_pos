@@ -69,7 +69,7 @@ const DetailedDataView = () => {
     const fetchAccessoryData = async () => {
         setIsLoading(true);
         try {
-            const result = await apiService.dashboardData(dataType, localStorage.getItem("access"));
+            const result = await apiService.dashboardData(dataType);
 
             if (result.status === 401) {
                 navigate('/Login');

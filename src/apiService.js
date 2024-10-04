@@ -320,14 +320,16 @@ export const apiService = {
             };
         }
     },
-    dashboardData: async (dataType, token) => {
+    dashboardData: async (dataType) => {
         let endpoint;
-
+        let token;
         // Construct the endpoint based on the dataType
         if (dataType === 'accessory_sales') {
             endpoint = `${API_URL}/nodeapp/Sales`;
+            token = localStorage.getItem("accessories")
         } else {
             endpoint = `${API_URL}/api/detailed/${dataType}/`;
+            token = localStorage.getItem("access")
         }
 
         try {
@@ -385,9 +387,11 @@ export const apiService = {
 
     fetchAccessoryDashboardData: async () => {
         try {
+            const token = localStorage.getItem("accessories")
             const response = await fetch(`${API_URL}/nodeapp/Admin`, {
                 headers: {
                     'Content-Type': 'application/json',
+                     Authorization : `Bearer ${token}`
                 },
             });
 
