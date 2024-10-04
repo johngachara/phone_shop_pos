@@ -36,7 +36,7 @@ export default function LcdBody(props) {
     const { searchResults, loading: searchLoading } = useSearchScreens(searchParam);
 
     return (
-        <Container maxW="container.xl" py={{ base: 4, md: 8 }}>
+        <Container maxW="container.xl" py={8}>
             <VStack spacing={8} align="stretch">
                 <Flex
                     justify="space-between"

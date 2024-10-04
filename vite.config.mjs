@@ -31,6 +31,11 @@ export default defineConfig({
             filename: 'service-worker.js',
         }),
     ],
+    server: {
+        open: false,
+        port: 3000,
+        historyApiFallback: true,
+    },
     resolve: {
         alias: {
             screens: path.resolve(__dirname, './src/screens'),
