@@ -27,11 +27,11 @@ All API requests are managed through the apiservice.js file.
 This POS software implements role-based access control using Firestore to manage user roles. The UI components displayed to the user are dynamically adjusted based on their assigned role.
 
 # Firebase ID-Based Sign-In
-The sign-in process utilizes Firebase ID-based authentication. The ID token is authenticated in the backend, where the UID is decoded. This UID is then used to determine whether to issue a JWT token, enabling secure access based on user roles.
+The sign-in process utilizes Firebase ID-based authentication. The ID token is authenticated in the backend, where the UID is decoded. This UID is then used to determine whether to issue a JWT token, enabling secure access.
 
 # Security
 Security measures are implemented in AWS Amplify with custom security headers, including:
 
-Strict-Transport-Security
-Content-Security-Policy
+Strict-Transport-Security,
+Content-Security-Policy,
 Cache-Control
