@@ -9,7 +9,9 @@ PWA Support: Offers Progressive Web App functionality for mobile users.
 AI-Powered Insights: Utilizes the Gemini model for enquiries from users.
 Data Search: Leverages MeiliSearch for fast, full-text search across the data.
 Role-Based UI: Dynamically adjusts UI components based on user roles.
-Technologies Used
+
+
+# Technologies Used
 React: For building the user interface.
 Vite: As the build tool for fast development.
 Redux: For state management.
