@@ -1,6 +1,25 @@
 import axios from 'axios'
-const API_URL = import.meta.env.VITE_SERVER_URL
+const API_URL = import.meta.env.VITE_ALLTECH_URL
 export const apiService = {
+     refreshAccessToken : async () => {
+        try {
+            console.log("redres")
+            const refreshToken = localStorage.getItem('refresh');
+            if (!refreshToken) {
+                throw new Error('No refresh token available');
+            }
+
+            const response = await axios.post(`${API_URL}/api/refresh-token/`, {
+                refresh: refreshToken
+            });
+
+            localStorage.setItem('access', response.data.access);
+            return response.data.access;
+        } catch (error) {
+            console.error('Error refreshing token:', error);
+            throw error;
+        }
+    },
     main_login: async (firebaseToken) => {
         try {
             const response = await axios.post(
@@ -206,7 +225,7 @@ export const apiService = {
             }
         }
     },
-    getShop2Screens: async (token, page,navigate) => {
+    getShop2Screens: async (token, page, navigate) => {
         try {
             const response = await axios.get(`${API_URL}/api/get_shop2_stock`, {
                 headers: {
@@ -219,13 +238,48 @@ export const apiService = {
                 status: response.status,
                 data: response.data
             };
-        } catch (e) {
-            if (e.response?.status === 401) {
-                navigate("/Login")
-                return { message: 'Unauthorized, please login again' };
+        } catch (error) {
+            let errorMessage = 'An error occurred';
+            let statusCode = error.response?.status || 500;
+
+            if (error.response) {
+                switch (statusCode) {
+                    case 400:
+                        errorMessage = 'Invalid authentication request';
+                        navigate('/Login');
+                        break;
+                    case 401:
+                        if (error.response.data.detail === 'Firebase token expired' || error.response.data.detail === 'Given token not valid for any token type') {
+                            try {
+                                const newAccessToken = await apiService.refreshAccessToken();
+                                return await apiService.getShop2Screens(newAccessToken, page, navigate);
+                            } catch (refreshError) {
+                                if (refreshError.response && refreshError.response.status === 401) {
+                                    errorMessage = 'Your session has expired. Please sign in again.';
+                                    // Clear stored tokens as they are no longer valid
+                                    localStorage.removeItem('access');
+                                    localStorage.removeItem('refresh');
+                                    navigate('/Login');
+                                } else {
+                                    errorMessage = 'An error occurred while refreshing your session.';
+                                }
+                            }
+                        } else {
+                            errorMessage = 'Invalid authentication credentials';
+                        }
+                        break;
+                    case 403:
+                        errorMessage = 'Your account is not authorized';
+                        break;
+                    default:
+                        errorMessage = error.response.data.detail || errorMessage;
+                }
             }
+
             return {
-                message: e.message
+                data: null,
+                message: errorMessage,
+                status: statusCode,
             };
         }
     },
@@ -252,7 +306,7 @@ export const apiService = {
             };
         }
     },
-    getSavedItems: async (token) => {
+    getSavedItems: async (token,navigate) => {
         try {
             const response = await axios.get(`${API_URL}/api/saved2`, {
                 headers: {
@@ -265,14 +319,43 @@ export const apiService = {
                 status: response.status,
                 data: response.data,
             };
-        } catch (e) {
-            if (e.response?.status === 401) {
-                return { message: 'Unauthorized, please login again' };
-            }
-            return {
-                message: e.message,
-            };
+        } catch (error) {
+            let errorMessage = 'An error occurred';
+            let statusCode = error.response?.status || 500;
+            if (error.response) {
+                switch (statusCode) {
+                    case 400:
+                        errorMessage = 'Invalid authentication request';
+                        navigate('/Login');
+                        break;
+                    case 401:
+                        if (error.response.data.detail === 'Firebase token expired' || error.response.data.detail === 'Given token not valid for any token type') {
+                            try {
+                                const newAccessToken = await apiService.refreshAccessToken();
+                                return await apiService.getSavedItems(newAccessToken, navigate);
+                            } catch (refreshError) {
+                                if (refreshError.response && refreshError.response.status === 401) {
+                                    errorMessage = 'Your session has expired. Please sign in again.';
+                                    // Clear stored tokens as they are no longer valid
+                                    localStorage.removeItem('access');
+                                    localStorage.removeItem('refresh');
+                                    navigate('/Login');
+                                } else {
+                                    errorMessage = 'An error occurred while refreshing your session.';
+                                }
+                            }
+                        } else {
+                            errorMessage = 'Invalid authentication credentials';
+                        }
+                        break;
+                    case 403:
+                        errorMessage = 'Your account is not authorized';
+                        break;
+                    default:
+                        errorMessage = error.response.data.detail || errorMessage;
+                }
         }
+    }
     },
     refundItem: async (token, id, setCancelButton) => {
         try {

@@ -69,7 +69,7 @@ export const  fetchAccessories =  (token,page,navigate,toast) => async (dispatch
 export const fetchUnpaidOrders =  (token,navigate,toast) => async (dispatch)=>{
     try {
         dispatch(setSavedLoading(true))
-        const {status,data} = await apiService.getSavedItems(token)
+        const {status,data} = await apiService.getSavedItems(token,navigate)
         if (status !== 200) {
             throw new Error("Unable to fetch data");
         }

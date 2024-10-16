@@ -54,6 +54,7 @@ const Signin = () => {
 
                         // Store JWT token
                         localStorage.setItem("access", data.access); // JWT token
+                        localStorage.setItem("refresh", data.refresh)
                         const { data: sequelizerData, status: sequelizerStatus } = await apiService.sequelizer_login({
                          firebaseToken
                         });
