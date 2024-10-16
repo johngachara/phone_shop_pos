@@ -3,7 +3,7 @@ const API_URL = import.meta.env.VITE_ALLTECH_URL
 export const apiService = {
      refreshAccessToken : async () => {
         try {
-            console.log("redres")
+            console.log("refresh")
             const refreshToken = localStorage.getItem('refresh');
             if (!refreshToken) {
                 throw new Error('No refresh token available');
