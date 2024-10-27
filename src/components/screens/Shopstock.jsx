@@ -43,9 +43,9 @@ export default function Shopstock() {
         if(token || isStale){
             dispatch(fetchShopData(token, currentPage,navigate,toast));
         }
-        // else {
-        //     navigate('/Login')
-        // }
+        else {
+            navigate('/Login')
+        }
 
     }, [currentPage, isStale]);
 
