@@ -1,6 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getMessaging, getToken, onMessage } from "firebase/messaging";
-import { getAuth,GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import { getAuth,GoogleAuthProvider, signInWithPopup,signInWithCustomToken } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 const firebaseConfig = {
     apiKey: import.meta.env.VITE_API_KEY,
@@ -22,5 +21,6 @@ export  {
     signInWithPopup,
     GoogleAuthProvider,
     firestore,
-    firebaseConfig
+    firebaseConfig,
+    signInWithCustomToken
 };

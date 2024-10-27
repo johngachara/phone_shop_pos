@@ -7,7 +7,7 @@ import {
 import Navbar from "../Navbar.jsx";
 import ChatbotWidget from "../ChatBotWidget.jsx";
 import {useDispatch, useSelector} from "react-redux";
-import {fetchShopData} from "components/redux/actions/shopActions.js";
+import {fetchShopData, setLoading} from "components/redux/actions/shopActions.js";
 import LcdBody from "components/screens/LcdBody.jsx";
 import {DeleteAlertDialog} from "components/dialogs/DeleteAlertDialog.jsx";
 import {UpdateDrawer} from "components/drawers/UpdateDrawer.jsx";
@@ -19,7 +19,8 @@ import {useDelete} from "components/hooks/useDelete.js";
 import {useNavigate} from "react-router-dom";
 export default function Shopstock() {
     const dispatch = useDispatch();
-    const { shopData, loading, error } = useSelector(state => state.shop);
+    const { shopData, loading, lastUpdated, staleTime } = useSelector(state => state.shop);
+    const isStale = lastUpdated && (Date.now() - lastUpdated > staleTime);
     const [searchParam, setSearchParam] = useState("");
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [deleteItemId, setDeleteItemId] = useState(null);
@@ -39,14 +40,14 @@ export default function Shopstock() {
     const toast  = useToast()
     const { handleDelete, delStates } = useDelete(token, currentPage, setSearchParam, setIsDeleteDialogOpen);
     useEffect(() => {
-        if(token){
+        if(token || isStale){
             dispatch(fetchShopData(token, currentPage,navigate,toast));
         }
-        else {
-            navigate('/Login')
-        }
+        // else {
+        //     navigate('/Login')
+        // }
 
-    }, [currentPage, token]);
+    }, [currentPage, isStale]);
 
     const handleUpdateClick = (item) => {
         setSelectedItemForUpdate(item);

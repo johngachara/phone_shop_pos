@@ -19,7 +19,7 @@ import {useSellAccessory} from "components/hooks/useSellAccessory.js";
 
 
 export default function Accessories() {
-    const { shopData, loading } = useSelector(state => state.accessory);
+    const { accessoryData, loading } = useSelector(state => state.accessory);
     const dispatch = useDispatch();
     const [searchParam, setSearchParam] = useState("");
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -97,7 +97,7 @@ export default function Accessories() {
                 setSearchParam={setSearchParam}
                 loading={loading || searchLoading}
                 searchResults={searchResults}
-                shopData={shopData}
+                shopData={accessoryData}
                 renderItems={renderItems}
                 currentPage={currentPage}
                 setCurrentPage={setCurrentPage}

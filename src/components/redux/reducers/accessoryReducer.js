@@ -1,19 +1,42 @@
-import { SET_ACCESSORY_DATA, SET_ACCESSORY_LOADING } from 'components/redux/actions/shopActions.js';
+import {STALE_TIME, updateState} from "components/redux/reducers/unpaidOrdersReducer.js";
+import {ACTIONS} from "components/redux/actions/shopActions.js";
 
-const initialState = {
-    accessoryData: null,
-    accessoryLoading: false
+
+// Accessory Reducer
+const accessoryInitialState = {
+    accessoryData: [],
+    loading: false,
+    error: null,
+    lastUpdated: null,
+    staleTime: STALE_TIME,
+    currentPage: 1,
+    hasMore: true
 };
 
-const accessoryReducer = (state = initialState, action) => {
+export const accessoryReducer = (state = accessoryInitialState, action) => {
     switch (action.type) {
-        case SET_ACCESSORY_DATA:
-            return { ...state, shopData: action.payload }; // misuse of shopData here.should have used accessory data but anyway it works.
-        case SET_ACCESSORY_LOADING:
-            return { ...state, loading: action.payload };
+        case ACTIONS.SET_ACCESSORY.DATA:
+            return updateState(state, {
+                accessoryData: action.payload,
+                error: null,
+                hasMore: action.payload.length > 0
+            });
+
+        case ACTIONS.SET_ACCESSORY.LOADING:
+            return updateState(state, {
+                loading: action.payload
+            });
+
+        case ACTIONS.SET_ERROR:
+            return updateState(state, {
+                error: action.payload,
+                loading: false
+            });
+
         default:
             return state;
     }
 };
+
 
 export default accessoryReducer;

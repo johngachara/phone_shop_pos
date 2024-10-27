@@ -12,7 +12,7 @@ const client = new Meilisearch({
 const useSearchAccessories = (searchParam) => {
     const [loading, setLoading] = useState(false);
     const dispatch = useDispatch();
-    const searchResults = useSelector(state => state.searchAccessory.accessoryResults);
+    const searchResults = useSelector(state => state.searchAccessory.results);
     const toast = useToast();
 
     useEffect(() => {

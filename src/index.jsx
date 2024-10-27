@@ -13,7 +13,8 @@ root.render(
 
     <ColorModeScript initialColorMode={theme.config.initialColorMode} />
     <Provider store={store}>
-    <App />
+            <App />
+
     </Provider>
     </ChakraProvider>
 );
