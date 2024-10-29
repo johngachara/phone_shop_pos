@@ -30,7 +30,9 @@ export default function LcdBody(props) {
         setDeleteItemId,
         setIsDeleteDialogOpen,
         currentPage,
-        setCurrentPage
+        setCurrentPage,
+        onLoadMore,
+        hasMore
     } = props;
 
     const { searchResults, loading: searchLoading } = useSearchScreens(searchParam);
@@ -94,21 +96,15 @@ export default function LcdBody(props) {
                     </Text>
                 )}
 
-                {searchResults.length === 0 && !loading && shopData && !searchLoading && (
+                {searchResults.length === 0 && !loading && shopData && !searchLoading  &&(
                     <HStack justify="center" spacing={4} mt={8} wrap="wrap">
-                        <Button
-                            onClick={() => setCurrentPage((prev) => prev - 1)}
-                            isDisabled={currentPage === 1}
-                            size={{ base: "sm", md: "md" }}
-                        >
-                            Previous
-                        </Button>
-                        <Button
-                            onClick={() => setCurrentPage((prev) => prev + 1)}
-                            size={{ base: "sm", md: "md" }}
-                        >
-                            Next
-                        </Button>
+                            <Button
+                                onClick={onLoadMore}
+                                isLoading={loading}
+                                mt={4}
+                            >
+                                Load More
+                            </Button>
                     </HStack>
                 )}
             </VStack>

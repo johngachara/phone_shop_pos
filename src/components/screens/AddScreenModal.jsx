@@ -15,10 +15,9 @@ import {
     useToast,
     FormErrorMessage
 } from "@chakra-ui/react";
-import { apiService } from "../../apiService.js";
+import useScreenStore from "components/zuhan/useScreenStore.js";
 
 const AddScreenModal = ({ isOpen, onClose }) => {
-    const [saving, setSaving] = useState(false);
     const [data, setData] = useState({
         product_name: "",
         quantity: "",
@@ -26,8 +25,8 @@ const AddScreenModal = ({ isOpen, onClose }) => {
     });
 
     const [errors, setErrors] = useState({});
-    const token = localStorage.getItem("access");
     const toast = useToast();
+    const { addScreen, isAddLoading } = useScreenStore();
 
     const handleChange = (event) => {
         const { name, value } = event.target;
@@ -37,7 +36,7 @@ const AddScreenModal = ({ isOpen, onClose }) => {
         }));
         setErrors((prevErrors) => ({
             ...prevErrors,
-            [name]: "", // Clear error for the edited field
+            [name]: "",
         }));
     };
 
@@ -58,40 +57,32 @@ const AddScreenModal = ({ isOpen, onClose }) => {
         return Object.keys(newErrors).length === 0;
     };
 
-    const handleSubmit = async (event) => {
-        event.preventDefault();
-        if (!validate()) {
-            return; // Stop submission if validation fails
-        }
+    const handleSave = async () => {
+        if (!validate()) return;
 
         try {
-            setSaving(true);
-            const { status, message } = await apiService.addScreens(token, data);
+            const { status, message } = await addScreen(data);
             if (status === 200) {
                 toast({
                     status: "success",
                     description: "Item added successfully",
                     position: "top",
                 });
-                onClose();
                 setData({
                     product_name: "",
                     quantity: "",
                     price: "",
                 });
+                onClose()
             } else {
-                throw new Error(
-                    message || "Unable to add product. Ensure the product does not already exist."
-                );
+                throw new Error(message || "Unable to add product. Ensure the product does not already exist.");
             }
         } catch (err) {
             toast({
                 status: "error",
                 position: "top",
-                description: err.message,
+                description: err.message || "An error occurred.",
             });
-        } finally {
-            setSaving(false);
         }
     };
 
@@ -101,63 +92,62 @@ const AddScreenModal = ({ isOpen, onClose }) => {
             <ModalContent>
                 <ModalHeader color={textColor}>Add Shop 2 Screens</ModalHeader>
                 <ModalCloseButton />
-                <form onSubmit={handleSubmit}>
-                    <ModalBody>
-                        {/* Product Name Field */}
-                        <FormControl isInvalid={!!errors.product_name} mb={4}>
-                            <FormLabel>Product Name</FormLabel>
-                            <Input
-                                type="text"
-                                value={data.product_name}
-                                onChange={handleChange}
-                                name="product_name"
-                                required={true}
-                            />
-                            <FormErrorMessage>{errors.product_name}</FormErrorMessage>
-                        </FormControl>
 
-                        {/* Quantity Field */}
-                        <FormControl isInvalid={!!errors.quantity} mb={4}>
-                            <FormLabel>Quantity</FormLabel>
-                            <Input
-                                type="number"
-                                value={data.quantity}
-                                onChange={handleChange}
-                                name="quantity"
-                                required={true}
-                            />
-                            <FormErrorMessage>{errors.quantity}</FormErrorMessage>
-                        </FormControl>
+                <ModalBody>
+                    {/* Product Name Field */}
+                    <FormControl isInvalid={!!errors.product_name} mb={4}>
+                        <FormLabel>Product Name</FormLabel>
+                        <Input
+                            type="text"
+                            value={data.product_name}
+                            onChange={handleChange}
+                            name="product_name"
+                            required
+                        />
+                        <FormErrorMessage>{errors.product_name}</FormErrorMessage>
+                    </FormControl>
 
-                        {/* Price Field */}
-                        <FormControl isInvalid={!!errors.price} mb={6}>
-                            <FormLabel>Selling Price</FormLabel>
-                            <Input
-                                type="number"
-                                value={data.price}
-                                onChange={handleChange}
-                                name="price"
-                                required={true}
-                            />
-                            <FormErrorMessage>{errors.price}</FormErrorMessage>
-                        </FormControl>
-                    </ModalBody>
+                    {/* Quantity Field */}
+                    <FormControl isInvalid={!!errors.quantity} mb={4}>
+                        <FormLabel>Quantity</FormLabel>
+                        <Input
+                            type="number"
+                            value={data.quantity}
+                            onChange={handleChange}
+                            name="quantity"
+                            required
+                        />
+                        <FormErrorMessage>{errors.quantity}</FormErrorMessage>
+                    </FormControl>
 
-                    <ModalFooter>
-                        <Button
-                            type="submit"
-                            colorScheme="blue"
-                            isLoading={saving}
-                            loadingText="Saving"
-                            mr={3}
-                        >
-                            Save
-                        </Button>
-                        <Button variant="ghost" onClick={onClose}>
-                            Cancel
-                        </Button>
-                    </ModalFooter>
-                </form>
+                    {/* Price Field */}
+                    <FormControl isInvalid={!!errors.price} mb={6}>
+                        <FormLabel>Selling Price</FormLabel>
+                        <Input
+                            type="number"
+                            value={data.price}
+                            onChange={handleChange}
+                            name="price"
+                            required
+                        />
+                        <FormErrorMessage>{errors.price}</FormErrorMessage>
+                    </FormControl>
+                </ModalBody>
+
+                <ModalFooter>
+                    <Button
+                        onClick={handleSave}
+                        colorScheme="blue"
+                        isLoading={isAddLoading}
+                        loadingText="Saving"
+                        mr={3}
+                    >
+                        Save
+                    </Button>
+                    <Button variant="ghost" onClick={onClose}>
+                        Cancel
+                    </Button>
+                </ModalFooter>
             </ModalContent>
         </Modal>
     );

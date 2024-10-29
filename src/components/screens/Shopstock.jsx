@@ -1,4 +1,4 @@
-import  { useState, useEffect } from "react";
+import {useState, useEffect, useCallback} from "react";
 import {
     Box,
     useColorModeValue,
@@ -6,22 +6,19 @@ import {
 } from "@chakra-ui/react";
 import Navbar from "../Navbar.jsx";
 import ChatbotWidget from "../ChatBotWidget.jsx";
-import {useDispatch, useSelector} from "react-redux";
-import {fetchShopData, setLoading} from "components/redux/actions/shopActions.js";
 import LcdBody from "components/screens/LcdBody.jsx";
 import {DeleteAlertDialog} from "components/dialogs/DeleteAlertDialog.jsx";
 import {UpdateDrawer} from "components/drawers/UpdateDrawer.jsx";
 import {SellDrawer} from "components/drawers/SellDrawer.jsx";
-import {useSellScreens} from "components/hooks/useSellScreens.js";
-import {useUpdateScreens} from "components/hooks/useUpdateScreens.js";
-import {useSellComplete} from "components/hooks/useSellComplete.js";
-import {useDelete} from "components/hooks/useDelete.js";
 import {useNavigate} from "react-router-dom";
+import useScreenStore from "components/zuhan/useScreenStore.js";
 export default function Shopstock() {
-    const dispatch = useDispatch();
-    const { shopData, loading, lastUpdated, staleTime } = useSelector(state => state.shop);
-    const isStale = lastUpdated && (Date.now() - lastUpdated > staleTime);
+
     const [searchParam, setSearchParam] = useState("");
+
+    const { data : shopData ,isLoading : isLoadingData,fetchScreens,fetchNextPage,updateScreen,isUpdateLoading,isDeletingLoading
+        ,isSellingLoading,sellScreen,deleteScreen ,completeScreen,isCompleting} = useScreenStore()
+
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [deleteItemId, setDeleteItemId] = useState(null);
     const [currentPage, setCurrentPage] = useState(1);
@@ -29,25 +26,94 @@ export default function Shopstock() {
     const [sellingPrice, setSellingPrice] = useState(0);
     const [customer, setCustomer] = useState("");
     const [buttonStates, setButtonStates] = useState({});
-    const token = localStorage.getItem("access");
-    const { handleSell } = useSellScreens(token, setButtonStates,setCustomer,setSearchParam);
-    const {handleUpdate} = useUpdateScreens(token,setButtonStates)
-    const { handleComplete } = useSellComplete(token, setButtonStates,setCustomer,setSearchParam);
+  //  const { handleComplete } = useSellComplete(token, setButtonStates,setCustomer,setSearchParam);
     const { isOpen, onOpen, onClose } = useDisclosure();
     const [selectedItemForUpdate, setSelectedItemForUpdate] = useState(null);
     const { isOpen: isUpdateDrawerOpen, onOpen: onUpdateDrawerOpen, onClose: onUpdateDrawerClose } = useDisclosure();
     const navigate = useNavigate()
     const toast  = useToast()
-    const { handleDelete, delStates } = useDelete(token, currentPage, setSearchParam, setIsDeleteDialogOpen);
-    useEffect(() => {
-        if(token || isStale){
-            dispatch(fetchShopData(token, currentPage,navigate,toast));
-        }
-        else {
-            navigate('/Login')
-        }
+    const handleUpdateSubmit = async (itemData) => {
+        try {
+            const result = await updateScreen(itemData, setSearchParam,onUpdateDrawerClose);
+            toast({
+                status: "success",
+                description: "Item updated successfully",
+                position: "top"
+            });
 
-    }, [currentPage, isStale]);
+
+        } catch (error) {
+            toast({
+                status: "error",
+                description: error.message,
+                position: "top",
+            });
+        }
+    };
+
+    const handleDelete = async (id) => {
+        try {
+            const result = await deleteScreen(id, setSearchParam,setIsDeleteDialogOpen);
+            toast({
+                status: "success",
+                description: "Item deleted successfully",
+                position: "top"
+            });
+
+
+        } catch (error) {
+            toast({
+                status: "error",
+                description: error.message,
+                position: "top",
+            });
+        }
+    };
+
+    const handleSell = async (item, price, customer) => {
+        try{
+            const result = await sellScreen(item.id,{...item,price:price,customer_name:customer,quantity:1},setSearchParam,onClose)
+            toast({
+                status : "success",
+                description : "Item sold successfully",
+                position: "top"
+            })
+            setCustomer("")
+        }
+        catch (err){
+            toast({
+                status : "error",
+                description : err.message,
+                position: "top"
+            })
+        }
+    };
+    useEffect(()=>{
+        fetchScreens()
+    },[fetchScreens])
+    const handleComplete = async (item, price, customer) => {
+        try{
+            const result = await completeScreen(item.id,{...item,price:price,customer_name:customer,quantity:1},setSearchParam,onClose)
+            toast({
+                status : "success",
+                description : "Item sold successfully",
+                position: "top"
+            })
+            setCustomer("")
+        }
+        catch (err){
+            toast({
+                status : "error",
+                description : err.message,
+                position: "top"
+            })
+        }
+    }
+    const handleLoadMore = () => {
+        if (!isLoadingData ) {
+            fetchNextPage();
+        }
+    };
 
     const handleUpdateClick = (item) => {
         setSelectedItemForUpdate(item);
@@ -58,11 +124,7 @@ export default function Shopstock() {
         setSelectedItemForUpdate(updatedItem);
     };
 
-    const handleUpdateSubmit = () => {
-        if (selectedItemForUpdate) {
-            handleUpdate(selectedItemForUpdate, selectedItemForUpdate, onUpdateDrawerClose, currentPage);
-        }
-    };
+
 
 
     const handleSellClick = (item) => {
@@ -95,7 +157,7 @@ export default function Shopstock() {
             <LcdBody
                 searchParam={searchParam}
                 setSearchParam={setSearchParam}
-                loading={loading}
+                loading={isLoadingData}
                 shopData={shopData}
                 handleSellClick={handleSellClick}
                 handleUpdateClick={handleUpdateClick}
@@ -104,6 +166,8 @@ export default function Shopstock() {
                 setIsDeleteDialogOpen={setIsDeleteDialogOpen}
                 currentPage={currentPage}
                 setCurrentPage={setCurrentPage}
+                onLoadMore={handleLoadMore}
+                //hasMore={hasMore}
             />
 
             <ChatbotWidget />
@@ -111,7 +175,7 @@ export default function Shopstock() {
                 isOpen={isDeleteDialogOpen}
                 onClose={() => setIsDeleteDialogOpen(false)}
                 onDelete={() => handleDelete(deleteItemId)}
-                isLoading={delStates[deleteItemId]}
+                isLoading={isDeletingLoading}
             />
             <SellDrawer
                 isOpen={isOpen}
@@ -123,7 +187,10 @@ export default function Shopstock() {
                 onCustomerChange={(e) => setCustomer(e.target.value.toLowerCase())}
                 onSell={() => handleSell(selectedItem, sellingPrice, customer, onClose)}
                 onComplete={() => handleComplete(selectedItem, sellingPrice, customer, onClose)}
-                buttonStates={buttonStates}
+                buttonStates={{
+                    sell: isSellingLoading,
+                   complete: isCompleting
+                }}
             />
             <UpdateDrawer
                 isOpen={isUpdateDrawerOpen}
@@ -131,7 +198,7 @@ export default function Shopstock() {
                 selectedItem={selectedItemForUpdate}
                 onItemChange={handleItemChange}
                 onUpdate={handleUpdateSubmit}
-                isLoading={buttonStates.update}
+                isLoading={isUpdateLoading}
             />
         </Box>
     );

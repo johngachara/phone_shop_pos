@@ -12,7 +12,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { FaSearch } from "react-icons/fa";
 import RenderUnpaidOrders from "components/unpaid/RenderUnpaidOrders.jsx";
-import {useSelector} from "react-redux";
+import useUnpaidStore from "components/zuhan/useUnpaidStore.js";
 const MotionBox = motion(Box)
 
 
@@ -28,7 +28,7 @@ const UnpaidOrdersBody = ({
                               complete,
                               setRefundId
                           }) => {
-    const {loading} = useSelector(state => state.savedOrders);
+    const {isLoading} = useUnpaidStore()
     // Ensure filteredData is always an array
     const filteredData = Array.isArray(savedData) ? savedData.filter(item =>
         Object.values(item).some(value =>
@@ -60,7 +60,7 @@ const UnpaidOrdersBody = ({
                             }
                             return (
                                 <RenderUnpaidOrders
-                                    key={item.id || index}
+                                    key={ index}
                                     item={item}
                                     index={index}
                                     cardBgColor={cardBgColor}
@@ -75,7 +75,7 @@ const UnpaidOrdersBody = ({
                         })}
                     </SimpleGrid>
                 ) : (
-                    loading ? (
+                    isLoading ? (
                         <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={{ base: 4, md: 6, lg: 8 }}>
                             {[...Array(6)].map((_, index) => (
                                 <MotionBox

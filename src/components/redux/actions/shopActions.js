@@ -1,12 +1,14 @@
 import { apiService } from "../../../apiService.js";
 import { useNavigate } from "react-router-dom";
+import authService from "components/authService.js";
 
 // Action Types
 export const ACTIONS = {
     SET_SHOP: {
         DATA: 'shop/setData',
         LOADING: 'shop/setLoading',
-        ERROR: 'shop/setError'
+        ERROR: 'shop/setError',
+        UPDATE_ITEM: 'shop/updateItem'
     },
     SET_ACCESSORY: {
         DATA: 'accessory/setData',
@@ -23,6 +25,12 @@ export const ACTIONS = {
     }
 };
 
+// Add a new action creator for updates
+export const updateShopItem = (itemData) => ({
+    type: ACTIONS.SET_SHOP.UPDATE_ITEM,
+    payload: itemData
+});
+
 // Action Creators
 const createAction = (type) => (payload) => ({ type, payload });
 
@@ -38,28 +46,87 @@ export const removeSavedItem = createAction(ACTIONS.SET_SAVED.REMOVE_ITEM);
 export const setSearchResults = createAction(ACTIONS.SET_SEARCH.RESULTS);
 export const setAccessorySearchResults = createAction(ACTIONS.SET_SEARCH.ACCESSORY_RESULTS);
 
-// Thunk for handling API errors
-const handleApiError = (error, toast, customMessage = null) => {
-    console.error(error);
-    toast({
-        status: 'error',
-        description: customMessage || error.message,
-        position: 'top',
-        duration: 3000,
-        isClosable: true,
-    });
+
+export const updateShopItemThunk = (token, itemData, id) => async (dispatch) => {
+    try {
+        const response = await authService.axiosInstance.put(`/api/update_stock2/${id}`, itemData);
+
+        if (response.status === 200) {
+            // Update with the server response data
+            dispatch(updateShopItem({
+                ...itemData,  // Use the updated data
+                id: id
+            }));
+
+            // Don't fetch the entire shop data after update
+            return { status: response.status };
+        } else {
+            throw new Error('Update failed');
+        }
+    } catch (error) {
+        // Only refresh on error
+        await dispatch(fetchShopData(token, 1));
+        throw error;
+    }
 };
 
-// Thunks with optimistic updates and proper error handling
-export const fetchShopData = (token, page, navigate, toast) => async (dispatch) => {
+// Modify fetchShopData to preserve updates
+export const fetchShopData = (token, page, navigate, toast) => async (dispatch, getState) => {
     dispatch(setLoading(true));
     try {
-        const { data } = await apiService.getShop2Screens(token, page, navigate,dispatch,toast,setLoading);
-        dispatch(setShopData(data.results));
+        const response = await authService.axiosInstance.get('/api/get_shop2_stock', {
+            params: { page }
+        });
+
+        if (response.status === 200) {
+            const currentState = getState().shop;
+            const newData = response.data.results;
+
+            // Merge existing updated items with new data
+            const mergedResults = newData.map(newItem => {
+                const existingItem = currentState.shopData.find(item => item.id === newItem.id);
+                if (existingItem && existingItem.lastUpdated > currentState.lastFetch) {
+                    return existingItem;
+                }
+                return newItem;
+            });
+
+            dispatch({
+                type: ACTIONS.SET_SHOP.DATA,
+                payload: {
+                    ...response.data,
+                    results: mergedResults
+                }
+            });
+        }
+
+        return response;
     } catch (error) {
-         console.error(error)
+        dispatch({
+            type: ACTIONS.SET_SHOP.ERROR,
+            payload: error.message
+        });
+        throw error;
     } finally {
         dispatch(setLoading(false));
+    }
+};
+
+// Add a new action to handle server-side updates
+export const syncShopData = (token) => async (dispatch) => {
+    try {
+        const response = await authService.axiosInstance.get('/api/get_shop2_stock', {
+            params: { page: 1 }
+        });
+
+        if (response.status === 200) {
+            dispatch({
+                type: ACTIONS.SET_SHOP.DATA,
+                payload: response.data
+            });
+        }
+    } catch (error) {
+        console.error('Failed to sync shop data:', error);
     }
 };
 

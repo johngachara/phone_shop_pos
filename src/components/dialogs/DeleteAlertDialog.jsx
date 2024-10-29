@@ -11,7 +11,6 @@ import { useRef } from "react";
 
 export function DeleteAlertDialog({ isOpen, onClose, onDelete, isLoading }) {
     const cancelRef = useRef();
-
     return (
         <AlertDialog
             isOpen={isOpen}

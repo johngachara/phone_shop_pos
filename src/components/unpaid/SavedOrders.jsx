@@ -11,12 +11,11 @@ import UnpaidOrdersBody from "components/unpaid/UnpaidOrdersBody.jsx";
 import UnpaidOrdersDialog from "components/dialogs/UnpaidOrdersDialog.jsx";
 import {fetchUnpaidOrders, handleItemRemoval, setSavedLoading} from "components/redux/actions/shopActions.js";
 import { useDispatch, useSelector } from "react-redux";
+import useUnpaidStore from "components/zuhan/useUnpaidStore.js";
 
 export default function SavedOrders() {
     const toast = useToast();
-    const dispatch = useDispatch();
-    const { savedData, lastUpdated, staleTime } = useSelector(state => state.savedOrders);
-    const isStale = lastUpdated && (Date.now() - lastUpdated > staleTime);
+    const {unpaidOrders ,fetchUnpaidOrders ,refundOrder,isRefunding,isCompleting,completeOrder} = useUnpaidStore()
     const [sending, setSending] = useState({});
     const [loadState, setLoadState] = useState({});
     const token = localStorage.getItem("access");
@@ -28,40 +27,44 @@ export default function SavedOrders() {
 
     // Only fetch on mount and when data is stale
     useEffect(() => {
-        if (!token) {
-            navigate('/Login');
-            return;
-        }
-            dispatch(fetchUnpaidOrders(token, navigate,dispatch ,toast,setSavedLoading));
-    }, [dispatch, isStale]);
+            fetchUnpaidOrders()
+    }, [fetchUnpaidOrders]);
 
-    const complete = useCallback(async (id) => {
-        setLoadState((prevState) => ({ ...prevState, [id]: true }));
+    const complete = async (id) => {
         try {
-            await dispatch(handleItemRemoval(id, token, navigate, toast, 'complete'));
+            const result = await completeOrder(id)
+            if(result.success){
+                toast({
+                    status: 'success',
+                    description: 'Order Completed Successfully',
+                    position: 'bottom-right'
+                });
+            }
         } catch (error) {
             toast({
                 status: 'error',
                 description: error.message,
                 position: 'bottom-right'
             });
-        } finally {
-            setLoadState((prevState) => ({ ...prevState, [id]: false }));
         }
-    }, [token, dispatch]);
+    };
 
     const refund = async (id) => {
-        setSending((prevState) => ({ ...prevState, [id]: true }));
         try {
-            await dispatch(handleItemRemoval(id, token, navigate, toast, 'refund'));
+            const result = await refundOrder(id)
+            if(result.success){
+                toast({
+                    status: 'success',
+                    description: 'Order Refunded Successfully',
+                    position: 'bottom-right'
+                });
+            }
         } catch (error) {
             toast({
                 status: 'error',
                 description: error.message,
                 position: 'bottom-right'
             });
-        } finally {
-            setSending((prevState) => ({ ...prevState, [id]: false }));
         }
     };
 
@@ -88,10 +91,10 @@ export default function SavedOrders() {
                 <UnpaidOrdersBody
                     searchTerm={searchTerm}
                     setSearchTerm={setSearchTerm}
-                    savedData={savedData}
+                    savedData={unpaidOrders}
                     cardBgColor={cardBgColor}
-                    sending={sending}
-                    loadState={loadState}
+                    sending={isRefunding}
+                    loadState={isCompleting}
                     setDialogOpen={setDialogOpen}
                     textColor={textColor}
                     complete={complete}
@@ -103,7 +106,7 @@ export default function SavedOrders() {
                 cancelRef={cancelRef}
                 cancelButton={cancelButton}
                 setDialogOpen={setDialogOpen}
-                sending={sending}
+                sending={isRefunding}
                 refundId={refundId}
                 handleRefund={handleRefund}
             />

@@ -7,6 +7,7 @@ const MotionBox = motion(Box);
 export default function RenderUnpaidOrders({item, index, cardBgColor, textColor, complete, loadState, sending, setRefundId, setDialogOpen}) {
     return(
         <MotionBox
+            key={index}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}

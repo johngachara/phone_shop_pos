@@ -27,7 +27,7 @@ const useCheckRole = () => {
                 if (userDoc.exists()) {
                     const userData = userDoc.data();  // Extract user data
                     if (userData.role) {
-                        setRole(userData.role);  // Set the role (e.g., "admin" or "user")
+                        setRole(userData.role);  // Set the role ( "admin" or "user")
                     }else {
                         setRole(null)
                     }

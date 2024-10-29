@@ -222,27 +222,13 @@ export const apiService = {
             };
         }
     },
-
-    addScreens: async (token, data) => {
-        try {
-            const response = await authService.axiosInstance.post('/api/add_stock2', data);
-            return {
-                status: response.status
-            };
-        } catch (e) {
-            const errorData = e.response.data;
-            const errorMessages = Object.entries(errorData).map(([field, messages]) => {
-                return `${field}: ${messages[0].replace("sho p2_stoc k_fix", "This product")}`;
-            });
-            return {
-                message: errorMessages || 'An error occurred while adding product',
-            };
-        }
-    },
-
     addAccessories: async (token, data) => {
         try {
-            const response = await axios.post(`${API_URL}/nodeapp/Add`, data);
+            const response = await axios.post(`${API_URL}/nodeapp/Add`, data, { headers: {
+                'Content-Type': 'application/json' ,
+                    Authorization: `Bearer ${token}`
+
+            } });
             return {
                 status: response.status
             };
@@ -254,41 +240,14 @@ export const apiService = {
         }
     },
 
-    updateScreens: async (token, data, id) => {
-        try {
-            const response = await authService.axiosInstance.put(`/api/update_stock2/${id}`, data);
-            return {
-                status: response.status,
-            };
-        } catch (e) {
-            const errorData = e.response?.data;
-
-            if (errorData) {
-                const fieldErrors = {};
-                for (const field in errorData) {
-                    if (errorData.hasOwnProperty(field)) {
-                        const errorArray = errorData[field];
-                        if (Array.isArray(errorArray) && errorArray.length > 0) {
-                            fieldErrors[field] = errorArray[0].string || 'Invalid value';
-                        }
-                    }
-                }
-                return {
-                    status: e.response.status,
-                    message: 'Validation failed',
-                    errors: fieldErrors,
-                };
-            }
-            return {
-                status: e.response?.status || 500,
-                message: 'An error occurred while updating product',
-            };
-        }
-    },
 
     updateAccessories: async (token, data, id) => {
         try {
-            const response = await axios.put(`${API_URL}/nodeapp/Update/${id}`, data);
+            const response = await axios.put(`${API_URL}/nodeapp/Update/${id}`, data,{ headers: {
+                    'Content-Type': 'application/json' ,
+                    Authorization: `Bearer ${token}`
+
+                } });
             return {
                 status: response.status,
             };
@@ -299,51 +258,13 @@ export const apiService = {
             };
         }
     },
-
-    sellScreens: async (token, data, id) => {
-        try {
-            const response = await authService.axiosInstance.post(`/api/sell2/${id}`, data);
-            console.log(response);
-            return {
-                status: response.status,
-                data: response.data
-            };
-        } catch (e) {
-            return {
-                message: e.message
-            };
-        }
-    },
-
-    completeOrder: async (token, id) => {
-        try {
-            const response = await authService.axiosInstance.post(`/api/complete2/${id}`, {});
-            return {
-                status: response.status,
-            };
-        } catch (e) {
-            return {
-                message: e.message
-            };
-        }
-    },
-
-    deleteScreen: async (token, id) => {
-        try {
-            const response = await authService.axiosInstance.delete(`/api/delete_stock2_api/${id}`);
-            return {
-                status: response.status,
-            };
-        } catch (e) {
-            return {
-                message: e.message
-            };
-        }
-    },
-
     deleteAccessory: async (token, id) => {
         try {
-            const response = await authService.axiosInstance.delete(`/nodeapp/Delete/${id}`);
+            const response = await authService.axiosInstance.delete(`/nodeapp/Delete/${id}`,{ headers: {
+                    'Content-Type': 'application/json' ,
+                    Authorization: `Bearer ${token}`
+
+                } });
             return {
                 status: response.status,
             };
@@ -354,26 +275,7 @@ export const apiService = {
         }
     },
 
-    getShop2Screens : async (token, page, navigate, dispatch, toast,setLoading) => {
-        try {
-            const response = await authService.axiosInstance.get('/api/get_shop2_stock', {
-                params: { page }
-            });
-            return {
-                status: response.status,
-                data: response.data
-            };
-        } catch (error) {
-            return apiService.handleApiError(
-                error,
-                () => apiService.getShop2Screens(token, page, navigate, dispatch, toast,setLoading),
-                navigate,
-                dispatch,
-                setLoading,
-                toast
-            );
-        }
-    },
+
 
     getAccessories : async (token, page, navigate, dispatch, toast ,setAccessoryLoading) => {
         try {
@@ -402,46 +304,14 @@ export const apiService = {
         }
     },
 
-    getSavedItems : async (token, navigate, dispatch, toast,setSavedLoading) => {
-        try {
-            const response = await authService.axiosInstance.get('/api/saved2');
-            return {
-                status: response.status,
-                data: response.data,
-            };
-        } catch (error) {
-            return this.handleApiError(
-                error,
-                () => this.getSavedItems(token, navigate, dispatch, toast,setSavedLoading),
-                navigate,
-                dispatch,
-                setSavedLoading,
-                toast
-            );
-        }
-    },
-
-    refundItem: async (token, id, setCancelButton) => {
-        try {
-            const response = await authService.axiosInstance.get(`/api/refund2/${id}`);
-            if (response.status === 200) {
-                return {
-                    status: response.status,
-                    message: "Refund successful",
-                };
-            }
-            setCancelButton(false);
-            throw new Error("Error while refunding occurred");
-        } catch (e) {
-            return {
-                message: e.message,
-            };
-        }
-    },
 
     sellAccessory: async (token, selectedItemId, dataToSend) => {
         try {
-            const response = await axios.post(`${API_URL}/nodeapp/Save/${selectedItemId}`, dataToSend);
+            const response = await axios.post(`${API_URL}/nodeapp/Save/${selectedItemId}`, dataToSend,{ headers: {
+                    'Content-Type': 'application/json' ,
+                    Authorization: `Bearer ${token}`
+
+                } });
             if (response.status === 200) {
                 return {
                     status: response.status,

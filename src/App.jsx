@@ -24,7 +24,9 @@ function App() {
                     <Route path="/Login" element={<Signin />} />
                     <Route path="/AddScreen" element={<AddScreen />} />
                     <Route path="/SavedOrders" element={<SavedOrders />} />
+                    {/*
                     <Route path="/Accessories" element={<Accessories />} />
+                    */}
                     <Route path="/Add" element={<AddAccesory />} />
                     <Route path="/Admin" element={<Dashboard />} />
                     <Route path="/detailed" element={<DetailedDataView />} />
