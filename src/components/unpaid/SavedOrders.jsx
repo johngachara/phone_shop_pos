@@ -1,16 +1,15 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
     Box,
     Heading,
     useColorModeValue,
-    Container, useToast
+    Container,
+    useToast
 } from "@chakra-ui/react";
 import Navbar from "../Navbar.jsx";
 import { useNavigate } from "react-router-dom";
 import UnpaidOrdersBody from "components/unpaid/UnpaidOrdersBody.jsx";
 import UnpaidOrdersDialog from "components/dialogs/UnpaidOrdersDialog.jsx";
-import {fetchUnpaidOrders, handleItemRemoval, setSavedLoading} from "components/redux/actions/shopActions.js";
-import { useDispatch, useSelector } from "react-redux";
 import useUnpaidStore from "components/zuhan/useUnpaidStore.js";
 
 export default function SavedOrders() {
@@ -22,101 +21,126 @@ export default function SavedOrders() {
         isRefunding,
         isCompleting,
         completeOrder,
-        hasHydrated,
-        isLoading
+        hasHydrated
     } = useUnpaidStore();
-    const [sending, setSending] = useState({});
-    const [loadState, setLoadState] = useState({});
-    const token = localStorage.getItem("access");
-    const navigate = useNavigate();
-    const cancelRef = useRef();
+
     const [isDialogOpen, setDialogOpen] = useState(false);
     const [refundId, setRefundId] = useState(null);
-    const [mounted, setMounted] = useState(false);
     const [cancelButton, setCancelButton] = useState(false);
+    const [searchTerm, setSearchTerm] = useState("");
+    const refreshIntervalRef = useRef(null);
+    const isProcessingRef = useRef(false);
+
+    // Initialize component
     useEffect(() => {
-        setMounted(true);
+        let isMounted = true;
 
         const loadData = async () => {
+            if (isProcessingRef.current) return; // Skip if processing an action
+
             try {
-                // Force fetch on mount
                 const result = await fetchUnpaidOrders();
-                if (!result.success) {
+                if (!result.success && isMounted) {
                     toast({
                         status: 'error',
                         description: result.error || 'Failed to fetch unpaid orders',
-                        position: 'bottom-right'
+                        position: 'bottom-right',
+                        isClosable: true
                     });
                 }
             } catch (error) {
-                console.error('Error fetching unpaid orders:', error);
-                toast({
-                    status: 'error',
-                    description: 'Failed to fetch unpaid orders',
-                    position: 'bottom-right'
-                });
+                if (isMounted) {
+                    console.error('Error fetching unpaid orders:', error);
+                    toast({
+                        status: 'error',
+                        description: 'Failed to fetch unpaid orders',
+                        position: 'bottom-right',
+                        isClosable: true
+                    });
+                }
             }
         };
 
-        loadData();
+        // Initial load
+        if (hasHydrated) {
+            loadData();
+        }
 
         // Set up refresh interval
-        const refreshInterval = setInterval(loadData, 30000);
+        refreshIntervalRef.current = setInterval(loadData, 30000);
 
         return () => {
-            setMounted(false);
-            clearInterval(refreshInterval);
+            isMounted = false;
+            if (refreshIntervalRef.current) {
+                clearInterval(refreshIntervalRef.current);
+            }
         };
-    }, []);
+    }, [hasHydrated]);
 
-    // Show loading state while fetching
-    useEffect(() => {
-        if (mounted && isLoading) {
-            toast({
-                status: 'loading',
-                description: 'Fetching unpaid orders...',
-                position: 'bottom-right',
-                duration: 1000
-            });
+    const pauseRefresh = () => {
+        isProcessingRef.current = true;
+        if (refreshIntervalRef.current) {
+            clearInterval(refreshIntervalRef.current);
         }
-    }, [isLoading, mounted]);
+    };
 
+    const resumeRefresh = () => {
+        isProcessingRef.current = false;
+        const loadData = async () => {
+            try {
+                await fetchUnpaidOrders();
+            } catch (error) {
+                console.error('Error in refresh:', error);
+            }
+        };
+        refreshIntervalRef.current = setInterval(loadData, 30000);
+    };
 
     const complete = async (id) => {
+        pauseRefresh();
         try {
-            const result = await completeOrder(id)
-            if(result.success){
+            const result = await completeOrder(id);
+            if (result.success) {
                 toast({
                     status: 'success',
                     description: 'Order Completed Successfully',
-                    position: 'bottom-right'
+                    position: 'bottom-right',
+                    isClosable: true
                 });
             }
         } catch (error) {
             toast({
                 status: 'error',
                 description: error.message,
-                position: 'bottom-right'
+                position: 'bottom-right',
+                isClosable: true
             });
+        } finally {
+            resumeRefresh();
         }
     };
 
     const refund = async (id) => {
+        pauseRefresh();
         try {
-            const result = await refundOrder(id)
-            if(result.success){
+            const result = await refundOrder(id);
+            if (result.success) {
                 toast({
                     status: 'success',
                     description: 'Order Refunded Successfully',
-                    position: 'bottom-right'
+                    position: 'bottom-right',
+                    isClosable: true
                 });
             }
         } catch (error) {
             toast({
                 status: 'error',
                 description: error.message,
-                position: 'bottom-right'
+                position: 'bottom-right',
+                isClosable: true
             });
+        } finally {
+            resumeRefresh();
         }
     };
 
@@ -131,7 +155,6 @@ export default function SavedOrders() {
     const bgColor = useColorModeValue("white", "gray.800");
     const cardBgColor = useColorModeValue("white", "gray.800");
     const headingColor = useColorModeValue("gray.800", "white");
-    const [searchTerm, setSearchTerm] = useState("");
 
     return (
         <Box bg={bgColor} minH="100vh" ml={{ base: 0, md: 64 }} transition="margin-left 0.2s ease">
@@ -155,7 +178,7 @@ export default function SavedOrders() {
             </Container>
             <UnpaidOrdersDialog
                 isDialogOpen={isDialogOpen}
-                cancelRef={cancelRef}
+                cancelRef={useRef()}
                 cancelButton={cancelButton}
                 setDialogOpen={setDialogOpen}
                 sending={isRefunding}

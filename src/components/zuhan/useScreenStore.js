@@ -147,17 +147,24 @@ const useScreenStore = create(
                                     : item
                             ),
                             isSellingLoading: false
-                        }), false, { type: 'SELL_SCREEN' });
+                        }));
 
                         setSearchParam('');
                         closeDrawer();
 
-                        // Get fresh instance of unpaid store
+                        // Important: Get fresh unpaid store instance and add the new order immediately
                         const unpaidStore = useUnpaidStore.getState();
-
-                        // Reset and refetch unpaid orders
-                        await unpaidStore.resetStore();
-                        await unpaidStore.fetchUnpaidOrders();
+                        const newOrder = {
+                            id: response.data.transaction_id, // Assuming API returns this
+                            price: sellData.price,
+                            quantity : sellData.quantity,
+                            customer_name : sellData.customer_name,
+                            product_name : sellData.product_name,
+                            status: 'unpaid'
+                        };
+                    console.log(newOrder)
+                        // Update unpaid orders immediately
+                        unpaidStore.addNewOrder(newOrder);
 
                         return { status: response.status, data: response.data };
                     }
