@@ -15,7 +15,16 @@ import useUnpaidStore from "components/zuhan/useUnpaidStore.js";
 
 export default function SavedOrders() {
     const toast = useToast();
-    const {unpaidOrders ,fetchUnpaidOrders ,refundOrder,isRefunding,isCompleting,completeOrder} = useUnpaidStore()
+    const {
+        unpaidOrders,
+        fetchUnpaidOrders,
+        refundOrder,
+        isRefunding,
+        isCompleting,
+        completeOrder,
+        hasHydrated,
+        isLoading
+    } = useUnpaidStore();
     const [sending, setSending] = useState({});
     const [loadState, setLoadState] = useState({});
     const token = localStorage.getItem("access");
@@ -23,12 +32,55 @@ export default function SavedOrders() {
     const cancelRef = useRef();
     const [isDialogOpen, setDialogOpen] = useState(false);
     const [refundId, setRefundId] = useState(null);
+    const [mounted, setMounted] = useState(false);
     const [cancelButton, setCancelButton] = useState(false);
-
-    // Only fetch on mount and when data is stale
     useEffect(() => {
-            fetchUnpaidOrders()
-    }, [fetchUnpaidOrders]);
+        setMounted(true);
+
+        const loadData = async () => {
+            try {
+                // Force fetch on mount
+                const result = await fetchUnpaidOrders();
+                if (!result.success) {
+                    toast({
+                        status: 'error',
+                        description: result.error || 'Failed to fetch unpaid orders',
+                        position: 'bottom-right'
+                    });
+                }
+            } catch (error) {
+                console.error('Error fetching unpaid orders:', error);
+                toast({
+                    status: 'error',
+                    description: 'Failed to fetch unpaid orders',
+                    position: 'bottom-right'
+                });
+            }
+        };
+
+        loadData();
+
+        // Set up refresh interval
+        const refreshInterval = setInterval(loadData, 30000);
+
+        return () => {
+            setMounted(false);
+            clearInterval(refreshInterval);
+        };
+    }, []);
+
+    // Show loading state while fetching
+    useEffect(() => {
+        if (mounted && isLoading) {
+            toast({
+                status: 'loading',
+                description: 'Fetching unpaid orders...',
+                position: 'bottom-right',
+                duration: 1000
+            });
+        }
+    }, [isLoading, mounted]);
+
 
     const complete = async (id) => {
         try {

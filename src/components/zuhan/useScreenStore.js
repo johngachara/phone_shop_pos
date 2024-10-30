@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import authService from "components/authService.js";
 import useUnpaidStore from "components/zuhan/useUnpaidStore.js";
 
@@ -13,23 +13,59 @@ const useScreenStore = create(
             isUpdateLoading: false,
             isDeletingLoading: false,
             isSellingLoading: false,
-            isCompleting : false ,
+            isCompleting: false,
+            hasHydrated: true,
 
-            resetStore : () => set({
-                data: [],
-                isLoading: false,
-                page: 1,
-                isAddLoading: false,
-                isUpdateLoading: false,
-                isDeletingLoading: false,
-                isSellingLoading: false,
-                isCompleting : false ,
-            }),
+            setHasHydrated: (state) => {
+                set({
+                    hasHydrated: state
+                });
+            },
+
+            resetStore: async () => {
+                try {
+                     set({
+                        data: [],
+                        isLoading: false,
+                        page: 1,
+                        isAddLoading: false,
+                        isUpdateLoading: false,
+                        isDeletingLoading: false,
+                        isSellingLoading: false,
+                        isCompleting: false,
+                        hasHydrated: true, // Keep hydration state
+                    });
+                    return true;
+                } catch (error) {
+                    console.error('Reset store failed:', error);
+                    return false;
+                }
+            },
+            _resetStore: async () => {
+                try {
+                    // First reset the store state
+                    await set({
+                        data: [],
+                        isLoading: false,
+                        page: 1,
+                        isAddLoading: false,
+                        isUpdateLoading: false,
+                        isDeletingLoading: false,
+                        isSellingLoading: false,
+                        isCompleting: false,
+                        hasHydrated: false,
+                    });
+                    return true;
+                } catch (error) {
+                    console.error('Reset store failed:', error);
+                    return false;
+                }
+            },
 
             fetchNextPage: async () => {
                 const nextPage = get().page + 1;
                 set({ page: nextPage });
-                await get().fetchScreens();
+                return get().fetchScreens();
             },
 
             fetchScreens: async () => {
@@ -39,17 +75,124 @@ const useScreenStore = create(
                     const { data } = await authService.axiosInstance.get('/api/get_shop2_stock', {
                         params: { page: currentPage }
                     });
-                    // Merge new data instead of replacing
-                    set(state => ({
-                        data: currentPage === 1 ? data.results : [...state.data, ...data.results],
+
+                    // Always set fresh data regardless of page
+                    set({
+                        data: data.results,
                         isLoading: false
-                    }));
+                    });
+
+                    return data;
                 } catch (error) {
                     set({ isLoading: false });
                     console.error('Failed to fetch screens:', error);
+                    throw error;
                 }
             },
 
+            updateScreen: async (updateData, setSearchParam, closeDrawer) => {
+                set({ isUpdateLoading: true });
+                try {
+                    const response = await authService.axiosInstance.put(
+                        `/api/update_stock2/${updateData.id}`,
+                        updateData
+                    );
+
+                    if (response.status === 200) {
+                        set(state => ({
+                            data: state.data.map(item =>
+                                item.id === updateData.id ? { ...item, ...updateData } : item
+                            ),
+                            isUpdateLoading: false
+                        }), false, { type: 'UPDATE_SCREEN' });
+                        setSearchParam('');
+                        closeDrawer();
+                    }
+                    return { status: response.status };
+                } catch (e) {
+                    set({ isUpdateLoading: false });
+                    throw e;
+                }
+            },
+
+            deleteScreen: async (id, setSearchParam, setDialogOpen) => {
+                set({ isDeletingLoading: true });
+                try {
+                    const response = await authService.axiosInstance.delete(`/api/delete_stock2_api/${id}`);
+                    if (response.status === 200) {
+                        set(state => ({
+                           data: state.data.filter(item => item.id !== id),
+                            isDeletingLoading: false
+                        }), false, { type: 'DELETE_SCREEN' });
+                        setSearchParam('');
+                        setDialogOpen(false);
+                    }
+                    return { status: response.status };
+                } catch (e) {
+                    set({ isDeletingLoading: false });
+                    throw e;
+                }
+            },
+
+            sellScreen: async (id, sellData, setSearchParam, closeDrawer) => {
+                set({ isSellingLoading: true });
+                try {
+                    const response = await authService.axiosInstance.post(`/api/sell2/${id}`, sellData);
+                    if (response.status === 200) {
+                        // Update local state
+                        set(state => ({
+                            data: state.data.map(item =>
+                                item.id === id
+                                    ? { ...item, status: 'sold', quantity: item.quantity - 1 }
+                                    : item
+                            ),
+                            isSellingLoading: false
+                        }), false, { type: 'SELL_SCREEN' });
+
+                        setSearchParam('');
+                        closeDrawer();
+
+                        // Get fresh instance of unpaid store
+                        const unpaidStore = useUnpaidStore.getState();
+
+                        // Reset and refetch unpaid orders
+                        await unpaidStore.resetStore();
+                        await unpaidStore.fetchUnpaidOrders();
+
+                        return { status: response.status, data: response.data };
+                    }
+                    throw new Error('Sale failed');
+                } catch (e) {
+                    set({ isSellingLoading: false });
+                    throw e;
+                }
+            },
+            completeScreen: async (id, sellData, setSearchParam, closeDrawer) => {
+                set({ isCompleting: true });
+                try {
+                    const response = await authService.axiosInstance.post(`/api/sell2/${id}`, sellData);
+                    console.log(response)
+                    const transaction_id = response.data.transaction_id;
+                    const finalResponse = await authService.axiosInstance.post(`/api/complete2/${transaction_id}`, {});
+
+                    if (finalResponse.status === 200) {
+                        set(state => ({
+                            data: state.data.map(item =>
+                                item.id === id
+                                    ? { ...item, status: 'completed', quantity : item.quantity - 1 }
+                                    : item
+                            ),
+                            isCompleting: false
+                        }), false, { type: 'COMPLETE_SCREEN' });
+                        setSearchParam('');
+                        closeDrawer();
+                    }
+                    return { status: response.status };
+                } catch (e) {
+                    set({ isCompleting: false });
+                    throw e;
+                }
+            },
             addScreen: async (item) => {
                 set({ isAddLoading: true });
                 try {
@@ -64,133 +207,32 @@ const useScreenStore = create(
                     return { status: response.status };
                 } catch (e) {
                     set({ isAddLoading: false });
-                    const errorData = e.response.data;
-                    const errorMessages = Object.entries(errorData).map(([field, messages]) => {
-                        return `${field}: ${messages[0].replace("sho p2_stoc k_fix", "This product")}`;
-                    });
-                    return { message: errorMessages || 'An error occurred while adding product' };
+                    return { message:  'An error occurred while adding product check whether the product exists' };
                 }
             },
 
-            updateScreen: async (updateData, setSearchParam,closeDrawer) => {
-                set({ isUpdateLoading: true });
-                try {
-                    const response = await authService.axiosInstance.put(
-                        `/api/update_stock2/${updateData.id}`,
-                        updateData
-                    );
-                    if (response.status === 200) {
-                        setSearchParam('');
-                        await get().resetStore()
-                        closeDrawer()
-                        await get().fetchScreens();
-                        set(() => ({
-                            isUpdateLoading: false,
-                        }));
-
-                    }
-                    return { status: response.status };
-                } catch (e) {
-                    set({ isUpdateLoading: false });
-                    const errorData = e.response?.data;
-                    if (errorData) {
-                        const fieldErrors = {};
-                        Object.entries(errorData).forEach(([field, errors]) => {
-                            if (Array.isArray(errors) && errors.length > 0) {
-                                fieldErrors[field] = errors[0].string || 'Invalid value';
-                            }
-                        });
-                        return {
-                            status: e.response.status,
-                            message: 'Validation failed',
-                            errors: fieldErrors,
-                        };
-                    }
-                    return {
-                        status: e.response?.status || 500,
-                        message: 'An error occurred while updating product',
-                    };
-                }
-            },
-            deleteScreen : async (id,setSearchParam,setDialogOpen) => {
-                try {
-                    set({isDeletingLoading: true});
-                    const response = await authService.axiosInstance.delete(`/api/delete_stock2_api/${id}`);
-                    if(response.status === 200) {
-                        setSearchParam('');
-                        await get().resetStore()
-                        setDialogOpen(false)
-                        await get().fetchScreens();
-                        set(() => ({
-                            isDeletingLoading: false,
-                        }))
-                    }
-                    return {
-                        status: response.status,
-                    };
-                } catch (e) {
-                    set({ isDeletingLoading: false });
-                    return {
-                        message: e.message
-                    };
-                }
-            },
-            sellScreen: async (id, sellData,setSearchParam,closeDrawer) => {
-                try {
-                    set({isSellingLoading: true});
-                    const response = await authService.axiosInstance.post(`/api/sell2/${id}`, sellData);
-                    if(response.status === 200) {
-                        setSearchParam('');
-                        await get().resetStore()
-                        closeDrawer()
-                        await get().fetchScreens();
-                        set(() => ({
-                            isSellingLoading : false,
-                        }))
-                        await useUnpaidStore.getState().resetStore()
-                    }
-                    return {
-                        status: response.status,
-                        data: response.data
-                    };
-                } catch (e) {
-                    set({ isSellingLoading: false });
-                    return {
-                        message: e.message
-                    };
-                }
-            },
-            completeScreen : async (id,sellData ,setSearchParam,closeDrawer) => {
-                try {
-                    set({isCompleting:true})
-                    const response = await authService.axiosInstance.post(`/api/sell2/${id}`, sellData);
-                    const transaction_id = response.data.transaction_id;
-                    const finalResponse = await authService.axiosInstance.post(`/api/complete2/${transaction_id}`, {});
-                    if (finalResponse.status === 200) {
-                        setSearchParam('');
-                        await get().resetStore()
-                        closeDrawer()
-                        await get().fetchScreens();
-                        set(() => ({
-                            isCompleting : false,
-                        }))
-                    }
-                    return {
-                        status: response.status,
-                    };
-                } catch (e) {
-                    set({isCompleting:false})
-                    return {
-                        message: e.message
-                    };
-                }
-            }
         }),
         {
-            name: 'screen-storage', // Name for the persisted store
+            name: 'screen-storage',
+            storage: createJSONStorage(() => localStorage),
             partialize: (state) => ({
-                data: state.data
-            })
+                data: state.data,
+                page: state.page,
+                hasHydrated: state.hasHydrated,
+                fetchScreens : state.fetchScreens,
+                sellScreen : state.sellScreen,
+                updateScreen : state.updateScreen,
+                deleteScreen : state.deleteScreen,
+                addScreen: state.addScreen,
+                completeScreen: state.completeScreen,
+            }),
+            onRehydrateStorage: (state) => {
+                return (state) => {
+                    if (state) {
+                        state.setHasHydrated(true);
+                    }
+                };
+            },
         }
     )
 );

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import authService from "components/authService.js";
+import useScreenStore from "components/zuhan/useScreenStore.js";
 
 const useUnpaidStore = create(
     persist(
@@ -14,23 +15,36 @@ const useUnpaidStore = create(
             isCompleting: {},
             error: null,
             lastUpdated: null,
+            hasHydrated: false,
 
-            // Setters
-            setError: (error) => set({ error }),
-            clearError: () => set({ error: null }),
+            // Hydration handler
+            setHasHydrated: (state) => {
+                set({
+                    hasHydrated: state
+                });
+            },
 
-            // Reset store
-            resetStore: () => set({
-                unpaidOrders: [],
-                processedRefunds: new Set(),
-                processedCompletions: new Set(),
-                isLoading: false,
-                isRefunding: {},
-                isCompleting: {},
-                error: null,
-                lastUpdated: null
-            }),
+            resetStore: async () => {
+                try {
+                    // First reset the store state
+                     set({
+                        unpaidOrders: [],
+                        processedRefunds: new Set(),
+                        processedCompletions: new Set(),
+                        isLoading: false,
+                        isRefunding: {},
+                        isCompleting: {},
+                        error: null,
+                        lastUpdated: null,
+                        hasHydrated: false,
+                    });
 
+
+                } catch (error) {
+                    console.error('Reset store failed:', error);
+                    return false;
+                }
+            },
             // Fetch unpaid orders
             fetchUnpaidOrders: async () => {
                 set({ isLoading: true, error: null });
@@ -45,11 +59,11 @@ const useUnpaidStore = create(
                             !currentProcessedCompletions.has(order.id)
                     );
 
-                    set({
+                    set(state => ({
                         unpaidOrders: filteredOrders,
                         isLoading: false,
                         lastUpdated: new Date().toISOString()
-                    });
+                    }), false, { type: 'FETCH_UNPAID_ORDERS' });
 
                     return { success: true, data: filteredOrders };
                 } catch (error) {
@@ -82,18 +96,23 @@ const useUnpaidStore = create(
                             processedRefunds: new Set([...state.processedRefunds, id]),
                             isRefunding: { ...state.isRefunding, [id]: false },
                             lastUpdated: new Date().toISOString()
-                        }));
+                        }), false, { type: 'REFUND_ORDER' });
+
+                        // Get fresh instance of screen store and reset + fetch new data
+                        const screenStore = useScreenStore.getState();
+                        await screenStore.resetStore();
+                        await screenStore.fetchScreens();
+
                         return { success: true, message: "Refund successful" };
                     }
 
                     throw new Error(response.data?.message || "Refund failed");
                 } catch (error) {
-                    const errorMessage = error.response?.data?.message || error.message || "Refund failed";
                     set(state => ({
                         isRefunding: { ...state.isRefunding, [id]: false },
-                        error: errorMessage
+                        error: error.message
                     }));
-                    return { success: false, error: errorMessage };
+                    return { success: false, error: error.message };
                 }
             },
 
@@ -117,7 +136,7 @@ const useUnpaidStore = create(
                             processedCompletions: new Set([...state.processedCompletions, id]),
                             isCompleting: { ...state.isCompleting, [id]: false },
                             lastUpdated: new Date().toISOString()
-                        }));
+                        }), false, { type: 'COMPLETE_ORDER' });
                         return { success: true, message: "Order completed successfully" };
                     }
 
@@ -132,32 +151,30 @@ const useUnpaidStore = create(
                 }
             },
 
-            // Get order by ID
-            getOrderById: (id) => {
-                const order = get().unpaidOrders.find(order => order.id === id);
-                return order || null;
-            },
-
-            // Clear processed history
+            // Other methods remain the same but add action types to set calls
             clearProcessedHistory: () => {
                 set({
                     processedRefunds: new Set(),
                     processedCompletions: new Set(),
                     lastUpdated: new Date().toISOString()
-                });
+                }, false, { type: 'CLEAR_HISTORY' });
             },
 
-            // Update single order
             updateOrder: (id, updates) => {
                 set(state => ({
                     unpaidOrders: state.unpaidOrders.map(order =>
                         order.id === id ? { ...order, ...updates } : order
                     ),
                     lastUpdated: new Date().toISOString()
-                }));
+                }), false, { type: 'UPDATE_ORDER' });
             },
 
-            // Check if order is being processed
+            // Existing utility methods
+            getOrderById: (id) => {
+                const order = get().unpaidOrders.find(order => order.id === id);
+                return order || null;
+            },
+
             isOrderProcessing: (id) => {
                 const state = get();
                 return state.isRefunding[id] || state.isCompleting[id];
@@ -165,18 +182,24 @@ const useUnpaidStore = create(
         }),
         {
             name: 'unpaid-storage',
+            storage: createJSONStorage(() => localStorage),
             partialize: (state) => ({
                 unpaidOrders: state.unpaidOrders,
                 processedRefunds: Array.from(state.processedRefunds),
                 processedCompletions: Array.from(state.processedCompletions),
-                lastUpdated: state.lastUpdated
+                lastUpdated: state.lastUpdated,
+                hasHydrated: state.hasHydrated
             }),
-            merge: (persistedState, currentState) => ({
-                ...currentState,
-                ...persistedState,
-                processedRefunds: new Set(persistedState.processedRefunds),
-                processedCompletions: new Set(persistedState.processedCompletions)
-            })
+            onRehydrateStorage: (state) => {
+                return (state) => {
+                    if (state) {
+                        // Convert Arrays back to Sets after rehydration
+                        state.processedRefunds = new Set(state.processedRefunds);
+                        state.processedCompletions = new Set(state.processedCompletions);
+                        state.setHasHydrated(true);
+                    }
+                };
+            }
         }
     )
 );
