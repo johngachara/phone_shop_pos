@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import {useState, useEffect, useRef} from "react";
 import {
     Box,
     useColorModeValue,
@@ -49,13 +49,9 @@ export default function Shopstock() {
     } = useDisclosure();
 
     const toast = useToast();
+    const refreshIntervalRef = useRef(null);
+    const isProcessingRef = useRef(false);
 
-    // Properly set up the useEffect
-    useEffect(() => {
-        if (hasHydrated && (!shopData || shopData.length === 0)) {
-            fetchScreens();
-        }
-    }, [hasHydrated, fetchScreens]);
 
     const handleUpdateSubmit = async (itemData) => {
         try {
@@ -138,7 +134,7 @@ export default function Shopstock() {
     };
 
     const handleLoadMore = () => {
-        if (!isLoadingData && typeof fetchNextPage === 'function') {
+        if (!isLoadingData) {
             fetchNextPage();
         }
     };
@@ -172,6 +168,71 @@ export default function Shopstock() {
     const checkValue = (event) => {
         setSellingPrice(handleDecimalsOnValue(event.target.value));
     };
+
+    const pauseRefresh = () => {
+        isProcessingRef.current = true;
+        if (refreshIntervalRef.current) {
+            clearInterval(refreshIntervalRef.current);
+        }
+    };
+
+    const resumeRefresh = () => {
+        isProcessingRef.current = false;
+        const loadData = async () => {
+            try {
+                await fetchScreens();
+            } catch (error) {
+                console.error('Error in refresh:', error);
+            }
+        };
+        refreshIntervalRef.current = setInterval(loadData, 30000);
+    };
+
+
+    useEffect(() => {
+        let isMounted = true;
+        const loadData = async () => {
+            if (isProcessingRef.current) return; // Skip if processing an action
+
+            try {
+                const result = await fetchScreens();
+                if (!result.results && isMounted) {
+                    toast({
+                        status: 'error',
+                        description: result.error || 'Failed to fetch unpaid orders',
+                        position: 'bottom-right',
+                        isClosable: true
+                    });
+                }
+            } catch (error) {
+                if (isMounted) {
+                    console.error('Error fetching unpaid orders:', error);
+                    toast({
+                        status: 'error',
+                        description: 'Failed to fetch unpaid orders',
+                        position: 'bottom-right',
+                        isClosable: true
+                    });
+                }
+            }
+        };
+
+        // Initial load
+        if (hasHydrated) {
+            loadData();
+        }
+
+        // Set up refresh interval
+        refreshIntervalRef.current = setInterval(loadData, 300000);
+
+        return () => {
+            isMounted = false;
+            if (refreshIntervalRef.current) {
+                clearInterval(refreshIntervalRef.current);
+            }
+        };
+    }, [hasHydrated]);
+
 
     return (
         <Box bg={useColorModeValue("gray.50", "gray.900")} minH="100vh" ml={{ base: 0, md: '250px' }}>

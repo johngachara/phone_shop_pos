@@ -75,7 +75,6 @@ const useScreenStore = create(
                     const { data } = await authService.axiosInstance.get('/api/get_shop2_stock', {
                         params: { page: currentPage }
                     });
-
                     // Always set fresh data regardless of page
                     set({
                         data: data.results,
@@ -162,7 +161,6 @@ const useScreenStore = create(
                             product_name : sellData.product_name,
                             status: 'unpaid'
                         };
-                    console.log(newOrder)
                         // Update unpaid orders immediately
                         unpaidStore.addNewOrder(newOrder);
 
@@ -224,14 +222,7 @@ const useScreenStore = create(
             storage: createJSONStorage(() => localStorage),
             partialize: (state) => ({
                 data: state.data,
-                page: state.page,
                 hasHydrated: state.hasHydrated,
-                fetchScreens : state.fetchScreens,
-                sellScreen : state.sellScreen,
-                updateScreen : state.updateScreen,
-                deleteScreen : state.deleteScreen,
-                addScreen: state.addScreen,
-                completeScreen: state.completeScreen,
             }),
             onRehydrateStorage: (state) => {
                 return (state) => {

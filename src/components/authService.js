@@ -164,8 +164,8 @@ class AuthService {
         try {
             const response = await axios.post(
                 `${API_URL}/nodeapp/authenticate`,
-                { idToken: firebaseToken },
-                { headers: { 'Content-Type': 'application/json' } }
+                {  firebaseToken },
+                { headers: { 'Content-Type': 'application/json' },withCredentials : true }
             );
 
             return {
@@ -192,7 +192,7 @@ class AuthService {
             .catch(error => console.error('Firebase sign out error:', error));
 
         // Redirect to login page
-        window.location.href = '/login';
+        window.location.href = '/Login';
     }
 
     // Helper method to get current tokens

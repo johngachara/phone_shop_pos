@@ -7,10 +7,10 @@ import {
     useToast
 } from "@chakra-ui/react";
 import Navbar from "../Navbar.jsx";
-import { useNavigate } from "react-router-dom";
 import UnpaidOrdersBody from "components/unpaid/UnpaidOrdersBody.jsx";
 import UnpaidOrdersDialog from "components/dialogs/UnpaidOrdersDialog.jsx";
 import useUnpaidStore from "components/zuhan/useUnpaidStore.js";
+import axios from "axios";
 
 export default function SavedOrders() {
     const toast = useToast();
@@ -34,7 +34,6 @@ export default function SavedOrders() {
     // Initialize component
     useEffect(() => {
         let isMounted = true;
-
         const loadData = async () => {
             if (isProcessingRef.current) return; // Skip if processing an action
 
@@ -95,7 +94,18 @@ export default function SavedOrders() {
         };
         refreshIntervalRef.current = setInterval(loadData, 30000);
     };
-
+    useEffect(()=>{
+        console.log('fetching')
+        const simpleFetch = async ()=>{
+            const response = await axios.get('https://alltech.gachara.store/api/saved2',{
+                headers : {
+                    Authorization : `Bearer ${localStorage.getItem('access')}`
+                }
+            })
+            console.log(response.data)
+        }
+       simpleFetch()
+    },[])
     const complete = async (id) => {
         pauseRefresh();
         try {
