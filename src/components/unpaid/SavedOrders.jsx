@@ -10,7 +10,7 @@ import Navbar from "../Navbar.jsx";
 import UnpaidOrdersBody from "components/unpaid/UnpaidOrdersBody.jsx";
 import UnpaidOrdersDialog from "components/dialogs/UnpaidOrdersDialog.jsx";
 import useUnpaidStore from "components/zuhan/useUnpaidStore.js";
-import axios from "axios";
+
 
 export default function SavedOrders() {
     const toast = useToast();
@@ -28,15 +28,10 @@ export default function SavedOrders() {
     const [refundId, setRefundId] = useState(null);
     const [cancelButton, setCancelButton] = useState(false);
     const [searchTerm, setSearchTerm] = useState("");
-    const refreshIntervalRef = useRef(null);
-    const isProcessingRef = useRef(false);
-
     // Initialize component
     useEffect(() => {
         let isMounted = true;
         const loadData = async () => {
-            if (isProcessingRef.current) return; // Skip if processing an action
-
             try {
                 const result = await fetchUnpaidOrders();
                 if (!result.success && isMounted) {
@@ -64,50 +59,14 @@ export default function SavedOrders() {
         if (hasHydrated) {
             loadData();
         }
-
-        // Set up refresh interval
-        refreshIntervalRef.current = setInterval(loadData, 30000);
-
         return () => {
             isMounted = false;
-            if (refreshIntervalRef.current) {
-                clearInterval(refreshIntervalRef.current);
-            }
+
         };
     }, [hasHydrated]);
 
-    const pauseRefresh = () => {
-        isProcessingRef.current = true;
-        if (refreshIntervalRef.current) {
-            clearInterval(refreshIntervalRef.current);
-        }
-    };
 
-    const resumeRefresh = () => {
-        isProcessingRef.current = false;
-        const loadData = async () => {
-            try {
-                await fetchUnpaidOrders();
-            } catch (error) {
-                console.error('Error in refresh:', error);
-            }
-        };
-        refreshIntervalRef.current = setInterval(loadData, 30000);
-    };
-    useEffect(()=>{
-        console.log('fetching')
-        const simpleFetch = async ()=>{
-            const response = await axios.get('https://alltech.gachara.store/api/saved2',{
-                headers : {
-                    Authorization : `Bearer ${localStorage.getItem('access')}`
-                }
-            })
-            console.log(response.data)
-        }
-       simpleFetch()
-    },[])
     const complete = async (id) => {
-        pauseRefresh();
         try {
             const result = await completeOrder(id);
             if (result.success) {
@@ -125,13 +84,10 @@ export default function SavedOrders() {
                 position: 'bottom-right',
                 isClosable: true
             });
-        } finally {
-            resumeRefresh();
         }
     };
 
     const refund = async (id) => {
-        pauseRefresh();
         try {
             const result = await refundOrder(id);
             if (result.success) {
@@ -149,8 +105,6 @@ export default function SavedOrders() {
                 position: 'bottom-right',
                 isClosable: true
             });
-        } finally {
-            resumeRefresh();
         }
     };
 

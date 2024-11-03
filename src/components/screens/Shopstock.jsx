@@ -21,7 +21,6 @@ export default function Shopstock() {
     const [selectedItem, setSelectedItem] = useState(null);
     const [sellingPrice, setSellingPrice] = useState(0);
     const [customer, setCustomer] = useState("");
-    const [buttonStates, setButtonStates] = useState({});
 
     // Properly destructure the store
     const {
@@ -49,9 +48,6 @@ export default function Shopstock() {
     } = useDisclosure();
 
     const toast = useToast();
-    const refreshIntervalRef = useRef(null);
-    const isProcessingRef = useRef(false);
-
 
     const handleUpdateSubmit = async (itemData) => {
         try {
@@ -169,31 +165,10 @@ export default function Shopstock() {
         setSellingPrice(handleDecimalsOnValue(event.target.value));
     };
 
-    const pauseRefresh = () => {
-        isProcessingRef.current = true;
-        if (refreshIntervalRef.current) {
-            clearInterval(refreshIntervalRef.current);
-        }
-    };
-
-    const resumeRefresh = () => {
-        isProcessingRef.current = false;
-        const loadData = async () => {
-            try {
-                await fetchScreens();
-            } catch (error) {
-                console.error('Error in refresh:', error);
-            }
-        };
-        refreshIntervalRef.current = setInterval(loadData, 30000);
-    };
-
 
     useEffect(() => {
         let isMounted = true;
         const loadData = async () => {
-            if (isProcessingRef.current) return; // Skip if processing an action
-
             try {
                 const result = await fetchScreens();
                 if (!result.results && isMounted) {
@@ -206,10 +181,10 @@ export default function Shopstock() {
                 }
             } catch (error) {
                 if (isMounted) {
-                    console.error('Error fetching unpaid orders:', error);
+                    console.error('Error fetching shop stock:', error);
                     toast({
                         status: 'error',
-                        description: 'Failed to fetch unpaid orders',
+                        description: 'Failed to fetch stock',
                         position: 'bottom-right',
                         isClosable: true
                     });
@@ -222,14 +197,8 @@ export default function Shopstock() {
             loadData();
         }
 
-        // Set up refresh interval
-        refreshIntervalRef.current = setInterval(loadData, 300000);
-
         return () => {
             isMounted = false;
-            if (refreshIntervalRef.current) {
-                clearInterval(refreshIntervalRef.current);
-            }
         };
     }, [hasHydrated]);
 
