@@ -84,7 +84,7 @@
     "@types/node": "^22.3.0",
     "@vitejs/plugin-react": "^4.3.1",
     "autoprefixer": "^10.4.20",
-    "aws-cdk": "^2.153.0",
+    "aws-cdk": "^2.165.0",
     "aws-cdk-lib": "^2.153.0",
     "constructs": "^10.3.0",
     "esbuild": "^0.23.1",
