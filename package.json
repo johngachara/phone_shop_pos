@@ -9,7 +9,7 @@
     "@emotion/react": "^11.11.4",
     "@emotion/styled": "^11.11.5",
     "@firebase/app": "^0.10.5",
-    "@firebase/messaging": "^0.12.9",
+    "@firebase/messaging": "^0.12.13",
     "@google/generative-ai": "^0.16.0",
     "@huggingface/inference": "^2.8.0",
     "@reduxjs/toolkit": "^2.2.7",
