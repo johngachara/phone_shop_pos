@@ -12,6 +12,9 @@ import { DeleteAlertDialog } from "components/dialogs/DeleteAlertDialog.jsx";
 import { UpdateDrawer } from "components/drawers/UpdateDrawer.jsx";
 import { SellDrawer } from "components/drawers/SellDrawer.jsx";
 import useScreenStore from "components/zuhan/useScreenStore.js";
+import {onAuthStateChanged} from "firebase/auth";
+import {useNavigate} from "react-router-dom";
+import {auth} from "components/firebase/firebase.js";
 
 export default function Shopstock() {
     const [searchParam, setSearchParam] = useState("");
@@ -21,7 +24,8 @@ export default function Shopstock() {
     const [selectedItem, setSelectedItem] = useState(null);
     const [sellingPrice, setSellingPrice] = useState(0);
     const [customer, setCustomer] = useState("");
-
+    const [authLoading, setAuthLoading] = useState(true);
+    const navigate = useNavigate()
     // Properly destructure the store
     const {
         data: shopData,
@@ -167,40 +171,37 @@ export default function Shopstock() {
 
 
     useEffect(() => {
-        let isMounted = true;
-        const loadData = async () => {
-            try {
-                const result = await fetchScreens();
-                if (!result.results && isMounted) {
-                    toast({
-                        status: 'error',
-                        description: result.error || 'Failed to fetch unpaid orders',
-                        position: 'bottom-right',
-                        isClosable: true
-                    });
-                }
-            } catch (error) {
-                if (isMounted) {
-                    console.error('Error fetching shop stock:', error);
-                    toast({
-                        status: 'error',
-                        description: 'Failed to fetch stock',
-                        position: 'bottom-right',
-                        isClosable: true
-                    });
-                }
+        const unsubscribe = onAuthStateChanged(auth, (user) => {
+            if (user) {
+                console.log("User authenticated:", user);
+                setAuthLoading(false); // Auth confirmed, continue loading data
+            } else {
+                console.warn("No Firebase user found, redirecting to login.");
+                toast({
+                    status: "warning",
+                    description: "You must be logged in to access this page.",
+                    position: "top",
+                });
             }
-        };
+        });
 
-        // Initial load
-        if (hasHydrated) {
-            loadData();
+        return () => unsubscribe(); // Cleanup on unmount
+    }, [navigate, toast]);
+
+    // Initial data load based on Firebase auth state
+    useEffect(() => {
+        if (!authLoading && hasHydrated) {
+            fetchScreens().catch((error) => {
+                console.error('Error fetching shop stock:', error);
+                toast({
+                    status: 'error',
+                    description: 'Failed to fetch stock',
+                    position: 'bottom-right',
+                    isClosable: true,
+                });
+            });
         }
-
-        return () => {
-            isMounted = false;
-        };
-    }, [hasHydrated]);
+    }, [authLoading, hasHydrated, fetchScreens, toast]);
 
 
     return (

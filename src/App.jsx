@@ -9,8 +9,7 @@ import NotFound from "components/NotFound.jsx";
 const Signin = lazy(() => import("./components/Signin"));
 const Shopstock = lazy(() => import("components/screens/Shopstock.jsx"));
 const AddScreen = lazy(() => import("components/screens/AddScreenModal.jsx"));
-const SavedOrders = lazy(() => import("components/unpaid/SavedOrders.jsx"));
-const Accessories = lazy(() => import("components/accessories/Accessories.jsx"));
+const SavedOrders = lazy(() => import("components/unpaid/SavedOrders.jsx"));;
 const AddAccesory = lazy(() => import("components/accessories/AddAccesoryModal.jsx"));
 const Dashboard = lazy(() => import("./components/Dashboard"));
 const DetailedDataView = lazy(() => import("./components/DetailedDataView"));
@@ -24,9 +23,6 @@ function App() {
                     <Route path="/Login" element={<Signin />} />
                     <Route path="/AddScreen" element={<AddScreen />} />
                     <Route path="/SavedOrders" element={<SavedOrders />} />
-                    {/*
-                    <Route path="/Accessories" element={<Accessories />} />
-                    */}
                     <Route path="/Add" element={<AddAccesory />} />
                     <Route path="/Admin" element={<Dashboard />} />
                     <Route path="/detailed" element={<DetailedDataView />} />

@@ -85,7 +85,7 @@ function ChatbotWidget() {
                         <PopoverHeader fontWeight="bold">Need Help?</PopoverHeader>
                         <PopoverBody>
                             <Text>
-                                Chat with alltech AI assistant
+                                Meet AllTech AI: Your New Assistant for Instant Help!
                             </Text>
                         </PopoverBody>
                         <PopoverFooter display="flex" justifyContent="flex-end">

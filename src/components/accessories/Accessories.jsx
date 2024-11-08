@@ -1,71 +1,185 @@
 import { useEffect, useRef, useState } from "react";
 import {
+    Box,
     Flex,
     SimpleGrid,
     useColorModeValue,
     useToast,
+    Spinner,
+    Center,
 } from "@chakra-ui/react";
-import {  useNavigate } from "react-router-dom";
-import {useSelector,useDispatch} from "react-redux";
-import {fetchAccessories} from "components/redux/actions/shopActions.js";
+import { useNavigate } from "react-router-dom";
+import { useSelector, useDispatch } from "react-redux";
 import RenderAccessoryItems from "components/accessories/RenderAccessoryItems.jsx";
 import AccessoryBody from "components/accessories/AccessoryBody.jsx";
 import AccessoryDeleteDialog from "components/dialogs/AccessoryDeleteDialog.jsx";
 import useSearchAccessories from "components/hooks/useSearchAccessories.js";
-import {useDeleteAccessory} from "components/hooks/useDeleteAccessory.js";
 import AccessoryDrawers from "components/drawers/AccessoryDrawers.jsx";
-import {useUpdateAccessory} from "components/hooks/useUpdateAccessory.js";
-import {useSellAccessory} from "components/hooks/useSellAccessory.js";
-
+import useAccessoryStore from "components/zuhan/useAccessoryStore.js";
+import { onAuthStateChanged } from "firebase/auth";
+import { auth } from "components/firebase/firebase.js";
 
 export default function Accessories() {
-    const { accessoryData, loading } = useSelector(state => state.accessory);
     const dispatch = useDispatch();
+    const navigate = useNavigate();
+    const toast = useToast();
+
+    // State management
     const [searchParam, setSearchParam] = useState("");
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [deleteItemId, setDeleteItemId] = useState(null);
-    const navigate = useNavigate();
-    const token = localStorage.getItem("accessories");
-    const cancelRef = useRef();
     const [currentPage, setCurrentPage] = useState(1);
-    const {searchResults,loading:searchLoading} = useSearchAccessories(searchParam)
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
     const [drawerAction, setDrawerAction] = useState("");
     const [selectedItem, setSelectedItem] = useState(null);
     const [sellingPrice, setSellingPrice] = useState(0);
     const [sellingQuantity, setSellingQuantity] = useState("");
     const [customer, setCustomer] = useState("");
-    const {isSelling,handleSell} = useSellAccessory(token)
-    const {isUpdating,handleUpdate} = useUpdateAccessory(token)
-    const {handleDelete,delStates} = useDeleteAccessory(token,currentPage,setSearchParam,setIsDeleteDialogOpen)
-    const toast = useToast();
+    const [authState, setAuthState] = useState({
+        isAuthenticated: false,
+        isLoading: true,
+        user: null
+    });
 
+    const cancelRef = useRef();
+
+    // Hooks
+    const { searchResults, loading: searchLoading } = useSearchAccessories(searchParam);
+    const {
+        isUpdating,
+        isSelling,
+        updateAccessory,
+        sellAccessory,
+        accessories,
+        loading: accessoryLoading,
+        fetchAccessories,
+        hasHydrated
+    } = useAccessoryStore();
+
+    // Theme
     const bgColor = useColorModeValue("white", "gray.800");
     const textColor = useColorModeValue("gray.600", "gray.300");
     const pageBgColor = useColorModeValue("gray.50", "gray.900");
 
+    // Authentication effect
     useEffect(() => {
-        if (token) {
-            dispatch(fetchAccessories(token, currentPage,navigate,toast));
+        let mounted = true;
+
+        const unsubscribe = onAuthStateChanged(auth, async (user) => {
+            if (!mounted) return;
+
+            if (user) {
+                try {
+                    // Get the ID token to verify authentication
+                    const token = await user.getIdToken();
+                    if (mounted) {
+                        setAuthState({
+                            isAuthenticated: true,
+                            isLoading: false,
+                            user
+                        });
+                    }
+                } catch (error) {
+                    console.error("Error getting user token:", error);
+                    handleAuthError();
+                }
+            } else {
+                handleAuthError();
+            }
+        });
+
+        return () => {
+            mounted = false;
+            unsubscribe();
+        };
+    }, [navigate]);
+
+    const handleAuthError = () => {
+        setAuthState({
+            isAuthenticated: false,
+            isLoading: false,
+            user: null
+        });
+
+        // Don't navigate if we're already on the login page
+        if (window.location.pathname !== '/login') {
+            navigate('/login', {
+                replace: true,
+                state: { from: window.location.pathname }
+            });
         }
-        else {
-            navigate("/Login");
+    };
+
+    // Data fetching effect
+    useEffect(() => {
+        if (authState.isAuthenticated && hasHydrated && !accessoryLoading) {
+            fetchAccessories(currentPage).catch((error) => {
+                console.error("Error fetching accessories:", error);
+                toast({
+                    status: "error",
+                    description: "Failed to fetch accessories",
+                    position: "bottom-right",
+                    isClosable: true,
+                });
+            });
         }
-    }, [token, navigate, currentPage, toast]);
+    }, [authState.isAuthenticated, hasHydrated, currentPage, fetchAccessories]);
 
+    // Search effect
+    useEffect(() => {
+        if (searchParam) {
+            setSearchParam('');
+        }
+    }, [currentPage]);
 
+    const handleSellAccessory = async () => {
+        if (!authState.isAuthenticated) {
+            toast({
+                status: "error",
+                description: "You must be logged in to perform this action",
+                position: "top",
+            });
+            return;
+        }
 
+        await sellAccessory(
+            selectedItem.id,
+            {
+                selling_price: sellingPrice,
+                quantity: parseInt(sellingQuantity),
+                customer: customer,
+                product_name: selectedItem.product_name,
+            },
+            toast,
+            setIsDrawerOpen
+        );
+    };
 
+    const handleUpdateAccessory = async () => {
+        if (!authState.isAuthenticated) {
+            toast({
+                status: "error",
+                description: "You must be logged in to perform this action",
+                position: "top",
+            });
+            return;
+        }
+
+        await updateAccessory(
+            selectedItem,
+            sellingPrice,
+            sellingQuantity,
+            setIsDrawerOpen,
+            toast,
+            setSearchParam
+        );
+    };
 
     const openDrawer = (action, item) => {
         setDrawerAction(action);
         setSelectedItem(item);
         setSellingPrice(item.price);
-        if (action === 'update') {
-            setSellingQuantity(item.quantity); // Prefill sellingQuantity with the item's quantity
-        } else {
-            setSellingQuantity(''); // Clear sellingQuantity for other actions (like sell)
-        }
+        setSellingQuantity(action === 'update' ? item.quantity : '');
         setCustomer("");
         setIsDrawerOpen(true);
     };
@@ -85,19 +199,35 @@ export default function Accessories() {
                     textColor={textColor}
                     openDrawer={openDrawer}
                     setDeleteItemId={setDeleteItemId}
-                    setIsDeleteDialogOpen={setIsDeleteDialogOpen}/>
+                    setIsDeleteDialogOpen={setIsDeleteDialogOpen}
+                />
             ))}
         </SimpleGrid>
     );
+
+    // Show loading state
+    if (authState.isLoading) {
+        return (
+            <Center h="100vh">
+                <Spinner size="xl" />
+            </Center>
+        );
+    }
+
+    // Show page content only if authenticated
+    if (!authState.isAuthenticated) {
+        return null; // The useEffect will handle navigation
+    }
+
     return (
         <Flex direction="column" minH="100vh">
             <AccessoryBody
                 pageBgColor={pageBgColor}
                 searchParam={searchParam}
                 setSearchParam={setSearchParam}
-                loading={loading || searchLoading}
+                loading={accessoryLoading || searchLoading}
                 searchResults={searchResults}
-                shopData={accessoryData}
+                shopData={accessories}
                 renderItems={renderItems}
                 currentPage={currentPage}
                 setCurrentPage={setCurrentPage}
@@ -108,8 +238,7 @@ export default function Accessories() {
                 onClose={() => setIsDeleteDialogOpen(false)}
                 cancelRef={cancelRef}
                 deleteItemId={deleteItemId}
-                handleDelete={handleDelete}
-                isLoading={delStates[deleteItemId]}
+                setSearchParam={setSearchParam}
                 loadingText="Deleting"
             />
 
@@ -125,10 +254,11 @@ export default function Accessories() {
                 setSellingPrice={setSellingPrice}
                 customer={customer}
                 setCustomer={setCustomer}
-                handleSell={() => handleSell(selectedItem,sellingPrice,sellingQuantity,customer,setIsDrawerOpen)}
-                handleUpdate={() => handleUpdate(selectedItem, sellingPrice, sellingQuantity, setIsDrawerOpen)}
+                handleSell={handleSellAccessory}
+                handleUpdate={handleUpdateAccessory}
                 isSelling={isSelling}
                 isUpdating={isUpdating}
             />
         </Flex>
-    )}
+    );
+}

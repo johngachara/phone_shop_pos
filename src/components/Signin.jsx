@@ -15,7 +15,9 @@ import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import { auth } from "../components/firebase/firebase.js";
 import { doc, getDoc } from "firebase/firestore"; // To fetch user data from Firestore
 import { firestore } from "../components/firebase/firebase.js";
-import {apiService} from "../apiService.js"; // Initialize Firestore
+import {apiService} from "../apiService.js";
+import authService from "components/axios/authService.js";
+import sequalizerAuth from "components/axios/sequalizerAuth.js"; // Initialize Firestore
 
 const MotionBox = motion(Box);
 
@@ -44,27 +46,15 @@ const Signin = () => {
                         // Get Firebase ID token
                         const firebaseToken = await user.getIdToken();
 
-                        // Send Firebase token to Django backend
-                        const { data, status, message } = await apiService.main_login(firebaseToken);
-                        if (status === 403) {
-                            throw new Error("You are forbidden to sign in");
-                        } else if (status !== 200) {
-                            throw new Error(message || "Error during sign in");
+                        // Main auth login
+                        const { data: mainData, status: mainStatus } = await authService.mainLogin(firebaseToken);
+                        if (mainStatus === 200) {
+                            await authService.storeTokens({
+                                access: mainData.access,
+                                refresh: mainData.refresh
+                            });
                         }
 
-                        // Store JWT token
-                        localStorage.setItem("access", data.access); // JWT token
-                        localStorage.setItem("refresh", data.refresh)
-                        const { data: sequelizerData, status: sequelizerStatus } = await apiService.sequelizer_login({
-                         firebaseToken
-                        });
-
-                        if (sequelizerStatus !== 200) {
-                            throw new Error("Incorrect Username or password sequelizer");
-                        }
-
-                        localStorage.setItem("accessories", sequelizerData.token); // Store sequelizer token
-                        // Navigate to homepage after successful login
                         navigate("/");
                     } catch (error) {
                         console.error("Error during API call:", error);

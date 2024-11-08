@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import authService from "components/authService.js";
+import authService from "components/axios/authService.js";
 import useScreenStore from "components/zuhan/useScreenStore.js";
 
 const useUnpaidStore = create(
@@ -57,8 +57,6 @@ const useUnpaidStore = create(
 
                     // Get the IDs of orders from the API response
                     const apiOrderIds = new Set(response.data.data.map(order => order.id));
-                    console.log(apiOrderIds)
-
                     // Keep locally added orders that haven't appeared in the API yet
                     const recentLocalOrders = currentOrders.filter(order =>
                         !apiOrderIds.has(order.id) &&
@@ -123,11 +121,6 @@ const useUnpaidStore = create(
                             isRefunding: { ...state.isRefunding, [id]: false },
                             lastUpdated: new Date().toISOString()
                         }));
-
-                        // Update screen store
-                        const screenStore = useScreenStore.getState();
-                        await screenStore.fetchScreens();
-
                         return { success: true, message: "Refund successful" };
                     }
                     throw new Error(response.data?.message || "Refund failed");

@@ -7,6 +7,7 @@ import { format } from "date-fns";
 import DashboardPage from "./DashboardPage.jsx";
 import useCheckRole from "components/hooks/useCheckRole.js";
 import {apiService} from "../apiService.js";
+import authService from "components/axios/authService.js";
 const Dashboard = () => {
     const [data, setData] = useState(null);
     const [accessoryData, setAccessoryData] = useState(null);
@@ -18,9 +19,7 @@ const Dashboard = () => {
         const fetchDashboardData = async () => {
             setLoading(true)
             try {
-                const token = localStorage.getItem('access');
-
-                const result = await apiService.fetchDashboardData(token);
+                const result = await authService.axiosInstance.get('/api/dashboard')
 
                 if (result.status === 401) {
                     navigate('/Login');
@@ -45,40 +44,40 @@ const Dashboard = () => {
         }
         fetchDashboardData();
     },[])
-
-    useEffect(() => {
-        const fetchAccessoryData = async () => {
-            setLoading(true);
-            try {
-                const result = await apiService.fetchAccessoryDashboardData();
-
-                if (result.status !== 'error') {
-                    const formattedData = result.data.monthly_sales.map(item => ({
-                        ...item,
-                        month: format(new Date(item.month), 'MMM'), // 'MMM' for short month name
-                    }));
-
-                    setAccessoryData({ ...result.data, monthly_sales: formattedData });
-                } else {
-                    toast({
-                        status: 'error',
-                        description: result.message,
-                    });
-                }
-            } catch (err) {
-                toast({
-                    status: 'error',
-                    description: err.message
-                });
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchAccessoryData();
-    }, []); // Empty dependency array means this effect runs once on mount
-
-
+    //
+    // useEffect(() => {
+    //     const fetchAccessoryData = async () => {
+    //         setLoading(true);
+    //         try {
+    //             const result = await apiService.fetchAccessoryDashboardData();
+    //
+    //             if (result.status !== 'error') {
+    //                 const formattedData = result.data.monthly_sales.map(item => ({
+    //                     ...item,
+    //                     month: format(new Date(item.month), 'MMM'), // 'MMM' for short month name
+    //                 }));
+    //
+    //                 setAccessoryData({ ...result.data, monthly_sales: formattedData });
+    //             } else {
+    //                 toast({
+    //                     status: 'error',
+    //                     description: result.message,
+    //                 });
+    //             }
+    //         } catch (err) {
+    //             toast({
+    //                 status: 'error',
+    //                 description: err.message
+    //             });
+    //         } finally {
+    //             setLoading(false);
+    //         }
+    //     };
+    //
+    //     fetchAccessoryData();
+    // }, []); // Empty dependency array means this effect runs once on mount
+    //
+    //
 
 
     useEffect(() => {
@@ -111,7 +110,7 @@ const Dashboard = () => {
         <DashboardPage
         loading={loading || roleLoading}
         data={data}
-        accessoryData={accessoryData}
+        accessoryData={accessoryData || []}
         />
     );
 };

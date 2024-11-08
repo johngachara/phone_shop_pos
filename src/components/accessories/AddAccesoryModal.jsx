@@ -15,10 +15,10 @@ import {
     useToast,
     FormErrorMessage,
 } from "@chakra-ui/react";
-import { apiService } from "../../apiService.js";
+import useAccessoryStore from "components/zuhan/useAccessoryStore.js";
+
 
 const AddAccessoryModal = ({ isOpen, onClose }) => {
-    const [saving, setSaving] = useState(false);
     const [data, setData] = useState({
         product_name: "",
         quantity: "",
@@ -27,7 +27,8 @@ const AddAccessoryModal = ({ isOpen, onClose }) => {
 
     const [errors, setErrors] = useState({});
     const toast = useToast();
-    const token = localStorage.getItem("accessories");
+    const { addAccessory, isAdding } = useAccessoryStore();
+    const textColor = useColorModeValue("gray.700", "gray.200");
 
     const handleChange = (event) => {
         const { name, value } = event.target;
@@ -37,11 +38,9 @@ const AddAccessoryModal = ({ isOpen, onClose }) => {
         }));
         setErrors((prevErrors) => ({
             ...prevErrors,
-            [name]: "", // Clear error for the field being edited
+            [name]: "",
         }));
     };
-
-    const textColor = useColorModeValue("gray.700", "gray.200");
 
     const validate = () => {
         const newErrors = {};
@@ -61,38 +60,18 @@ const AddAccessoryModal = ({ isOpen, onClose }) => {
     const handleSubmit = async (event) => {
         event.preventDefault();
         if (!validate()) {
-            return; // Prevent submission if validation fails
+            return;
         }
 
-        setSaving(true);
-        try {
-            const { status, message } = await apiService.addAccessories(token, data);
-            if (status === 201) {
-                toast({
-                    status: "success",
-                    description: "Item added successfully",
-                    position: "top",
-                });
-                onClose();
-                setData({
-                    product_name: "",
-                    quantity: "",
-                    price: "",
-                });
-            } else {
-                throw new Error(
-                    message || "Unable to add product. Check if product already exists."
-                );
-            }
-        } catch (err) {
-            toast({
-                title: "Error",
-                status: "error",
-                description: err.message,
-                position: "top",
+        const result = await addAccessory(data, toast);
+
+        if (result.success) {
+            onClose();
+            setData({
+                product_name: "",
+                quantity: "",
+                price: "",
             });
-        } finally {
-            setSaving(false);
         }
     };
 
@@ -104,7 +83,6 @@ const AddAccessoryModal = ({ isOpen, onClose }) => {
                 <ModalCloseButton />
                 <form onSubmit={handleSubmit}>
                     <ModalBody>
-                        {/* Product Name */}
                         <FormControl isInvalid={!!errors.product_name} mb={4}>
                             <FormLabel>Product Name</FormLabel>
                             <Input
@@ -117,7 +95,6 @@ const AddAccessoryModal = ({ isOpen, onClose }) => {
                             <FormErrorMessage>{errors.product_name}</FormErrorMessage>
                         </FormControl>
 
-                        {/* Quantity */}
                         <FormControl isInvalid={!!errors.quantity} mb={4}>
                             <FormLabel>Quantity</FormLabel>
                             <Input
@@ -130,7 +107,6 @@ const AddAccessoryModal = ({ isOpen, onClose }) => {
                             <FormErrorMessage>{errors.quantity}</FormErrorMessage>
                         </FormControl>
 
-                        {/* Price */}
                         <FormControl isInvalid={!!errors.price} mb={6}>
                             <FormLabel>Selling Price</FormLabel>
                             <Input
@@ -148,7 +124,7 @@ const AddAccessoryModal = ({ isOpen, onClose }) => {
                         <Button
                             type="submit"
                             colorScheme="blue"
-                            isLoading={saving}
+                            isLoading={isAdding}
                             loadingText="Saving"
                             mr={3}
                         >

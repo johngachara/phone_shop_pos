@@ -10,6 +10,9 @@ import Navbar from "../Navbar.jsx";
 import UnpaidOrdersBody from "components/unpaid/UnpaidOrdersBody.jsx";
 import UnpaidOrdersDialog from "components/dialogs/UnpaidOrdersDialog.jsx";
 import useUnpaidStore from "components/zuhan/useUnpaidStore.js";
+import {onAuthStateChanged} from "firebase/auth";
+import {auth} from "components/firebase/firebase.js";
+import {useNavigate} from "react-router-dom";
 
 
 export default function SavedOrders() {
@@ -23,47 +26,45 @@ export default function SavedOrders() {
         completeOrder,
         hasHydrated
     } = useUnpaidStore();
-
+    const navigate = useNavigate();
+    const [authLoading, setAuthLoading] = useState(true);
     const [isDialogOpen, setDialogOpen] = useState(false);
     const [refundId, setRefundId] = useState(null);
     const [cancelButton, setCancelButton] = useState(false);
     const [searchTerm, setSearchTerm] = useState("");
-    // Initialize component
     useEffect(() => {
-        let isMounted = true;
-        const loadData = async () => {
-            try {
-                const result = await fetchUnpaidOrders();
-                if (!result.success && isMounted) {
-                    toast({
-                        status: 'error',
-                        description: result.error || 'Failed to fetch unpaid orders',
-                        position: 'bottom-right',
-                        isClosable: true
-                    });
-                }
-            } catch (error) {
-                if (isMounted) {
-                    console.error('Error fetching unpaid orders:', error);
-                    toast({
-                        status: 'error',
-                        description: 'Failed to fetch unpaid orders',
-                        position: 'bottom-right',
-                        isClosable: true
-                    });
-                }
+        const unsubscribe = onAuthStateChanged(auth, (user) => {
+            if (user) {
+                console.log("User authenticated:", user);
+                setAuthLoading(false);
+            } else {
+                console.warn("No Firebase user found, redirecting to login.");
+                setAuthLoading(false);
+                toast({
+                    status: "warning",
+                    description: "You must be logged in to access this page.",
+                    position: "top",
+                });
             }
-        };
+        });
+        return () => unsubscribe();
+    }, [navigate, toast]);
 
-        // Initial load
-        if (hasHydrated) {
-            loadData();
+    useEffect(() => {
+        if (!authLoading && hasHydrated) {
+            fetchUnpaidOrders().catch((error) => {
+                console.error("Error fetching shop stock:", error);
+                toast({
+                    status: "error",
+                    description: "Failed to fetch stock",
+                    position: "bottom-right",
+                    isClosable: true,
+                });
+            });
         }
-        return () => {
-            isMounted = false;
+    }, [authLoading, hasHydrated, fetchUnpaidOrders, toast]);
 
-        };
-    }, [hasHydrated]);
+
 
 
     const complete = async (id) => {

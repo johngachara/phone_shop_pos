@@ -3,13 +3,13 @@ import { useToast } from "@chakra-ui/react";
 import { useState } from "react";
 import {setAccessoryData, setAccessorySearchResults} from "components/redux/actions/shopActions.js";
 import {apiService} from "../../apiService.js";
+import useAccessoryStore from "components/zuhan/useAccessoryStore.js";
 
 export const useSellAccessory = (token) => {
     const dispatch = useDispatch();
     const toast = useToast();
     const [isSelling, setIsSelling] = useState(false);
-    const accessories = useSelector(state => state.accessory.shopData);
-    const searchResults = useSelector(state => state.searchAccessory.accessoryResults);
+    const {accessories,sellAccessory,fetchAccessories} = useAccessoryStore()
     const handleSell = async (selectedItem, sellingPrice, sellingQuantity, customer, setIsDrawerOpen) => {
         if (!selectedItem.product_name || !sellingPrice || !sellingQuantity || !customer) {
             toast({
@@ -49,7 +49,7 @@ export const useSellAccessory = (token) => {
         }
 
         try {
-           await apiService.sellAccessory(token,selectedItem.id,dataToSend)
+           await sellAccessory(selectedItem.id,dataToSend)
 
             toast({
                 title: "Success",
@@ -62,23 +62,7 @@ export const useSellAccessory = (token) => {
 
             setIsDrawerOpen(false);
 
-            // Update the accessory locally in the Redux state
-            const updatedAccessories = accessories.map(item =>
-                item.id === selectedItem.id
-                    ? { ...item, quantity: item.quantity - sellingQuantity }
-                    : item
-            );
-
-            // Update the search results in the Redux state
-            const updatedSearchResults = searchResults.map(item =>
-                item.id === selectedItem.id
-                    ? { ...item, quantity: item.quantity - sellingQuantity}
-                    : item
-            );
-
-            // Dispatch the updated accessories list and search results
-            dispatch(setAccessoryData(updatedAccessories));
-            dispatch(setAccessorySearchResults(updatedSearchResults));
+            await fetchAccessories()
 
         } catch (error) {
             toast({

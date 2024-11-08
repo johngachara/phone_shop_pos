@@ -36,7 +36,7 @@ const DetailedDataView = () => {
         sales: ['product_name', 'selling_price', 'customer_name'],
         products: ['product_name', 'total_quantity'],
         customers: ['customer_name', 'total_transactions', 'total_spend'],
-        accessory_sales: ['product_name', 'selling_price', 'customer'],
+      //  accessory_sales: ['product_name', 'selling_price', 'customer'],
     };
 
     const fetchData = async (datatype) => {
@@ -155,7 +155,7 @@ const DetailedDataView = () => {
                             <option value="sales">LCD & TOUCH SALES</option>
                             <option value="products">LCD & TOUCH SALES PER PRODUCT</option>
                             <option value="customers">LCD & TOUCH SALES PER CUSTOMER</option>
-                            <option value="accessory_sales">ACCESSORY SALES</option>
+                            {/*<option value="accessory_sales">ACCESSORY SALES</option>*/}
                         </Select>
                         <Input
                             placeholder="Search..."

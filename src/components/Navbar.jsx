@@ -28,7 +28,9 @@ import { ChevronDownIcon, HamburgerIcon, MoonIcon, SunIcon } from "@chakra-ui/ic
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "./firebase/firebase.js";
 import AddScreenModal from "components/screens/AddScreenModal.jsx";
+
 import useCheckRole from "components/hooks/useCheckRole.js";
+import AddAccessoryModal from "components/accessories/AddAccesoryModal.jsx";
 
 export default function Navbar() {
     const navigate = useNavigate();
@@ -42,14 +44,23 @@ export default function Navbar() {
     const isMobile = useBreakpointValue({ base: true, md: false });
     const { role, loading: roleLoading, error } = useCheckRole();
 
-    // AddScreenModal state and config
+    // Modal states
     const {
-        isOpen: isModalOpen,
-        onOpen: openModal,
-        onClose: closeModal,
+        isOpen: isScreenModalOpen,
+        onOpen: openScreenModal,
+        onClose: closeScreenModal,
     } = useDisclosure();
-    const [isLoading, setIsLoading] = useState(false);
 
+    const {
+        isOpen: isAccessoryModalOpen,
+        onOpen: openAccessoryModal,
+        onClose: closeAccessoryModal,
+    } = useDisclosure();
+
+    const [activeModal, setActiveModal] = useState(null);
+
+    // Screen modal config
+    const [isLoading, setIsLoading] = useState(false);
     const fieldConfig = [
         { label: "Screen Name", name: "screen_name", type: "text", placeholder: "Enter screen name" },
         { label: "Resolution", name: "resolution", type: "text", placeholder: "Enter resolution" },
@@ -63,20 +74,21 @@ export default function Navbar() {
             setTimeout(() => {
                 console.log("Screen added successfully");
                 setIsLoading(false);
-                closeModal();
+                closeScreenModal();
             }, 2000);
         },
     };
 
     const secondaryButtonConfig = {
         label: "Cancel",
-        onClick: closeModal,
+        onClick: closeScreenModal,
     };
 
     // Navigation helpers
     const Logout = () => {
         localStorage.removeItem("access");
         localStorage.removeItem("accessories");
+        localStorage.removeItem("refresh")
         navigate("/Login");
     };
 
@@ -90,12 +102,33 @@ export default function Navbar() {
         return () => unsubscribe();
     }, [navigate]);
 
+    // Handle modal opens with active state
+    const handleScreenModalOpen = () => {
+        setActiveModal('screen');
+        openScreenModal();
+    };
+
+    const handleAccessoryModalOpen = () => {
+        setActiveModal('accessory');
+        openAccessoryModal();
+    };
+
+    // Handle modal closes
+    const handleScreenModalClose = () => {
+        setActiveModal(null);
+        closeScreenModal();
+    };
+
+    const handleAccessoryModalClose = () => {
+        setActiveModal(null);
+        closeAccessoryModal();
+    };
+
     const DarkModeButton = () => (
         <Button onClick={toggleColorMode} variant="ghost" mb={4}>
             {colorMode === "light" ? <MoonIcon /> : <SunIcon />}
         </Button>
     );
-
 
     const NavItem = ({ to, children, onClick }) => (
         <Button
@@ -112,6 +145,19 @@ export default function Navbar() {
         </Button>
     );
 
+    const ActionButton = ({ onClick, isActive, children }) => (
+        <Button
+            onClick={onClick}
+            variant="ghost"
+            justifyContent="flex-start"
+            fontWeight="normal"
+            width="100%"
+            color={isActive ? activeColor : textColor}
+        >
+            {children}
+        </Button>
+    );
+
     const SidebarContent = () => (
         <Flex direction="column" h="full" p={4}>
             <Box mb={6}>
@@ -122,9 +168,19 @@ export default function Navbar() {
 
             <VStack align="stretch" spacing={2} flex={1}>
                 <NavItem to="/" onClick={onClose}>Screens</NavItem>
-                <Button onClick={openModal} variant="ghost" justifyContent="flex-start" fontWeight="normal"  width="100%">
+                {/*<NavItem to="/Accessories" onClick={onClose}>Accessories</NavItem>*/}
+                <ActionButton
+                    onClick={handleScreenModalOpen}
+                    isActive={activeModal === 'screen'}
+                >
                     Add New Screen
-                </Button>
+                </ActionButton>
+                {/*<ActionButton*/}
+                {/*    onClick={handleAccessoryModalOpen}*/}
+                {/*    isActive={activeModal === 'accessory'}*/}
+                {/*>*/}
+                {/*    Add New Accessory*/}
+                {/*</ActionButton>*/}
                 <NavItem to="/SavedOrders" onClick={onClose}>Unpaid Orders</NavItem>
                 <NavItem to="/LowStock" onClick={onClose}>Low Stock</NavItem>
 
@@ -185,13 +241,15 @@ export default function Navbar() {
                 </Drawer>
 
                 <AddScreenModal
-                    isOpen={isModalOpen}
-                    onClose={closeModal}
+                    isOpen={isScreenModalOpen}
+                    onClose={handleScreenModalClose}
                     isLoading={isLoading}
                     fieldConfig={fieldConfig}
                     primaryButtonConfig={primaryButtonConfig}
                     secondaryButtonConfig={secondaryButtonConfig}
                 />
+
+
             </>
         );
     }
@@ -212,12 +270,17 @@ export default function Navbar() {
             <SidebarContent />
 
             <AddScreenModal
-                isOpen={isModalOpen}
-                onClose={closeModal}
+                isOpen={isScreenModalOpen}
+                onClose={handleScreenModalClose}
                 isLoading={isLoading}
                 fieldConfig={fieldConfig}
                 primaryButtonConfig={primaryButtonConfig}
                 secondaryButtonConfig={secondaryButtonConfig}
+            />
+
+            <AddAccessoryModal
+                isOpen={isAccessoryModalOpen}
+                onClose={handleAccessoryModalClose}
             />
         </Box>
     );

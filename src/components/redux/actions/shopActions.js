@@ -1,6 +1,7 @@
 import { apiService } from "../../../apiService.js";
 import { useNavigate } from "react-router-dom";
-import authService from "components/authService.js";
+import authService from "components/axios/authService.js";
+import sequalizerAuth from "components/axios/sequalizerAuth.js";
 
 // Action Types
 export const ACTIONS = {
@@ -133,7 +134,10 @@ export const syncShopData = (token) => async (dispatch) => {
 export const fetchAccessories = (token, page, navigate, toast) => async (dispatch) => {
     dispatch(setAccessoryLoading(true));
     try {
-        const { data } = await apiService.getAccessories(token, page, navigate,dispatch,toast,setAccessoryLoading);
+        const { data } = await sequalizerAuth.axiosInstance('/nodeapp/Findall',{
+            params: { page }
+        })
+        console.log(data)
         dispatch(setAccessoryData(data.items));
     } catch (error) {
         console.error(error)

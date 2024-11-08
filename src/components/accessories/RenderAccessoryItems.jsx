@@ -5,7 +5,7 @@ const MotionBox = motion(Box);
 const RenderAccessoryItems = ({ item, index, bgColor, textColor, openDrawer, setDeleteItemId, setIsDeleteDialogOpen }) => {
     return (
         <MotionBox
-            key={item.id}
+            key={index}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: index * 0.1 }}

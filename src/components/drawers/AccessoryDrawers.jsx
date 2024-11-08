@@ -50,6 +50,11 @@ const AccessoryDrawers = ({
             newErrors.sellingPrice = 'Price must be a positive number';
             isValid = false;
         }
+        // Add stock validation
+        if (parseInt(sellingQuantity) > selectedItem.quantity) {
+            newErrors.sellingQuantity = `Cannot sell more than available stock (${selectedItem.quantity} units)`;
+            isValid = false;
+        }
 // Alphanumeric validation regex function
         const isAlphanumeric = (str) => /^[a-zA-Z0-9\s]+$/.test(str);
 
