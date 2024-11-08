@@ -30,6 +30,7 @@
     "lodash": "^4.17.21",
     "lucide-react": "^0.427.0",
     "meilisearch": "^0.45.0",
+    "openai": "^4.71.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-hot-toast": "^2.4.1",
