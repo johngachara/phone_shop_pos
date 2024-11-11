@@ -15,7 +15,6 @@ import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import { auth } from "../components/firebase/firebase.js";
 import { doc, getDoc } from "firebase/firestore"; // To fetch user data from Firestore
 import { firestore } from "../components/firebase/firebase.js";
-import {apiService} from "../apiService.js";
 import authService from "components/axios/authService.js";
 import sequalizerAuth from "components/axios/sequalizerAuth.js"; // Initialize Firestore
 
@@ -45,7 +44,6 @@ const Signin = () => {
                     try {
                         // Get Firebase ID token
                         const firebaseToken = await user.getIdToken();
-
                         // Main auth login
                         const { data: mainData, status: mainStatus } = await authService.mainLogin(firebaseToken);
                         if (mainStatus === 200) {
@@ -55,24 +53,36 @@ const Signin = () => {
                             });
                         }
 
+                        const {data : sequelizerData ,status : sequelizerStatus} = await sequalizerAuth.axiosInstance.post('/nodeapp/api/authenticate',{
+                            idToken : firebaseToken
+                        })
+                        if(sequelizerStatus === 200){
+                            await sequalizerAuth.storeAccessToken(sequelizerData.token)
+                        }
+
+
                         navigate("/");
                     } catch (error) {
+                        setIsLoading(false);
                         console.error("Error during API call:", error);
                         toast.error(error.message);
                         await auth.signOut();
                     }
                 } else {
                     // No role found in the Firestore document
+                    setIsLoading(false);
                     await auth.signOut();
                     toast.error("Your account does not have a role and cannot sign in.");
                 }
             } else {
                 // User does not exist in Firestore
+                setIsLoading(false);
                 await auth.signOut();
                 toast.error("Your account is not in the system.");
             }
         } catch (error) {
             console.error("Error during sign-in:", error);
+            setIsLoading(false);
             if (error.code === 'auth/popup-closed-by-user') {
                 toast.error("Sign-in was cancelled. Please try again.");
             } else if (error.code === 'auth/network-request-failed') {
@@ -80,8 +90,6 @@ const Signin = () => {
             } else {
                 toast.error("Error during Google Sign-In. Please try again.");
             }
-        } finally {
-            setIsLoading(false);
         }
     };
 

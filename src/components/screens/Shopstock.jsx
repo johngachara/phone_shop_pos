@@ -173,7 +173,6 @@ export default function Shopstock() {
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, (user) => {
             if (user) {
-                console.log("User authenticated:", user);
                 setAuthLoading(false); // Auth confirmed, continue loading data
             } else {
                 console.warn("No Firebase user found, redirecting to login.");

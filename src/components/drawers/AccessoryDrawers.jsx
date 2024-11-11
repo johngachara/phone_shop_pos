@@ -51,7 +51,7 @@ const AccessoryDrawers = ({
             isValid = false;
         }
         // Add stock validation
-        if (parseInt(sellingQuantity) > selectedItem.quantity) {
+        if (customer && parseInt(sellingQuantity) > selectedItem.quantity) {
             newErrors.sellingQuantity = `Cannot sell more than available stock (${selectedItem.quantity} units)`;
             isValid = false;
         }

@@ -25,7 +25,7 @@ const useSearchAccessories = (searchParam) => {
                 setLoading(true)
             }
             try {
-                const response = await client.index('Accessories').search(searchParam);
+                const response = await client.index('Accessories_New').search(searchParam);
                 const info = response.hits;
                 if (info.length === 0) {
                     toast({

@@ -151,7 +151,8 @@ export default function Accessories() {
                 product_name: selectedItem.product_name,
             },
             toast,
-            setIsDrawerOpen
+            setIsDrawerOpen,
+            setSearchParam
         );
     };
 

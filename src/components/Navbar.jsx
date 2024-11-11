@@ -168,19 +168,19 @@ export default function Navbar() {
 
             <VStack align="stretch" spacing={2} flex={1}>
                 <NavItem to="/" onClick={onClose}>Screens</NavItem>
-                {/*<NavItem to="/Accessories" onClick={onClose}>Accessories</NavItem>*/}
+                <NavItem to="/Accessories" onClick={onClose}>Accessories</NavItem>
                 <ActionButton
                     onClick={handleScreenModalOpen}
                     isActive={activeModal === 'screen'}
                 >
                     Add New Screen
                 </ActionButton>
-                {/*<ActionButton*/}
-                {/*    onClick={handleAccessoryModalOpen}*/}
-                {/*    isActive={activeModal === 'accessory'}*/}
-                {/*>*/}
-                {/*    Add New Accessory*/}
-                {/*</ActionButton>*/}
+                <ActionButton
+                    onClick={handleAccessoryModalOpen}
+                    isActive={activeModal === 'accessory'}
+                >
+                    Add New Accessory
+                </ActionButton>
                 <NavItem to="/SavedOrders" onClick={onClose}>Unpaid Orders</NavItem>
                 <NavItem to="/LowStock" onClick={onClose}>Low Stock</NavItem>
 

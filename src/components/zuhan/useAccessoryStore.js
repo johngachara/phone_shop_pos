@@ -39,7 +39,7 @@ const useAccessoryStore = create(persist((set, get) => ({
         fetchAccessories: async (page = 1, toast) => {
             set({ loading: true, error: null });
             try {
-                const { data } = await sequalizerAuth.axiosInstance.get('/nodeapp/FindAll', {
+                const { data } = await sequalizerAuth.axiosInstance.get('/nodeapp/api/getAll', {
                     params: { page }
                 });
 
@@ -82,7 +82,7 @@ const useAccessoryStore = create(persist((set, get) => ({
             }));
 
             try {
-                const response = await sequalizerAuth.axiosInstance.post('/nodeapp/Add', data);
+                const response = await sequalizerAuth.axiosInstance.post('/nodeapp/api/addAccessories', data);
 
                 // Update with real data from server
                 set(state => ({
@@ -107,10 +107,10 @@ const useAccessoryStore = create(persist((set, get) => ({
                     isAdding: false,
                     rollbackState: null
                 }));
-
+                console.log(error.response)
                 toast?.({
                     status: 'error',
-                    description: error.message || 'Failed to add accessory,check whether the product exists',
+                    description: error.response?.data || 'Failed to add accessory,check whether the product exists',
                     position: 'bottom-right',
                     isClosable: true
                 });
@@ -150,9 +150,10 @@ const useAccessoryStore = create(persist((set, get) => ({
 
             try {
                 const response = await sequalizerAuth.axiosInstance.put(
-                    `/nodeapp/Update/${selectedItem.id}`,
+                    `/nodeapp/api/updateAccessories/${selectedItem.id}`,
                     dataToSend
                 );
+                console.log(response)
 
                 set(state => ({
                     isUpdating: false,
@@ -195,7 +196,7 @@ const useAccessoryStore = create(persist((set, get) => ({
             set({ isDeleting: true, error: null });
 
             try {
-                const result = await sequalizerAuth.axiosInstance.delete(`/nodeapp/Delete/${id}`);
+                const result = await sequalizerAuth.axiosInstance.delete(`/nodeapp/api/deleteAccessory/${id}`);
 
                 if (result.status === 200) {
                     // Remove item from state
@@ -227,11 +228,11 @@ const useAccessoryStore = create(persist((set, get) => ({
                 return { success: false, error: error.message };
             }
         },
-        sellAccessory: async (id, data, toast, setIsDrawerOpen) => {
+        sellAccessory: async (id, data, toast, setIsDrawerOpen,setSearchParam) => {
             set({ isSelling: true, error: null });
 
             try {
-                const response = await sequalizerAuth.axiosInstance.post(`/nodeapp/Save/${id}`, data);
+                const response = await sequalizerAuth.axiosInstance.post(`/nodeapp/api/sellAccessories/${id}`, data);
 
 
 
@@ -242,8 +243,8 @@ const useAccessoryStore = create(persist((set, get) => ({
 
                 // Close drawer after successful sale
                 setIsDrawerOpen(false);
-
-                toast?.({
+                setSearchParam("")
+                toast({
                     title: "Success",
                     description: "Sale completed successfully",
                     status: "success",

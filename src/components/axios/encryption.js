@@ -1,9 +1,7 @@
 // encryption.js
 const STORAGE_KEY = 'sequal_encryption_key';
-let encryptionKey; // Declare encryptionKey here
 
-// Function to initialize the encryption key
-async function initializeEncryptionKey() {
+async function getOrCreateEncryptionKey() {
     let storedKey = localStorage.getItem(STORAGE_KEY);
 
     if (!storedKey) {
@@ -13,14 +11,12 @@ async function initializeEncryptionKey() {
         localStorage.setItem(STORAGE_KEY, storedKey);
     }
 
-    encryptionKey = new Uint8Array(
+    return new Uint8Array(
         atob(storedKey).split('').map(char => char.charCodeAt(0))
     );
 }
 
-// Immediately invoke the async function to initialize the encryption key
-initializeEncryptionKey();
-
+const encryptionKey = await getOrCreateEncryptionKey();
 const ivLength = 12;
 
 export async function encrypt(text) {

@@ -24,10 +24,10 @@ class SequalizerAuth {
         this.axiosInstance = axios.create({
             baseURL: API_URL,
             headers: {
-                'Content-Type': 'application/json'
-            }
+                'Content-Type': 'application/json',
+            },
+            withCredentials: true
         });
-
         this.axiosInstance.interceptors.request.use(
             async (config) => {
                 const token = await this.getAccessToken();
@@ -38,6 +38,7 @@ class SequalizerAuth {
             },
             this.handleRequestError
         );
+
 
         this.axiosInstance.interceptors.response.use(
             (response) => response,
@@ -118,9 +119,8 @@ class SequalizerAuth {
             // Set secure cookie
             Cookies.set('sequal_session', sessionId, {
                 secure: true,
-                sameSite: 'strict',
+                sameSite: 'Strict',
                 expires: 1, // 1 day
-                path: '/'  // Ensure cookie is available across all paths
             });
 
             return true;
