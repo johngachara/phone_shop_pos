@@ -24,7 +24,7 @@
     "braces": "^3.0.3",
     "class-variance-authority": "^0.7.0",
     "date-fns": "^3.6.0",
-    "firebase": "^10.12.2",
+    "firebase": "^11.0.1",
     "framer-motion": "^11.3.28",
     "js-yaml": "^4.1.0",
     "lodash": "^4.17.21",
