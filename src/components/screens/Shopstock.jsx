@@ -1,4 +1,4 @@
-import {useState, useEffect, useRef} from "react";
+import { useState, useEffect, useRef } from "react";
 import {
     Box,
     useColorModeValue,
@@ -12,9 +12,9 @@ import { DeleteAlertDialog } from "components/dialogs/DeleteAlertDialog.jsx";
 import { UpdateDrawer } from "components/drawers/UpdateDrawer.jsx";
 import { SellDrawer } from "components/drawers/SellDrawer.jsx";
 import useScreenStore from "components/zuhan/useScreenStore.js";
-import {onAuthStateChanged} from "firebase/auth";
-import {useNavigate} from "react-router-dom";
-import {auth} from "components/firebase/firebase.js";
+import { onAuthStateChanged } from "firebase/auth";
+import { useNavigate } from "react-router-dom";
+import { auth } from "components/firebase/firebase.js";
 
 export default function Shopstock() {
     const [searchParam, setSearchParam] = useState("");
@@ -25,8 +25,8 @@ export default function Shopstock() {
     const [sellingPrice, setSellingPrice] = useState(0);
     const [customer, setCustomer] = useState("");
     const [authLoading, setAuthLoading] = useState(true);
-    const navigate = useNavigate()
-    // Properly destructure the store
+    const navigate = useNavigate();
+
     const {
         data: shopData,
         isLoading: isLoadingData,
@@ -169,7 +169,6 @@ export default function Shopstock() {
         setSellingPrice(handleDecimalsOnValue(event.target.value));
     };
 
-
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, (user) => {
             if (user) {
@@ -201,7 +200,6 @@ export default function Shopstock() {
             });
         }
     }, [authLoading, hasHydrated, fetchScreens, toast]);
-
 
     return (
         <Box bg={useColorModeValue("gray.50", "gray.900")} minH="100vh" ml={{ base: 0, md: '250px' }}>

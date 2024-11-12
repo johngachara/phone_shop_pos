@@ -12,17 +12,23 @@ import {
     Text,
     Input,
     FormControl,
-    FormErrorMessage
+    FormErrorMessage,
+    Spinner,
+    Flex,
+    List,
+    ListItem, useToast
 } from "@chakra-ui/react";
-import { useState } from "react";
+import { useEffect, useState, useCallback } from "react";
+import debounce from "lodash.debounce";
+import authService from "components/axios/authService.js"; // Install lodash for debouncing if not already
 
 export function SellDrawer({
                                isOpen,
                                onClose,
                                selectedItem,
                                sellingPrice,
-                               customer,
                                onSellingPriceChange,
+                               customer,
                                onCustomerChange,
                                onSell,
                                onComplete,
@@ -32,7 +38,69 @@ export function SellDrawer({
         sellingPrice: "",
         customer: ""
     });
+    const [customers, setCustomers] = useState([]);
+    const [searchTerm, setSearchTerm] = useState("");
+    const [isLoading, setIsLoading] = useState(false);
+    const [showDropdown, setShowDropdown] = useState(false);
+    const toast = useToast()
+    useEffect(() => {
+        fetchCustomers();
+    }, []);
 
+    const fetchCustomers = async () => {
+        try {
+            setIsLoading(true);
+            const response = await authService.axiosInstance.get("/api/customers/");
+            setCustomers(response.data);
+            setIsLoading(false);
+        } catch (error) {
+            console.error("Error fetching customers:", error);
+            setIsLoading(false);
+        }
+    };
+
+    // Debounce to avoid re-rendering on every keystroke
+    const debounceSearch = useCallback(
+        debounce((value) => setSearchTerm(value), 300),
+        []
+    );
+
+    const handleCustomerChange = (e) => {
+        const value = e.target.value;
+        debounceSearch(value); // Apply debounce
+        onCustomerChange(e);
+        setShowDropdown(true); // Show dropdown as user types
+
+        // Clear errors while typing
+        setErrors((prevErrors) => ({ ...prevErrors, customer: "" }));
+    };
+
+    // Filter customers based on search term
+    const filteredCustomers = customers.filter((c) =>
+        c.customer_name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    const handleSelectCustomer = (customerName) => {
+        onCustomerChange({ target: { value: customerName } }); // Create a synthetic event object
+        setSearchTerm(""); // Clear the search term to hide dropdown
+        setShowDropdown(false); // Hide dropdown
+    };
+    const handleBlur = () => {
+        // If there are no matching customers and the input value is not empty
+        if (filteredCustomers.length === 0 && customer.trim() !== "") {
+            // Set the customer state to the input value
+            onCustomerChange({ target: { value: customer.trim() } });
+            toast({
+                title: "Customer not found",
+                description: "New customer will be created automatically.",
+                status: "info",
+                duration: 3000,
+                isClosable: true,
+                position: "bottom"
+            });
+        }
+        setShowDropdown(false); // Hide dropdown on blur
+    };
     // Regular expression to check alphanumeric input
     const isAlphanumeric = (str) => /^[a-zA-Z0-9\s]+$/.test(str);
 
@@ -56,13 +124,13 @@ export function SellDrawer({
 
     const handleSellClick = () => {
         if (validate()) {
-            onSell();
+            onSell(selectedItem, sellingPrice, customer);
         }
     };
 
     const handleCompleteClick = () => {
         if (validate()) {
-            onComplete();
+            onComplete(selectedItem, sellingPrice, customer);
         }
     };
 
@@ -102,12 +170,39 @@ export function SellDrawer({
                         {/* Customer */}
                         <FormControl isInvalid={!!errors.customer}>
                             <Text mb={2}>Customer</Text>
-                            <Input
-                                required={true}
-                                value={customer}
-                                type="text"
-                                onChange={onCustomerChange}
-                            />
+                            <Text fontSize="sm" color="gray.500" mb={2}>
+                                Start typing to search for an existing customer. If the customer is not found, a new one will be created automatically.
+                            </Text>
+                            <Flex direction="column">
+                                <Input
+                                    required={true}
+                                    value={customer}
+                                    type="text"
+                                    onChange={handleCustomerChange}
+                                    onBlur={handleBlur}
+                                    placeholder="Search or create a customer"
+                                />
+                                {isLoading && <Spinner ml={2} />}
+                                {/* Dropdown for customer search preview */}
+                                {showDropdown && filteredCustomers.length > 0 && (
+                                    <Box border="1px solid #ccc" borderRadius="md" mt={2} boxShadow="md" maxH="150px" overflowY="auto">
+                                        <List spacing={1}>
+                                            {filteredCustomers.map((c,index) => (
+                                                <ListItem
+                                                    key={index}
+                                                    px={4}
+                                                    py={2}
+                                                    cursor="pointer"
+                                                    _hover={{ background: "gray.100" }}
+                                                    onMouseDown={() => handleSelectCustomer(c.customer_name)}
+                                                >
+                                                    {c.customer_name}
+                                                </ListItem>
+                                            ))}
+                                        </List>
+                                    </Box>
+                                )}
+                            </Flex>
                             <FormErrorMessage>{errors.customer}</FormErrorMessage>
                         </FormControl>
                     </VStack>
