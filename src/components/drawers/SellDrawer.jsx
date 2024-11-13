@@ -16,7 +16,7 @@ import {
     Spinner,
     Flex,
     List,
-    ListItem, useToast
+    ListItem, useToast, useColorModeValue
 } from "@chakra-ui/react";
 import { useEffect, useState, useCallback } from "react";
 import debounce from "lodash.debounce";
@@ -42,6 +42,7 @@ export function SellDrawer({
     const [searchTerm, setSearchTerm] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [showDropdown, setShowDropdown] = useState(false);
+    const bgColor = useColorModeValue("gray.50", "gray.900")
     const toast = useToast()
     useEffect(() => {
         fetchCustomers();
@@ -185,7 +186,7 @@ export function SellDrawer({
                                 {isLoading && <Spinner ml={2} />}
                                 {/* Dropdown for customer search preview */}
                                 {showDropdown && filteredCustomers.length > 0 && (
-                                    <Box border="1px solid #ccc" borderRadius="md" mt={2} boxShadow="md" maxH="150px" overflowY="auto">
+                                    <Box bg={bgColor} border="1px solid #ccc" borderRadius="md" mt={2} boxShadow="md" maxH="150px" overflowY="auto">
                                         <List spacing={1}>
                                             {filteredCustomers.map((c,index) => (
                                                 <ListItem
@@ -193,7 +194,7 @@ export function SellDrawer({
                                                     px={4}
                                                     py={2}
                                                     cursor="pointer"
-                                                    _hover={{ background: "gray.100" }}
+                                                    _hover={{ background:  useColorModeValue("gray.100", "gray.700") }}
                                                     onMouseDown={() => handleSelectCustomer(c.customer_name)}
                                                 >
                                                     {c.customer_name}

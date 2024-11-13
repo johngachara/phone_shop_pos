@@ -40,16 +40,16 @@ export default function LcdBody(props) {
     return (
         <Container maxW="container.xl" py={8}>
             <VStack spacing={8} align="stretch">
-                <Flex
-                    justify="space-between"
-                    align="center"
-                    wrap="wrap"
+                <VStack
+                    spacing={4}
+                    align={{ base: "center", md: "stretch" }}
                     mb={{ base: 4, md: 8 }}
                 >
                     <Heading
                         as="h1"
                         size={{ base: "lg", md: "2xl" }}
                         color={useColorModeValue("gray.800", "white")}
+                        textAlign={{ base: "center", md: "left" }}
                     >
                         Shop 2 Screens
                     </Heading>
@@ -65,7 +65,7 @@ export default function LcdBody(props) {
                             <Icon as={SearchIcon} color="gray.500" />
                         </InputRightElement>
                     </InputGroup>
-                </Flex>
+                </VStack>
 
                 {loading || searchLoading ? (
                     <SimpleGrid
@@ -96,15 +96,15 @@ export default function LcdBody(props) {
                     </Text>
                 )}
 
-                {searchResults.length === 0 && !loading && shopData && !searchLoading  &&(
+                {searchResults.length === 0 && !loading && shopData && !searchLoading && (
                     <HStack justify="center" spacing={4} mt={8} wrap="wrap">
-                            <Button
-                                onClick={onLoadMore}
-                                isLoading={loading}
-                                mt={4}
-                            >
-                                Load More
-                            </Button>
+                        <Button
+                            onClick={onLoadMore}
+                            isLoading={loading}
+                            mt={4}
+                        >
+                            Load More
+                        </Button>
                     </HStack>
                 )}
             </VStack>

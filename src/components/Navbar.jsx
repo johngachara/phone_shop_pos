@@ -98,6 +98,7 @@ export default function Navbar() {
         const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
             if (!currentUser) navigate("/Login");
             setUser(currentUser);
+            console.log(currentUser.displayName)
         });
         return () => unsubscribe();
     }, [navigate]);
@@ -209,8 +210,8 @@ export default function Navbar() {
             <Menu>
                 <MenuButton as={Button} rightIcon={<ChevronDownIcon />} variant="ghost" size="sm" width="100%">
                     <Flex align="center">
-                        <Avatar size="sm" name={user?.displayName} src={user?.photoURL} mr={2} />
-                        <Text>{user?.displayName}</Text>
+                        <Avatar size="sm" name={user?.email === "alltechmain@gmail.com" ? "ALLTECH" : user?.displayName} src={user?.photoURL} mr={2} />
+                        <Text>{user?.email === "alltechmain@gmail.com" ? "ALLTECH" : user?.displayName}</Text>
                     </Flex>
                 </MenuButton>
                 <MenuList>
