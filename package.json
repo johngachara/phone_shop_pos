@@ -94,7 +94,7 @@
     "vite-plugin-svgr": "^4.3.0",
     "vite-tsconfig-paths": "^5.0.1",
     "webpack-cli": "^5.1.4",
-    "webpack-dev-server": "^5.0.4",
+    "webpack-dev-server": "^5.1.0",
     "workbox-window": "^7.1.0"
   }
 }
