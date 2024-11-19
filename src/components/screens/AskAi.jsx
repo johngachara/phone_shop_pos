@@ -10,9 +10,8 @@ import {
     useToast,
     Flex,
     useColorModeValue,
-    keyframes,
 } from '@chakra-ui/react';
-
+import {keyframes} from '@chakra-ui/system'
 const token = import.meta.env.VITE_GITHUB_TOKEN
 const endpoint = "https://models.inference.ai.azure.com";
 
