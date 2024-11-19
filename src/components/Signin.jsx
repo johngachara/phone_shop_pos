@@ -16,9 +16,9 @@ import { auth } from "../components/firebase/firebase.js";
 import { doc, getDoc } from "firebase/firestore"; // To fetch user data from Firestore
 import { firestore } from "../components/firebase/firebase.js";
 import authService from "components/axios/authService.js";
-import sequalizerAuth from "components/axios/sequalizerAuth.js"; // Initialize Firestore
+import sequalizerAuth from "components/axios/sequalizerAuth.js";
 
-const MotionBox = motion(Box);
+const MotionBox = motion.create(Box);
 
 const Signin = () => {
     const [isLoading, setIsLoading] = useState(false);

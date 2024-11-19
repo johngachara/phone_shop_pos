@@ -13,9 +13,7 @@ const root = ReactDOM.createRoot(document.getElementById('root'))
 root.render(
     <ChakraProvider theme={theme}>
         <ColorModeScript initialColorMode={theme.config.initialColorMode} />
-        <Provider store={store}>
                 <App />
-        </Provider>
     </ChakraProvider>
 )
 
