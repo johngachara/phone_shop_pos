@@ -1,47 +1,45 @@
 # 📱 Phone Shop POS Software - Frontend
 
-This is the frontend of a Point-of-Sale (POS) system designed for a phone shop. The system enables efficient management of inventory (e.g., LCD screens and phone accessories) and handles a range of POS transactions. The frontend interacts with two separate backend servers and incorporates AI-powered responses using the OpenAI GPT-4 model for inquiries and recommendations.
+This is the frontend of a Point-of-Sale (POS) system designed for a phone shop. The system allows users to manage inventory (LCD screens, phone accessories) and handle transactions. The frontend communicates with two separate backend servers, making API requests via a centralized `apiservice.js` file. Additionally, it features AI-powered responses using the Gemini model for enquiries and suggestions.
 
 ## Features
 
-- **Inventory Management**: Easily manage stock for phone accessories, LCD screens, and other items.
-- **POS Transactions**: Streamlined processing of Point-of-Sale transactions.
-- **Responsive Design**: Optimized for both desktop and mobile devices.
-- **PWA Support**: Operates as a Progressive Web App (PWA), allowing mobile users to install it directly from the browser for a more native experience.
-- **AI-Powered Insights**: Uses OpenAI’s GPT-4 model for real-time insights and responses.
-- **Data Search**: Integrates MeiliSearch for fast, full-text search across data.
-- **Role-Based UI**: Adjusts UI components based on user roles for a personalized experience.
+- **Inventory Management**: Manage inventory for phone accessories and LCD screens.
+- **POS Transactions**: Handle various Point-of-Sale transactions efficiently.
+- **Responsive Design**: Works seamlessly on both desktop and mobile devices.
+- **PWA Support**: Offers Progressive Web App functionality for mobile users.
+- **AI-Powered Insights**: Utilizes the Gemini model for inquiries from users.
+- **Data Search**: Leverages MeiliSearch for fast, full-text search across the data.
+- **Role-Based UI**: Dynamically adjusts UI components based on user roles.
 
 ## Technologies Used
 
 - **React**: For building the user interface.
-- **Vite**: Fast development and build tool.
-- **Zuhan**: State management library, with components connected to dedicated Zuhan stores.
-- **Chakra UI**: For styling and responsive UI components.
-- **AWS Amplify**: Used for hosting the application.
-- **MeiliSearch**: Enables fast, full-text search capabilities.
-- **OpenAI GPT-4 Model**: Provides intelligent responses and recommendations through free model inference on GitHub.
+- **Vite**: As the build tool for fast development.
+- **Redux**: For state management.
+- **Chakra UI**: For styling and UI components.
+- **AWS Amplify**: For hosting the application.
+- **MeiliSearch**: For fast, full-text search capabilities.
+- **Gemini AI Model**: For intelligent responses.
 
 ## Usage
 
-The application is accessible as a web app hosted on AWS Amplify. Mobile users can install the app as a **Progressive Web App (PWA)** from the browser, creating a more app-like experience.
+The application is available as a web app hosted on AWS Amplify. For mobile users, the app functions as a **Progressive Web App (PWA)** that can be installed directly from the browser for a more native experience. 
 
-Each component has its own Zuhan store, which manages the state and handles API requests directly, avoiding the need for a centralized `apiservice.js` file.
+All API requests are managed through the `apiservice.js` file.
 
 ## Role-Based UI and Sign-In
 
-This POS software incorporates **role-based access control** through Firebase, dynamically adjusting UI components based on user roles.
+This POS software implements **role-based access control** using Firebase to manage user roles. The UI components displayed to the user are dynamically adjusted based on their assigned role.
 
 ### Firebase ID-Based Sign-In
 
-Sign-in is managed via **Firebase ID-based authentication**. The Firebase ID token is validated on the backend, where the UID is decoded to determine if a JWT token should be issued for secure access.
+The sign-in process utilizes **Firebase ID-based authentication**. The ID token is authenticated in the backend, where the UID is decoded. This UID is then used to determine whether to issue a JWT token, enabling secure access.
 
 ## Security
 
-Security measures implemented in AWS Amplify include custom security headers:
+Security measures are implemented in AWS Amplify with custom security headers, including:
 
-- **Strict-Transport-Security (HSTS)**: Enforces secure connections to the server.
-- **Content-Security-Policy (CSP)**: Helps prevent a wide range of attacks by defining what resources can be loaded.
-- **Cache-Control**: Configured for optimal performance and security.
-
----
+- **Strict-Transport-Security (HSTS)**
+- **Content-Security-Policy (CSP)**
+- **Cache-Control**
