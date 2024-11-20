@@ -8,30 +8,24 @@ import {
     useColorModeValue,
     VStack,
     Text,
-    Divider,
     Alert,
     AlertIcon,
-    AlertTitle,
     AlertDescription,
     useToast
 } from "@chakra-ui/react";
-
 import { FcGoogle } from "react-icons/fc";
-
 import { motion } from "framer-motion";
 import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import { auth } from "../components/firebase/firebase.js";
-import { doc, getDoc, updateDoc, setDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { firestore } from "../components/firebase/firebase.js";
 import authService from "components/axios/authService.js";
 import sequalizerAuth from "components/axios/sequalizerAuth.js";
 
 const MotionBox = motion.create(Box);
-
-// WebAuthn credential storage key in localStorage
 const LAST_USER_KEY = "last_user_id";
 
-// Helper functions remain the same
+// Helper functions for ArrayBuffer conversion remain the same
 const arrayBufferToBase64 = (buffer) => {
     const bytes = new Uint8Array(buffer);
     let string = '';
@@ -50,14 +44,35 @@ const base64ToArrayBuffer = (base64) => {
     return bytes.buffer;
 };
 
-// Generate a unique device identifier
+// Improved device identification
 const generateDeviceId = () => {
-    const userAgent = navigator.userAgent;
-    const hostname = window.location.hostname;
-    const platform = navigator.platform;
-    const deviceString = `${userAgent}-${hostname}-${platform}`;
-    return btoa(deviceString);
+    // Get detailed browser information
+    const browserInfo = {
+        userAgent: navigator.userAgent,
+        language: navigator.language,
+        hardwareConcurrency: navigator.hardwareConcurrency,
+        deviceMemory: navigator.deviceMemory,
+        vendor: navigator.vendor,
+        // Use modern navigator properties for platform detection
+        mobile: /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent),
+        touch: 'ontouchstart' in window || navigator.maxTouchPoints > 0,
+        screen: {
+            width: window.screen.width,
+            height: window.screen.height,
+            pixelRatio: window.devicePixelRatio
+        }
+    };
+
+    // Create a unique string combining device characteristics
+    const deviceString = JSON.stringify({
+        ...browserInfo,
+        hostname: window.location.hostname
+    });
+
+    // Generate a hash of the device string
+    return btoa(encodeURIComponent(deviceString)).replace(/[/+=]/g, '');
 };
+
 const SignIn = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [webAuthnAvailable, setWebAuthnAvailable] = useState(false);
@@ -69,7 +84,7 @@ const SignIn = () => {
     const toast = useToast();
     const provider = new GoogleAuthProvider();
 
-    // Check WebAuthn availability and previous registration for current device
+    // Enhanced WebAuthn support check
     useEffect(() => {
         const checkWebAuthnSupport = async () => {
             try {
@@ -81,9 +96,10 @@ const SignIn = () => {
                     if (lastUserId) {
                         const userDoc = await getDoc(doc(firestore, "users", lastUserId));
                         if (userDoc.exists() && userDoc.data().webAuthnCredentials) {
-                            // Check if current device has registered credentials
+                            // Check for credentials matching current environment
                             const deviceCredential = userDoc.data().webAuthnCredentials.find(
-                                cred => cred.deviceId === currentDeviceId
+                                cred => cred.deviceId === currentDeviceId &&
+                                    cred.hostname === window.location.hostname
                             );
                             setHasRegisteredWebAuthn(!!deviceCredential);
                         }
@@ -98,7 +114,8 @@ const SignIn = () => {
         checkWebAuthnSupport();
     }, [currentDeviceId]);
 
-    const registerWebAuthnCredential = async (userId, userEmail, userName) => {
+    // Modified registration function to handle automatic registration for new environments
+    const registerWebAuthnCredential = async (userId, userEmail, userName, autoRegister = false) => {
         try {
             const challengeBytes = new Uint8Array(32);
             window.crypto.getRandomValues(challengeBytes);
@@ -121,6 +138,7 @@ const SignIn = () => {
                 timeout: 60000,
                 attestation: "none",
                 authenticatorSelection: {
+                    authenticatorAttachment: "platform",
                     userVerification: "preferred",
                     requireResidentKey: false
                 }
@@ -138,7 +156,17 @@ const SignIn = () => {
                 clientDataJSON: arrayBufferToBase64(credential.response.clientDataJSON),
                 transports: credential.response.getTransports ? credential.response.getTransports() : [],
                 deviceId: currentDeviceId,
-                deviceName: navigator.userAgent,
+                deviceInfo: {
+                    userAgent: navigator.userAgent,
+                    language: navigator.language,
+                    mobile: /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent),
+                    touch: 'ontouchstart' in window || navigator.maxTouchPoints > 0,
+                    screen: {
+                        width: window.screen.width,
+                        height: window.screen.height,
+                        pixelRatio: window.devicePixelRatio
+                    }
+                },
                 hostname: window.location.hostname,
                 dateAdded: new Date().toISOString()
             };
@@ -148,9 +176,10 @@ const SignIn = () => {
             const existingCredentials = userDoc.exists() ?
                 (userDoc.data().webAuthnCredentials || []) : [];
 
-            // Check for existing credential for this device
+            // Check for existing credential for this device and hostname
             const existingCredIndex = existingCredentials.findIndex(
-                cred => cred.deviceId === currentDeviceId
+                cred => cred.deviceId === currentDeviceId &&
+                    cred.hostname === window.location.hostname
             );
 
             if (existingCredIndex !== -1) {
@@ -166,139 +195,33 @@ const SignIn = () => {
             setHasRegisteredWebAuthn(true);
             localStorage.setItem(LAST_USER_KEY, userId);
 
-            toast({
-                title: "Security key registered successfully",
-                description: "This device has been registered for fingerprint authentication",
-                status: "success",
-                duration: 3000,
-                isClosable: true
-            });
+            if (!autoRegister) {
+                toast({
+                    title: "Security key registered successfully",
+                    description: `Fingerprint authentication enabled for ${window.location.hostname}`,
+                    status: "success",
+                    duration: 3000,
+                    isClosable: true
+                });
+            }
 
             return true;
         } catch (error) {
             console.error("Error registering WebAuthn credential:", error);
-            toast({
-                title: "Registration Error",
-                description: "Failed to register security key. Please try again.",
-                status: "error",
-                duration: 5000,
-                isClosable: true
-            });
+            if (!autoRegister) {
+                toast({
+                    title: "Registration Error",
+                    description: "Failed to register security key. Please try again.",
+                    status: "error",
+                    duration: 5000,
+                    isClosable: true
+                });
+            }
             return false;
         }
     };
 
-    const verifyWebAuthnCredential = async () => {
-        try {
-            const lastUserId = localStorage.getItem(LAST_USER_KEY);
-            if (!lastUserId) {
-                throw new Error("No registered credentials found");
-            }
-
-            const userDoc = await getDoc(doc(firestore, "users", lastUserId));
-            if (!userDoc.exists() || !userDoc.data().webAuthnCredentials?.length) {
-                throw new Error("No credentials found for this user");
-            }
-
-            const storedCredentials = userDoc.data().webAuthnCredentials;
-            const deviceCredential = storedCredentials.find(
-                cred => cred.deviceId === currentDeviceId
-            );
-
-            if (!deviceCredential) {
-                throw new Error("No credentials found for this device. Please register first.");
-            }
-
-            const challengeBytes = new Uint8Array(32);
-            window.crypto.getRandomValues(challengeBytes);
-
-            const assertionOptions = {
-                challenge: challengeBytes,
-                allowCredentials: [{
-                    id: base64ToArrayBuffer(deviceCredential.rawId),
-                    type: 'public-key',
-                    transports: deviceCredential.transports || ['internal']
-                }],
-                timeout: 60000,
-                userVerification: "preferred",
-                rpId: window.location.hostname
-            };
-
-            const assertion = await navigator.credentials.get({
-                publicKey: assertionOptions
-            });
-
-            if (assertion) {
-                // Update last used timestamp
-                await updateDoc(doc(firestore, "users", lastUserId), {
-                    webAuthnCredentials: storedCredentials.map(cred =>
-                        cred.deviceId === currentDeviceId
-                            ? { ...cred, lastUsed: new Date().toISOString() }
-                            : cred
-                    )
-                });
-
-                return userDoc.data();
-            }
-        } catch (error) {
-            console.error("Error verifying WebAuthn credential:", error);
-            toast({
-                title: "Authentication Error",
-                description: error.message,
-                status: "error",
-                duration: 5000,
-                isClosable: true
-            });
-            throw error;
-        }
-    };
-
-    // Handle WebAuthn sign in
-    const handleWebAuthnSignIn = async () => {
-        setIsLoading(true);
-        setError(null);
-        try {
-            const userData = await verifyWebAuthnCredential();
-            if (userData.role) {
-                // Re-authenticate with Firebase silently
-                const user = auth.currentUser;
-                if (!user) {
-                    throw new Error("Firebase session expired. Please sign in with Google.");
-                }
-
-                const firebaseToken = await user.getIdToken();
-
-                // Main auth login
-                const { data: mainData, status: mainStatus } =
-                    await authService.mainLogin(firebaseToken);
-                if (mainStatus === 200) {
-                    await authService.storeTokens({
-                        access: mainData.access,
-                        refresh: mainData.refresh
-                    });
-                }
-
-                // Sequalizer auth
-                const { data: sequelizerData, status: sequelizerStatus } =
-                    await sequalizerAuth.axiosInstance.post('/nodeapp/api/authenticate', {
-                        idToken: firebaseToken
-                    });
-                if (sequelizerStatus === 200) {
-                    await sequalizerAuth.storeAccessToken(sequelizerData.token);
-                }
-
-                navigate("/");
-            } else {
-                throw new Error("Your account does not have required permissions.");
-            }
-        } catch (error) {
-            setError(error.message);
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    // Handle Google sign in
+    // Modified Google sign-in to handle automatic WebAuthn registration
     const handleGoogleSignIn = async () => {
         setIsLoading(true);
         setError(null);
@@ -307,7 +230,6 @@ const SignIn = () => {
             const user = result.user;
             const uid = user.uid;
 
-            // Store user ID for WebAuthn
             localStorage.setItem(LAST_USER_KEY, uid);
 
             const userDocRef = doc(firestore, "users", uid);
@@ -319,7 +241,7 @@ const SignIn = () => {
                 if (userData.role) {
                     const firebaseToken = await user.getIdToken();
 
-                    // Main auth login
+                    // Handle authentication tokens
                     const { data: mainData, status: mainStatus } =
                         await authService.mainLogin(firebaseToken);
                     if (mainStatus === 200) {
@@ -329,7 +251,6 @@ const SignIn = () => {
                         });
                     }
 
-                    // Sequalizer auth
                     const { data: sequelizerData, status: sequelizerStatus } =
                         await sequalizerAuth.axiosInstance.post('/nodeapp/api/authenticate', {
                             idToken: firebaseToken
@@ -338,18 +259,25 @@ const SignIn = () => {
                         await sequalizerAuth.storeAccessToken(sequelizerData.token);
                     }
 
-                    // If WebAuthn is available but not registered, offer registration
-                    if (webAuthnAvailable && !userData.webAuthnCredentials) {
-                        const shouldRegister = window.confirm(
-                            "Would you like to set up security key authentication for faster sign-in next time?"
+                    // Check if WebAuthn is available and not registered for current environment
+                    if (webAuthnAvailable) {
+                        const hasExistingCredential = userData.webAuthnCredentials?.some(
+                            cred => cred.deviceId === currentDeviceId &&
+                                cred.hostname === window.location.hostname
                         );
 
-                        if (shouldRegister) {
-                            await registerWebAuthnCredential(
-                                uid,
-                                user.email,
-                                user.displayName
+                        if (!hasExistingCredential) {
+                            const shouldRegister = window.confirm(
+                                `Would you like to enable fingerprint authentication for ${window.location.hostname}?`
                             );
+
+                            if (shouldRegister) {
+                                await registerWebAuthnCredential(
+                                    uid,
+                                    user.email,
+                                    user.displayName
+                                );
+                            }
                         }
                     }
 
@@ -362,14 +290,12 @@ const SignIn = () => {
             }
         } catch (error) {
             console.error("Sign-in error:", error);
-            let errorMessage = "Sign-in failed.";
+            let errorMessage = error.message;
 
             if (error.code === 'auth/popup-closed-by-user') {
                 errorMessage = "Sign-in cancelled. Please try again.";
             } else if (error.code === 'auth/network-request-failed') {
                 errorMessage = "Network error. Please check your connection.";
-            } else {
-                errorMessage = error.message;
             }
 
             setError(errorMessage);
