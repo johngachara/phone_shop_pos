@@ -114,6 +114,130 @@ const SignIn = () => {
         checkWebAuthnSupport();
     }, [currentDeviceId]);
 
+    // Verify WebAuthn credential
+    const verifyWebAuthnCredential = async () => {
+        try {
+            const lastUserId = localStorage.getItem(LAST_USER_KEY);
+            if (!lastUserId) {
+                throw new Error("No registered credentials found");
+            }
+
+            const userDoc = await getDoc(doc(firestore, "users", lastUserId));
+            if (!userDoc.exists() || !userDoc.data().webAuthnCredentials?.length) {
+                throw new Error("No credentials found for this user");
+            }
+
+            const storedCredentials = userDoc.data().webAuthnCredentials;
+            const challengeBytes = new Uint8Array(32);
+            window.crypto.getRandomValues(challengeBytes);
+
+            const credentialsForHostname = storedCredentials.filter(
+                cred => cred.hostname === window.location.hostname
+            );
+
+            if (!credentialsForHostname.length) {
+                throw new Error("No credentials found for this hostname. Please create one.");
+            }
+
+            const assertionOptions = {
+                challenge: challengeBytes,
+                allowCredentials: credentialsForHostname.map(cred => ({
+                    id: base64ToArrayBuffer(cred.rawId),
+                    type: 'public-key',
+                    transports: cred.transports || ['usb', 'ble', 'nfc', 'internal']
+                })),
+                timeout: 60000,
+                userVerification: "preferred",
+                rpId: window.location.hostname
+            };
+
+            const assertion = await navigator.credentials.get({
+                publicKey: assertionOptions
+            });
+
+            if (assertion) {
+                const usedCredential = credentialsForHostname.find(
+                    cred => cred.id === assertion.id
+                );
+
+                if (usedCredential) {
+                    const userRef = doc(firestore, "users", lastUserId);
+                    await updateDoc(userRef, {
+                        webAuthnCredentials: storedCredentials.map(cred =>
+                            cred.id === usedCredential.id
+                                ? { ...cred, lastUsed: new Date().toISOString() }
+                                : cred
+                        )
+                    });
+                }
+
+                return userDoc.data();
+            }
+        } catch (error) {
+            console.error("Error verifying WebAuthn credential:", error);
+            let errorMessage = "Authentication failed.";
+
+            if (error.message.includes("No credentials found for this hostname")) {
+                errorMessage = error.message;
+            }
+
+            toast({
+                title: "Authentication Error",
+                description: errorMessage,
+                status: "error",
+                duration: 5000,
+                isClosable: true
+            });
+
+            throw error;
+        }
+    };
+
+    // Handle WebAuthn sign in
+    const handleWebAuthnSignIn = async () => {
+        setIsLoading(true);
+        setError(null);
+        try {
+            const userData = await verifyWebAuthnCredential();
+            if (userData.role) {
+                // Re-authenticate with Firebase silently
+                const user = auth.currentUser;
+                if (!user) {
+                    throw new Error("Firebase session expired. Please sign in with Google.");
+                }
+
+                const firebaseToken = await user.getIdToken();
+
+                // Main auth login
+                const { data: mainData, status: mainStatus } =
+                    await authService.mainLogin(firebaseToken);
+                if (mainStatus === 200) {
+                    await authService.storeTokens({
+                        access: mainData.access,
+                        refresh: mainData.refresh
+                    });
+                }
+
+                // Sequalizer auth
+                const { data: sequelizerData, status: sequelizerStatus } =
+                    await sequalizerAuth.axiosInstance.post('/nodeapp/api/authenticate', {
+                        idToken: firebaseToken
+                    });
+                if (sequelizerStatus === 200) {
+                    await sequalizerAuth.storeAccessToken(sequelizerData.token);
+                }
+
+                navigate("/");
+            } else {
+                throw new Error("Your account does not have required permissions.");
+            }
+        } catch (error) {
+            setError(error.message);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     // Modified registration function to handle automatic registration for new environments
     const registerWebAuthnCredential = async (userId, userEmail, userName, autoRegister = false) => {
         try {
@@ -137,10 +261,10 @@ const SignIn = () => {
                 ],
                 timeout: 60000,
                 attestation: "none",
-                authenticatorSelection: {
-                    authenticatorAttachment: "platform",
-                    userVerification: "preferred",
-                    requireResidentKey: false
+                    authenticatorSelection: {
+                        authenticatorAttachment: "cross-platform", // Allow USB keys and external authenticators
+                        userVerification: "preferred",
+                        requireResidentKey: false
                 }
             };
 
