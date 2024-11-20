@@ -31,7 +31,7 @@ const MotionBox = motion.create(Box);
 // WebAuthn credential storage key in localStorage
 const LAST_USER_KEY = "last_user_id";
 
-// Helper function to convert ArrayBuffer to Base64
+// Helper functions remain the same
 const arrayBufferToBase64 = (buffer) => {
     const bytes = new Uint8Array(buffer);
     let string = '';
@@ -41,7 +41,6 @@ const arrayBufferToBase64 = (buffer) => {
     return btoa(string);
 };
 
-// Helper function to convert Base64 to ArrayBuffer
 const base64ToArrayBuffer = (base64) => {
     const binaryString = atob(base64);
     const bytes = new Uint8Array(binaryString.length);
@@ -51,17 +50,26 @@ const base64ToArrayBuffer = (base64) => {
     return bytes.buffer;
 };
 
+// Generate a unique device identifier
+const generateDeviceId = () => {
+    const userAgent = navigator.userAgent;
+    const hostname = window.location.hostname;
+    const platform = navigator.platform;
+    const deviceString = `${userAgent}-${hostname}-${platform}`;
+    return btoa(deviceString);
+};
 const SignIn = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [webAuthnAvailable, setWebAuthnAvailable] = useState(false);
     const [hasRegisteredWebAuthn, setHasRegisteredWebAuthn] = useState(false);
     const [error, setError] = useState(null);
+    const [currentDeviceId] = useState(generateDeviceId());
 
     const navigate = useNavigate();
     const toast = useToast();
     const provider = new GoogleAuthProvider();
 
-    // Check WebAuthn availability and previous registration
+    // Check WebAuthn availability and previous registration for current device
     useEffect(() => {
         const checkWebAuthnSupport = async () => {
             try {
@@ -69,12 +77,15 @@ const SignIn = () => {
                     const available = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
                     setWebAuthnAvailable(available);
 
-                    // Check for existing credentials
                     const lastUserId = localStorage.getItem(LAST_USER_KEY);
                     if (lastUserId) {
                         const userDoc = await getDoc(doc(firestore, "users", lastUserId));
                         if (userDoc.exists() && userDoc.data().webAuthnCredentials) {
-                            setHasRegisteredWebAuthn(true);
+                            // Check if current device has registered credentials
+                            const deviceCredential = userDoc.data().webAuthnCredentials.find(
+                                cred => cred.deviceId === currentDeviceId
+                            );
+                            setHasRegisteredWebAuthn(!!deviceCredential);
                         }
                     }
                 }
@@ -85,9 +96,8 @@ const SignIn = () => {
         };
 
         checkWebAuthnSupport();
-    }, []);
+    }, [currentDeviceId]);
 
-    // Create WebAuthn credential
     const registerWebAuthnCredential = async (userId, userEmail, userName) => {
         try {
             const challengeBytes = new Uint8Array(32);
@@ -97,7 +107,7 @@ const SignIn = () => {
                 challenge: challengeBytes,
                 rp: {
                     name: "ALLTECH SHOP 2",
-                    id: window.location.hostname // Include hostname
+                    id: window.location.hostname
                 },
                 user: {
                     id: Uint8Array.from(userId, c => c.charCodeAt(0)),
@@ -105,8 +115,8 @@ const SignIn = () => {
                     displayName: userName
                 },
                 pubKeyCredParams: [
-                    { type: "public-key", alg: -7 },   // ES256
-                    { type: "public-key", alg: -257 }  // RS256
+                    { type: "public-key", alg: -7 },
+                    { type: "public-key", alg: -257 }
                 ],
                 timeout: 60000,
                 attestation: "none",
@@ -127,9 +137,10 @@ const SignIn = () => {
                 attestationObject: arrayBufferToBase64(credential.response.attestationObject),
                 clientDataJSON: arrayBufferToBase64(credential.response.clientDataJSON),
                 transports: credential.response.getTransports ? credential.response.getTransports() : [],
+                deviceId: currentDeviceId,
                 deviceName: navigator.userAgent,
-                dateAdded: new Date().toISOString(),
-                hostname: window.location.hostname // Add hostname
+                hostname: window.location.hostname,
+                dateAdded: new Date().toISOString()
             };
 
             const userRef = doc(firestore, "users", userId);
@@ -137,9 +148,9 @@ const SignIn = () => {
             const existingCredentials = userDoc.exists() ?
                 (userDoc.data().webAuthnCredentials || []) : [];
 
-            // Avoid duplicates by checking hostname and rawId
+            // Check for existing credential for this device
             const existingCredIndex = existingCredentials.findIndex(
-                cred => cred.rawId === credentialData.rawId && cred.hostname === credentialData.hostname
+                cred => cred.deviceId === currentDeviceId
             );
 
             if (existingCredIndex !== -1) {
@@ -157,7 +168,7 @@ const SignIn = () => {
 
             toast({
                 title: "Security key registered successfully",
-                description: `Device "${navigator.userAgent}" has been registered for authentication`,
+                description: "This device has been registered for fingerprint authentication",
                 status: "success",
                 duration: 3000,
                 isClosable: true
@@ -177,8 +188,6 @@ const SignIn = () => {
         }
     };
 
-
-    // Verify WebAuthn credential
     const verifyWebAuthnCredential = async () => {
         try {
             const lastUserId = localStorage.getItem(LAST_USER_KEY);
@@ -192,24 +201,24 @@ const SignIn = () => {
             }
 
             const storedCredentials = userDoc.data().webAuthnCredentials;
+            const deviceCredential = storedCredentials.find(
+                cred => cred.deviceId === currentDeviceId
+            );
+
+            if (!deviceCredential) {
+                throw new Error("No credentials found for this device. Please register first.");
+            }
+
             const challengeBytes = new Uint8Array(32);
             window.crypto.getRandomValues(challengeBytes);
 
-            const credentialsForHostname = storedCredentials.filter(
-                cred => cred.hostname === window.location.hostname
-            );
-
-            if (!credentialsForHostname.length) {
-                throw new Error("No credentials found for this hostname. Please create one.");
-            }
-
             const assertionOptions = {
                 challenge: challengeBytes,
-                allowCredentials: credentialsForHostname.map(cred => ({
-                    id: base64ToArrayBuffer(cred.rawId),
+                allowCredentials: [{
+                    id: base64ToArrayBuffer(deviceCredential.rawId),
                     type: 'public-key',
-                    transports: cred.transports || ['usb', 'ble', 'nfc', 'internal']
-                })),
+                    transports: deviceCredential.transports || ['internal']
+                }],
                 timeout: 60000,
                 userVerification: "preferred",
                 rpId: window.location.hostname
@@ -220,39 +229,26 @@ const SignIn = () => {
             });
 
             if (assertion) {
-                const usedCredential = credentialsForHostname.find(
-                    cred => cred.id === assertion.id
-                );
-
-                if (usedCredential) {
-                    const userRef = doc(firestore, "users", lastUserId);
-                    await updateDoc(userRef, {
-                        webAuthnCredentials: storedCredentials.map(cred =>
-                            cred.id === usedCredential.id
-                                ? { ...cred, lastUsed: new Date().toISOString() }
-                                : cred
-                        )
-                    });
-                }
+                // Update last used timestamp
+                await updateDoc(doc(firestore, "users", lastUserId), {
+                    webAuthnCredentials: storedCredentials.map(cred =>
+                        cred.deviceId === currentDeviceId
+                            ? { ...cred, lastUsed: new Date().toISOString() }
+                            : cred
+                    )
+                });
 
                 return userDoc.data();
             }
         } catch (error) {
             console.error("Error verifying WebAuthn credential:", error);
-            let errorMessage = "Authentication failed.";
-
-            if (error.message.includes("No credentials found for this hostname")) {
-                errorMessage = error.message;
-            }
-
             toast({
                 title: "Authentication Error",
-                description: errorMessage,
+                description: error.message,
                 status: "error",
                 duration: 5000,
                 isClosable: true
             });
-
             throw error;
         }
     };
@@ -406,7 +402,7 @@ const SignIn = () => {
             overflow="hidden"
         >
             <MotionBox
-                bg={bgColor}
+                bg={useColorModeValue('white', 'gray.800')}
                 p={8}
                 borderRadius="xl"
                 boxShadow="2xl"
@@ -422,7 +418,7 @@ const SignIn = () => {
                 whileHover={{ scale: 1.05 }}
             >
                 <VStack spacing={6}>
-                    <Heading as="h2" size="2xl" textAlign="center" color={textColor}>
+                    <Heading as="h2" size="2xl" textAlign="center">
                         ALLTECH SHOP 2
                     </Heading>
 
@@ -433,21 +429,38 @@ const SignIn = () => {
                         </Alert>
                     )}
 
-                    {/* Show security key button if WebAuthn is available and registered */}
                     {webAuthnAvailable && hasRegisteredWebAuthn ? (
-                        <Button
-                            colorScheme="purple"
-                            variant="solid"
-                            width="full"
-                            size="lg"
-                            isLoading={isLoading}
-                            loadingText="Verifying"
-                            onClick={handleWebAuthnSignIn}
-                        >
-                            Sign in with fingerprint
-                        </Button>
+                        <>
+                            <Button
+                                colorScheme="purple"
+                                variant="solid"
+                                width="full"
+                                size="lg"
+                                isLoading={isLoading}
+                                loadingText="Verifying"
+                                onClick={handleWebAuthnSignIn}
+                            >
+                                Sign in with fingerprint
+                            </Button>
+                            <Button
+                                variant="link"
+                                size="sm"
+                                onClick={() => {
+                                    localStorage.removeItem(LAST_USER_KEY);
+                                    setHasRegisteredWebAuthn(false);
+                                    toast({
+                                        title: "Authentication method switched",
+                                        description: "You can now sign in with Google",
+                                        status: "info",
+                                        duration: 3000,
+                                        isClosable: true
+                                    });
+                                }}
+                            >
+                                Switch to Google Sign-in
+                            </Button>
+                        </>
                     ) : (
-                        // Show Google button if WebAuthn is not available or not registered
                         <>
                             <Button
                                 leftIcon={<FcGoogle />}
@@ -461,37 +474,12 @@ const SignIn = () => {
                             >
                                 Sign in with Google
                             </Button>
-
                             {webAuthnAvailable && (
-                                <Text fontSize="sm" color={textColor} textAlign="center">
-                                    Sign in with Google to enable fingerprint authentication
+                                <Text fontSize="sm" textAlign="center">
+                                    Sign in with Google to enable fingerprint authentication for this device
                                 </Text>
                             )}
                         </>
-                    )}
-
-                    {/*  small link to switch authentication method */}
-                    {webAuthnAvailable && hasRegisteredWebAuthn && (
-                        <Button
-                            variant="link"
-                            size="sm"
-                            color={textColor}
-                            onClick={() => {
-                                // Clear WebAuthn registration
-                                localStorage.removeItem(LAST_USER_KEY);
-                                setHasRegisteredWebAuthn(false);
-
-                                toast({
-                                    title: "Authentication method switched",
-                                    description: "You can now sign in with Google",
-                                    status: "info",
-                                    duration: 3000,
-                                    isClosable: true
-                                });
-                            }}
-                        >
-                            Switch to Google Sign-in
-                        </Button>
                     )}
                 </VStack>
             </MotionBox>
