@@ -126,13 +126,33 @@ const SignIn = () => {
                 type: credential.type,
                 attestationObject: arrayBufferToBase64(credential.response.attestationObject),
                 clientDataJSON: arrayBufferToBase64(credential.response.clientDataJSON),
-                transports: credential.response.getTransports ? credential.response.getTransports() : []
+                transports: credential.response.getTransports ? credential.response.getTransports() : [],
+                deviceName: navigator.userAgent, // Store device info
+                dateAdded: new Date().toISOString()
             };
 
-            // Store in Firestore
+            // Get existing credentials or initialize empty array
             const userRef = doc(firestore, "users", userId);
+            const userDoc = await getDoc(userRef);
+            const existingCredentials = userDoc.exists() ?
+                (userDoc.data().webAuthnCredentials || []) : [];
+
+            // Check if credential already exists for this device
+            const existingCredIndex = existingCredentials.findIndex(
+                cred => cred.rawId === credentialData.rawId
+            );
+
+            if (existingCredIndex !== -1) {
+                // Update existing credential
+                existingCredentials[existingCredIndex] = credentialData;
+            } else {
+                // Add new credential
+                existingCredentials.push(credentialData);
+            }
+
+            // Update Firestore with new/updated credential array
             await updateDoc(userRef, {
-                webAuthnCredentials: credentialData
+                webAuthnCredentials: existingCredentials
             });
 
             setHasRegisteredWebAuthn(true);
@@ -140,14 +160,15 @@ const SignIn = () => {
 
             toast({
                 title: "Security key registered successfully",
-                description: "You can now use your security key or biometric authentication for sign-in",
+                description: `Device "${navigator.userAgent}" has been registered for authentication`,
                 status: "success",
                 duration: 3000,
                 isClosable: true
             });
 
             return true;
-        } catch (error) {
+        }
+        catch (error) {
             console.error("Error registering WebAuthn credential:", error);
 
             let errorMessage = "Failed to register security key.";
@@ -178,21 +199,21 @@ const SignIn = () => {
             }
 
             const userDoc = await getDoc(doc(firestore, "users", lastUserId));
-            if (!userDoc.exists() || !userDoc.data().webAuthnCredentials) {
+            if (!userDoc.exists() || !userDoc.data().webAuthnCredentials?.length) {
                 throw new Error("No credentials found for this user");
             }
 
-            const storedCredential = userDoc.data().webAuthnCredentials;
+            const storedCredentials = userDoc.data().webAuthnCredentials;
             const challengeBytes = new Uint8Array(32);
             window.crypto.getRandomValues(challengeBytes);
 
             const assertionOptions = {
                 challenge: challengeBytes,
-                allowCredentials: [{
-                    id: base64ToArrayBuffer(storedCredential.rawId),
+                allowCredentials: storedCredentials.map(cred => ({
+                    id: base64ToArrayBuffer(cred.rawId),
                     type: 'public-key',
-                    transports: storedCredential.transports || ['usb', 'ble', 'nfc', 'internal']
-                }],
+                    transports: cred.transports || ['usb', 'ble', 'nfc', 'internal']
+                })),
                 timeout: 60000,
                 userVerification: "preferred",
                 rpId: window.location.hostname
@@ -203,6 +224,23 @@ const SignIn = () => {
             });
 
             if (assertion) {
+                // Find which credential was used
+                const usedCredential = storedCredentials.find(
+                    cred => cred.id === assertion.id
+                );
+
+                if (usedCredential) {
+                    // Update last used timestamp
+                    const userRef = doc(firestore, "users", lastUserId);
+                    await updateDoc(userRef, {
+                        webAuthnCredentials: storedCredentials.map(cred =>
+                            cred.id === usedCredential.id
+                                ? { ...cred, lastUsed: new Date().toISOString() }
+                                : cred
+                        )
+                    });
+                }
+
                 return userDoc.data();
             }
         } catch (error) {
