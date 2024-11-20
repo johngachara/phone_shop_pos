@@ -22,6 +22,8 @@ const blink = keyframes`
   100% { opacity: 1; }
 `;
 
+
+
 const TypewriterText = ({ text, isComplete }) => {
     const [displayedText, setDisplayedText] = useState('');
     const [currentIndex, setCurrentIndex] = useState(0);
