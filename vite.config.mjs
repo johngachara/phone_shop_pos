@@ -14,7 +14,7 @@ export default defineConfig({
             },
             manifest: {
                 name: 'SHOP 2',
-                short_name: 'ALLTECH',
+                short_name: 'Alltech',
                 description: 'POS',
                 theme_color: '#ffffff',
                 icons: [
