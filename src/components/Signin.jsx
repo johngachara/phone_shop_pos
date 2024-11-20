@@ -97,7 +97,7 @@ const SignIn = () => {
                 challenge: challengeBytes,
                 rp: {
                     name: "ALLTECH SHOP 2",
-                    id: window.location.hostname
+                    id: window.location.hostname // Include hostname
                 },
                 user: {
                     id: Uint8Array.from(userId, c => c.charCodeAt(0)),
@@ -127,30 +127,27 @@ const SignIn = () => {
                 attestationObject: arrayBufferToBase64(credential.response.attestationObject),
                 clientDataJSON: arrayBufferToBase64(credential.response.clientDataJSON),
                 transports: credential.response.getTransports ? credential.response.getTransports() : [],
-                deviceName: navigator.userAgent, // Store device info
-                dateAdded: new Date().toISOString()
+                deviceName: navigator.userAgent,
+                dateAdded: new Date().toISOString(),
+                hostname: window.location.hostname // Add hostname
             };
 
-            // Get existing credentials or initialize empty array
             const userRef = doc(firestore, "users", userId);
             const userDoc = await getDoc(userRef);
             const existingCredentials = userDoc.exists() ?
                 (userDoc.data().webAuthnCredentials || []) : [];
 
-            // Check if credential already exists for this device
+            // Avoid duplicates by checking hostname and rawId
             const existingCredIndex = existingCredentials.findIndex(
-                cred => cred.rawId === credentialData.rawId
+                cred => cred.rawId === credentialData.rawId && cred.hostname === credentialData.hostname
             );
 
             if (existingCredIndex !== -1) {
-                // Update existing credential
                 existingCredentials[existingCredIndex] = credentialData;
             } else {
-                // Add new credential
                 existingCredentials.push(credentialData);
             }
 
-            // Update Firestore with new/updated credential array
             await updateDoc(userRef, {
                 webAuthnCredentials: existingCredentials
             });
@@ -167,28 +164,19 @@ const SignIn = () => {
             });
 
             return true;
-        }
-        catch (error) {
+        } catch (error) {
             console.error("Error registering WebAuthn credential:", error);
-
-            let errorMessage = "Failed to register security key.";
-            if (error.name === "NotAllowedError") {
-                errorMessage = "Permission denied. Please allow security key registration.";
-            } else if (error.name === "SecurityError") {
-                errorMessage = "Security error. Please ensure you're using HTTPS.";
-            }
-
             toast({
                 title: "Registration Error",
-                description: errorMessage,
+                description: "Failed to register security key. Please try again.",
                 status: "error",
                 duration: 5000,
                 isClosable: true
             });
-
             return false;
         }
     };
+
 
     // Verify WebAuthn credential
     const verifyWebAuthnCredential = async () => {
@@ -207,9 +195,17 @@ const SignIn = () => {
             const challengeBytes = new Uint8Array(32);
             window.crypto.getRandomValues(challengeBytes);
 
+            const credentialsForHostname = storedCredentials.filter(
+                cred => cred.hostname === window.location.hostname
+            );
+
+            if (!credentialsForHostname.length) {
+                throw new Error("No credentials found for this hostname. Please create one.");
+            }
+
             const assertionOptions = {
                 challenge: challengeBytes,
-                allowCredentials: storedCredentials.map(cred => ({
+                allowCredentials: credentialsForHostname.map(cred => ({
                     id: base64ToArrayBuffer(cred.rawId),
                     type: 'public-key',
                     transports: cred.transports || ['usb', 'ble', 'nfc', 'internal']
@@ -224,13 +220,11 @@ const SignIn = () => {
             });
 
             if (assertion) {
-                // Find which credential was used
-                const usedCredential = storedCredentials.find(
+                const usedCredential = credentialsForHostname.find(
                     cred => cred.id === assertion.id
                 );
 
                 if (usedCredential) {
-                    // Update last used timestamp
                     const userRef = doc(firestore, "users", lastUserId);
                     await updateDoc(userRef, {
                         webAuthnCredentials: storedCredentials.map(cred =>
@@ -247,10 +241,8 @@ const SignIn = () => {
             console.error("Error verifying WebAuthn credential:", error);
             let errorMessage = "Authentication failed.";
 
-            if (error.name === "NotAllowedError") {
-                errorMessage = "Permission denied. Please try again.";
-            } else if (error.message === "No registered credentials found") {
-                errorMessage = "Please sign in with Google first to set up security key authentication.";
+            if (error.message.includes("No credentials found for this hostname")) {
+                errorMessage = error.message;
             }
 
             toast({
