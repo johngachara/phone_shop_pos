@@ -25,6 +25,9 @@ import sequalizerAuth from "components/axios/sequalizerAuth.js";
 const MotionBox = motion.create(Box);
 const LAST_USER_KEY = "last_user_id";
 
+// Detect mobile device
+const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
 // Helper functions for ArrayBuffer conversion
 const arrayBufferToBase64 = (buffer) => {
     const bytes = new Uint8Array(buffer);
@@ -46,30 +49,32 @@ const base64ToArrayBuffer = (base64) => {
 
 // Improved device identification
 const generateDeviceId = () => {
-    // Get detailed browser information
     const browserInfo = {
         userAgent: navigator.userAgent,
         language: navigator.language,
         hardwareConcurrency: navigator.hardwareConcurrency,
         deviceMemory: navigator.deviceMemory,
         vendor: navigator.vendor,
-        // Use modern navigator properties for platform detection
-        mobile: /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent),
+        mobile: isMobileDevice,
         touch: 'ontouchstart' in window || navigator.maxTouchPoints > 0,
         screen: {
             width: window.screen.width,
             height: window.screen.height,
             pixelRatio: window.devicePixelRatio
-        }
+        },
+        platform: navigator.platform,
+        mobileVendor: isMobileDevice
+            ? (/Android/i.test(navigator.userAgent) ? 'Android'
+                : /iPhone|iPad|iPod/i.test(navigator.userAgent) ? 'iOS'
+                    : 'Mobile')
+            : 'Desktop'
     };
 
-    // Create a unique string combining device characteristics
     const deviceString = JSON.stringify({
         ...browserInfo,
         hostname: window.location.hostname
     });
 
-    // Generate a hash of the device string
     return btoa(encodeURIComponent(deviceString)).replace(/[/+=]/g, '');
 };
 
@@ -89,14 +94,15 @@ const SignIn = () => {
         const checkWebAuthnSupport = async () => {
             try {
                 if (window.PublicKeyCredential) {
-                    const available = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
-                    setWebAuthnAvailable(available);
+                    const platformAvailable = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+                    const conditionalAvailable = await PublicKeyCredential.isConditionalMediationAvailable();
+
+                    setWebAuthnAvailable(platformAvailable || conditionalAvailable);
 
                     const lastUserId = localStorage.getItem(LAST_USER_KEY);
                     if (lastUserId) {
                         const userDoc = await getDoc(doc(firestore, "users", lastUserId));
                         if (userDoc.exists() && userDoc.data().webAuthnCredentials) {
-                            // Check for credentials matching current environment
                             const deviceCredential = userDoc.data().webAuthnCredentials.find(
                                 cred => cred.deviceId === currentDeviceId &&
                                     cred.hostname === window.location.hostname
@@ -200,7 +206,6 @@ const SignIn = () => {
         try {
             const userData = await verifyWebAuthnCredential();
             if (userData.role) {
-                // Re-authenticate with Firebase silently
                 const user = auth.currentUser;
                 if (!user) {
                     throw new Error("Firebase session expired. Please sign in with Google.");
@@ -208,7 +213,6 @@ const SignIn = () => {
 
                 const firebaseToken = await user.getIdToken();
 
-                // Main auth login
                 const { data: mainData, status: mainStatus } =
                     await authService.mainLogin(firebaseToken);
                 if (mainStatus === 200) {
@@ -218,7 +222,6 @@ const SignIn = () => {
                     });
                 }
 
-                // Sequalizer auth
                 const { data: sequelizerData, status: sequelizerStatus } =
                     await sequalizerAuth.axiosInstance.post('/nodeapp/api/authenticate', {
                         idToken: firebaseToken
@@ -238,11 +241,24 @@ const SignIn = () => {
         }
     };
 
-    // Modified registration function to handle automatic registration for new environments
+    // Modified registration function to handle automatic registration
     const registerWebAuthnCredential = async (userId, userEmail, userName, autoRegister = false) => {
         try {
             const challengeBytes = new Uint8Array(32);
             window.crypto.getRandomValues(challengeBytes);
+
+            // Dynamic authenticator selection based on device
+            const authenticatorSelection = isMobileDevice
+                ? {
+                    authenticatorAttachment: "platform",
+                    userVerification: "preferred",
+                    requireResidentKey: false
+                }
+                : {
+                    authenticatorAttachment: "cross-platform",
+                    userVerification: "preferred",
+                    requireResidentKey: false
+                };
 
             const createCredentialOptions = {
                 challenge: challengeBytes,
@@ -261,10 +277,10 @@ const SignIn = () => {
                 ],
                 timeout: 60000,
                 attestation: "none",
-                    authenticatorSelection: {
-                        authenticatorAttachment: "cross-platform", // Allow USB keys and external authenticators
-                        userVerification: "preferred",
-                        requireResidentKey: false
+                authenticatorSelection: authenticatorSelection,
+                extensions: {
+                    credProps: true,
+                    largeBlob: { support: "preferred" }
                 }
             };
 
@@ -283,7 +299,7 @@ const SignIn = () => {
                 deviceInfo: {
                     userAgent: navigator.userAgent,
                     language: navigator.language,
-                    mobile: /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent),
+                    mobile: isMobileDevice,
                     touch: 'ontouchstart' in window || navigator.maxTouchPoints > 0,
                     screen: {
                         width: window.screen.width,
@@ -300,7 +316,6 @@ const SignIn = () => {
             const existingCredentials = userDoc.exists() ?
                 (userDoc.data().webAuthnCredentials || []) : [];
 
-            // Check for existing credential for this device and hostname
             const existingCredIndex = existingCredentials.findIndex(
                 cred => cred.deviceId === currentDeviceId &&
                     cred.hostname === window.location.hostname
@@ -322,7 +337,7 @@ const SignIn = () => {
             if (!autoRegister) {
                 toast({
                     title: "Security key registered successfully",
-                    description: `Fingerprint authentication enabled for ${window.location.hostname}`,
+                    description: `${isMobileDevice ? 'Biometric' : 'Fingerprint'} authentication enabled for ${window.location.hostname}`,
                     status: "success",
                     duration: 3000,
                     isClosable: true
@@ -365,7 +380,6 @@ const SignIn = () => {
                 if (userData.role) {
                     const firebaseToken = await user.getIdToken();
 
-                    // Handle authentication tokens
                     const { data: mainData, status: mainStatus } =
                         await authService.mainLogin(firebaseToken);
                     if (mainStatus === 200) {
@@ -383,7 +397,6 @@ const SignIn = () => {
                         await sequalizerAuth.storeAccessToken(sequelizerData.token);
                     }
 
-                    // Check if WebAuthn is available and not registered for current environment
                     if (webAuthnAvailable) {
                         const hasExistingCredential = userData.webAuthnCredentials?.some(
                             cred => cred.deviceId === currentDeviceId &&
@@ -392,7 +405,7 @@ const SignIn = () => {
 
                         if (!hasExistingCredential) {
                             const shouldRegister = window.confirm(
-                                `Would you like to enable fingerprint authentication for ${window.location.hostname}?`
+                                `Would you like to enable ${isMobileDevice ? 'biometric' : 'fingerprint'} authentication for ${window.location.hostname}?`
                             );
 
                             if (shouldRegister) {
@@ -412,127 +425,130 @@ const SignIn = () => {
             } else {
                 throw new Error("Your account is not registered in the system.");
             }
-        } catch (error) {
-            console.error("Sign-in error:", error);
-            setIsLoading(false);
-            let errorMessage = error.message;
+        }catch (error) {
+                console.error("Sign-in error:", error);
+                setIsLoading(false);
+                let errorMessage = error.message;
 
-            if (error.code === 'auth/popup-closed-by-user') {
-                errorMessage = "Sign-in cancelled. Please try again.";
-            } else if (error.code === 'auth/network-request-failed') {
-                errorMessage = "Network error. Please check your connection.";
+                if (error.code === 'auth/popup-closed-by-user') {
+                    errorMessage = "Sign-in cancelled. Please try again.";
+                } else if (error.code === 'auth/network-request-failed') {
+                    errorMessage = "Network error. Please check your connection.";
+                }
+
+                setError(errorMessage);
+                toast({
+                    title: "Sign-in Error",
+                    description: errorMessage,
+                    status: "error",
+                    duration: 5000,
+                    isClosable: true
+                });
+            } finally {
+                setIsLoading(false);
             }
+        };
 
-            setError(errorMessage);
-            toast({
-                title: "Sign-in Error",
-                description: errorMessage,
-                status: "error",
-                duration: 5000,
-                isClosable: true
-            });
-        } finally {
-            setIsLoading(false);
-        }
+        return (
+            <Flex
+                justify="center"
+                align="center"
+                minH="100vh"
+                bgGradient={useColorModeValue(
+                    'linear(to-r, teal.300, blue.500)',
+                    'linear(to-r, gray.800, gray.900)'
+                )}
+                position="relative"
+                overflow="hidden"
+            >
+                <MotionBox
+                    bg={useColorModeValue('white', 'gray.800')}
+                    p={8}
+                    borderRadius="xl"
+                    boxShadow="2xl"
+                    maxW="400px"
+                    w="90%"
+                    backdropFilter="blur(10px)"
+                    border="1px solid"
+                    borderColor={useColorModeValue('gray.200', 'gray.700')}
+                    zIndex={1}
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.6, ease: 'easeOut' }}
+                    whileHover={{ scale: 1.05 }}
+                >
+                    <VStack spacing={6}>
+                        <Heading as="h2" size="2xl" textAlign="center">
+                            ALLTECH SHOP 2
+                        </Heading>
+
+                        {error && (
+                            <Alert status="error" borderRadius="md">
+                                <AlertIcon />
+                                <AlertDescription>{error}</AlertDescription>
+                            </Alert>
+                        )}
+
+                        {webAuthnAvailable && hasRegisteredWebAuthn ? (
+                            <>
+                                <Button
+                                    colorScheme="purple"
+                                    variant="solid"
+                                    width="full"
+                                    size="lg"
+                                    isLoading={isLoading}
+                                    loadingText="Verifying"
+                                    onClick={handleWebAuthnSignIn}
+                                >
+                                    {isMobileDevice
+                                        ? "Sign in with Biometrics"
+                                        : "Sign in with Fingerprint"}
+                                </Button>
+                                <Button
+                                    variant="link"
+                                    size="sm"
+                                    onClick={() => {
+                                        localStorage.removeItem(LAST_USER_KEY);
+                                        setHasRegisteredWebAuthn(false);
+                                        toast({
+                                            title: "Authentication method switched",
+                                            description: "You can now sign in with Google",
+                                            status: "info",
+                                            duration: 3000,
+                                            isClosable: true
+                                        });
+                                    }}
+                                >
+                                    Switch to Google Sign-in
+                                </Button>
+                            </>
+                        ) : (
+                            <>
+                                <Button
+                                    leftIcon={<FcGoogle />}
+                                    colorScheme="teal"
+                                    variant="solid"
+                                    width="full"
+                                    size="lg"
+                                    isLoading={isLoading}
+                                    loadingText="Signing in"
+                                    onClick={handleGoogleSignIn}
+                                >
+                                    Sign in with Google
+                                </Button>
+                                {webAuthnAvailable && (
+                                    <Text fontSize="sm" textAlign="center">
+                                        {isMobileDevice
+                                            ? "Sign in with Google to enable biometric authentication"
+                                            : "Sign in with Google to enable fingerprint authentication"}
+                                    </Text>
+                                )}
+                            </>
+                        )}
+                    </VStack>
+                </MotionBox>
+            </Flex>
+        );
     };
 
-
-    return (
-        <Flex
-            justify="center"
-            align="center"
-            minH="100vh"
-            bgGradient={useColorModeValue(
-                'linear(to-r, teal.300, blue.500)',
-                'linear(to-r, gray.800, gray.900)'
-            )}
-            position="relative"
-            overflow="hidden"
-        >
-            <MotionBox
-                bg={useColorModeValue('white', 'gray.800')}
-                p={8}
-                borderRadius="xl"
-                boxShadow="2xl"
-                maxW="400px"
-                w="90%"
-                backdropFilter="blur(10px)"
-                border="1px solid"
-                borderColor={useColorModeValue('gray.200', 'gray.700')}
-                zIndex={1}
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.6, ease: 'easeOut' }}
-                whileHover={{ scale: 1.05 }}
-            >
-                <VStack spacing={6}>
-                    <Heading as="h2" size="2xl" textAlign="center">
-                        ALLTECH SHOP 2
-                    </Heading>
-
-                    {error && (
-                        <Alert status="error" borderRadius="md">
-                            <AlertIcon />
-                            <AlertDescription>{error}</AlertDescription>
-                        </Alert>
-                    )}
-
-                    {webAuthnAvailable && hasRegisteredWebAuthn ? (
-                        <>
-                            <Button
-                                colorScheme="purple"
-                                variant="solid"
-                                width="full"
-                                size="lg"
-                                isLoading={isLoading}
-                                loadingText="Verifying"
-                                onClick={handleWebAuthnSignIn}
-                            >
-                                Sign in with Phone
-                            </Button>
-                            <Button
-                                variant="link"
-                                size="sm"
-                                onClick={() => {
-                                    localStorage.removeItem(LAST_USER_KEY);
-                                    setHasRegisteredWebAuthn(false);
-                                    toast({
-                                        title: "Authentication method switched",
-                                        description: "You can now sign in with Google",
-                                        status: "info",
-                                        duration: 3000,
-                                        isClosable: true
-                                    });
-                                }}
-                            >
-                                Switch to Google Sign-in
-                            </Button>
-                        </>
-                    ) : (
-                        <>
-                            <Button
-                                leftIcon={<FcGoogle />}
-                                colorScheme="teal"
-                                variant="solid"
-                                width="full"
-                                size="lg"
-                                isLoading={isLoading}
-                                loadingText="Signing in"
-                                onClick={handleGoogleSignIn}
-                            >
-                                Sign in with Google
-                            </Button>
-                            {webAuthnAvailable && (
-                                <Text fontSize="sm" textAlign="center">
-                                    Sign in with Google to enable fingerprint authentication for this device
-                                </Text>
-                            )}
-                        </>
-                    )}
-                </VStack>
-            </MotionBox>
-        </Flex>
-    );
-};
-
-export default SignIn;
+    export default SignIn;
