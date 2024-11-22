@@ -25,7 +25,7 @@ import sequalizerAuth from "components/axios/sequalizerAuth.js";
 const MotionBox = motion.create(Box);
 const LAST_USER_KEY = "last_user_id";
 
-// Helper functions for ArrayBuffer conversion remain the same
+// Helper functions for ArrayBuffer conversion
 const arrayBufferToBase64 = (buffer) => {
     const bytes = new Uint8Array(buffer);
     let string = '';
@@ -414,6 +414,7 @@ const SignIn = () => {
             }
         } catch (error) {
             console.error("Sign-in error:", error);
+            setIsLoading(false);
             let errorMessage = error.message;
 
             if (error.code === 'auth/popup-closed-by-user') {
@@ -435,9 +436,6 @@ const SignIn = () => {
         }
     };
 
-    // UI Theme values
-    const bgColor = useColorModeValue('white', 'gray.800');
-    const textColor = useColorModeValue('gray.800', 'white');
 
     return (
         <Flex
@@ -490,7 +488,7 @@ const SignIn = () => {
                                 loadingText="Verifying"
                                 onClick={handleWebAuthnSignIn}
                             >
-                                Sign in with fingerprint
+                                Sign in with Phone
                             </Button>
                             <Button
                                 variant="link"
