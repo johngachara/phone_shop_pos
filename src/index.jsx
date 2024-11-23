@@ -21,4 +21,4 @@ root.render(
 )
 
 reportWebVitals()
-registerSW()
+registerSW({immediate: true})
