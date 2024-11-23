@@ -55,9 +55,6 @@ export default defineConfig({
                 ]
             },
             injectRegister: 'auto',
-            devOptions: {
-                enabled: true
-            }
         })
     ],
     server: {
@@ -74,6 +71,5 @@ export default defineConfig({
     },
     build: {
         outDir: 'build',
-        sourcemap: true
     }
 });
