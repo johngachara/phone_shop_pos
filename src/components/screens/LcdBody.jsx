@@ -32,6 +32,7 @@ export default function LcdBody(props) {
         currentPage,
         setCurrentPage,
         onLoadMore,
+        disableUpdateButton,
         hasMore
     } = props;
 
@@ -89,6 +90,7 @@ export default function LcdBody(props) {
                         handleCompleteClick={handleCompleteClick}
                         setDeleteItemId={setDeleteItemId}
                         setIsDeleteDialogOpen={setIsDeleteDialogOpen}
+                        disableUpdateButton={disableUpdateButton}
                     />
                 ) : (
                     <Text fontSize="xl" textAlign="center">

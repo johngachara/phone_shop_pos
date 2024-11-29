@@ -2,10 +2,10 @@ import {Badge, Box, Button, Heading, HStack, SimpleGrid, Text, useColorModeValue
 import { DeleteIcon } from "@chakra-ui/icons";
 import { motion } from "framer-motion";
 
-const MotionBox = motion(Box);
+const MotionBox = motion.create(Box);
 
 export default function RenderLcdItems(props) {
-    const { items, handleSellClick, handleUpdateClick, setDeleteItemId, setIsDeleteDialogOpen } = props;
+    const { items, handleSellClick, handleUpdateClick, setDeleteItemId, setIsDeleteDialogOpen,disableUpdateButton } = props;
     const textColor = useColorModeValue("gray.800", "white");
     const bgColor = useColorModeValue("white", "gray.800");
 
@@ -51,26 +51,32 @@ export default function RenderLcdItems(props) {
                             >
                                 Sell
                             </Button>
-                            <Button
-                                colorScheme="green"
-                                variant="outline"
-                                size={{ base: "sm", md: "md" }}
-                                onClick={() => handleUpdateClick(item)}
-                            >
-                                Update
-                            </Button>
-                            <Button
+                            {
+                                !disableUpdateButton && (
+                                    <HStack spacing={2} mt={4} wrap="wrap">
+                                    <Button
+                                        colorScheme="green"
+                                        variant="outline"
+                                        size={{ base: "sm", md: "md" }}
+                                        onClick={() => handleUpdateClick(item)}
+                                    >
+                                        Update
+                                    </Button>
+                                <Button
                                 leftIcon={<DeleteIcon />}
-                                colorScheme="red"
-                                variant="outline"
-                                size={{ base: "sm", md: "md" }}
-                                onClick={() => {
-                                    setDeleteItemId(item.id);
-                                    setIsDeleteDialogOpen(true);
-                                }}
-                            >
-                                Delete
-                            </Button>
+                            colorScheme="red"
+                            variant="outline"
+                            size={{ base: "sm", md: "md" }}
+                            onClick={() => {
+                                setDeleteItemId(item.id);
+                                setIsDeleteDialogOpen(true);
+                            }}
+                        >
+                            Delete
+                        </Button>
+                                    </HStack>
+                                )
+                            }
                         </HStack>
                     </Box>
                 </MotionBox>

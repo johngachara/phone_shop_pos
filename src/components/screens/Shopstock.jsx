@@ -15,6 +15,7 @@ import useScreenStore from "components/zuhan/useScreenStore.js";
 import { onAuthStateChanged } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
 import { auth } from "components/firebase/firebase.js";
+import useCheckRole from "components/hooks/useCheckRole.js";
 
 export default function Shopstock() {
     const [searchParam, setSearchParam] = useState("");
@@ -26,7 +27,7 @@ export default function Shopstock() {
     const [customer, setCustomer] = useState("");
     const [authLoading, setAuthLoading] = useState(true);
     const navigate = useNavigate();
-
+    const {loading:roleLoading,role} =  useCheckRole()
     const {
         data: shopData,
         isLoading: isLoadingData,
@@ -207,7 +208,7 @@ export default function Shopstock() {
             <LcdBody
                 searchParam={searchParam}
                 setSearchParam={setSearchParam}
-                loading={isLoadingData}
+                loading={isLoadingData || roleLoading}
                 shopData={shopData}
                 handleSellClick={handleSellClick}
                 handleUpdateClick={handleUpdateClick}
@@ -217,6 +218,7 @@ export default function Shopstock() {
                 currentPage={currentPage}
                 setCurrentPage={setCurrentPage}
                 onLoadMore={handleLoadMore}
+                disableUpdateButton={role !== "admin"}
             />
 
             <ChatbotWidget />
