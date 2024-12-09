@@ -8,7 +8,7 @@
     "@chakra-ui/react": "^2.10.4",
     "@chakra-ui/system": "^2.6.2",
     "@emotion/react": "^11.13.3",
-    "@emotion/styled": "^11.13.0",
+    "@emotion/styled": "^11.14.0",
     "@firebase/app": "^0.10.13",
     "@firebase/messaging": "^0.12.14",
     "@jridgewell/sourcemap-codec": "^1.5.0",
