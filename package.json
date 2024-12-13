@@ -21,7 +21,7 @@
     "braces": "^3.0.3",
     "class-variance-authority": "^0.7.0",
     "core-js": "^3.39.0",
-    "date-fns": "^3.6.0",
+    "date-fns": "^4.1.0",
     "firebase": "^10.14.1",
     "framer-motion": "^11.11.17",
     "js-yaml": "^4.1.0",
