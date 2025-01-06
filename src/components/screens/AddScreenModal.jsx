@@ -15,7 +15,7 @@ import {
     useToast,
     FormErrorMessage
 } from "@chakra-ui/react";
-import useScreenStore from "components/zuhan/useScreenStore.js";
+import useScreenStore from "components/zustand/useScreenStore.js";
 
 const AddScreenModal = ({ isOpen, onClose }) => {
     const [data, setData] = useState({

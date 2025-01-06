@@ -39,7 +39,7 @@ const useAccessoryStore = create(persist((set, get) => ({
         fetchAccessories: async (page = 1, toast) => {
             set({ loading: true, error: null });
             try {
-                const { data } = await sequalizerAuth.axiosInstance.get('/nodeapp/api/getAll', {
+                const { data } = await sequalizerAuth.axiosInstance.get('/sequel/api/getAll', {
                     params: { page }
                 });
 
@@ -82,7 +82,7 @@ const useAccessoryStore = create(persist((set, get) => ({
             }));
 
             try {
-                const response = await sequalizerAuth.axiosInstance.post('/nodeapp/api/addAccessories', data);
+                const response = await sequalizerAuth.axiosInstance.post('/sequel/api/addAccessories', data);
 
                 // Update with real data from server
                 set(state => ({
@@ -150,11 +150,9 @@ const useAccessoryStore = create(persist((set, get) => ({
 
             try {
                 const response = await sequalizerAuth.axiosInstance.put(
-                    `/nodeapp/api/updateAccessories/${selectedItem.id}`,
+                    `/sequel/api/updateAccessories/${selectedItem.id}`,
                     dataToSend
                 );
-                console.log(response)
-
                 set(state => ({
                     isUpdating: false,
                     rollbackState: null
@@ -196,7 +194,7 @@ const useAccessoryStore = create(persist((set, get) => ({
             set({ isDeleting: true, error: null });
 
             try {
-                const result = await sequalizerAuth.axiosInstance.delete(`/nodeapp/api/deleteAccessory/${id}`);
+                const result = await sequalizerAuth.axiosInstance.delete(`/sequel/api/deleteAccessory/${id}`);
 
                 if (result.status === 200) {
                     // Remove item from state
@@ -232,7 +230,7 @@ const useAccessoryStore = create(persist((set, get) => ({
             set({ isSelling: true, error: null });
 
             try {
-                const response = await sequalizerAuth.axiosInstance.post(`/nodeapp/api/sellAccessories/${id}`, data);
+                const response = await sequalizerAuth.axiosInstance.post(`/sequel/api/sellAccessories/${id}`, data);
 
 
 
@@ -272,8 +270,8 @@ const useAccessoryStore = create(persist((set, get) => ({
         try {
             let response;
 
-            if (dataType?.startsWith('nodeapp')) {
-                // Use sequalizerAuth for /nodeapp endpoints
+            if (dataType?.startsWith('sequel')) {
+                // Use sequalizerAuth for /sequel endpoints
                 response = await sequalizerAuth.axiosInstance.get(`/${dataType}`);
             } else {
                 // Use authService for other endpoints
@@ -298,7 +296,7 @@ const useAccessoryStore = create(persist((set, get) => ({
     fetchAccessorySales: async () => {
         set({ loading: true, error: null });
         try {
-            const { data } = await sequalizerAuth.axiosInstance.get('/nodeapp/Sales');
+            const { data } = await sequalizerAuth.axiosInstance.get('/sequel/Sales');
             set({ loading: false });
             return { success: true, data };
         } catch (error) {

@@ -1,13 +1,46 @@
-import {Badge, Box, Button, Heading, HStack, SimpleGrid, Text, useColorModeValue} from "@chakra-ui/react";
-import { DeleteIcon } from "@chakra-ui/icons";
+import {
+    Box,
+    Badge,
+    Button,
+    Heading,
+    Text,
+    SimpleGrid,
+    HStack,
+    VStack,
+    useColorModeValue,
+    Card,
+    CardBody,
+    Progress,
+    Tooltip,
+    IconButton,
+    Flex,
+    Divider,
+    Stack
+} from "@chakra-ui/react";
+import { DeleteIcon, EditIcon, ArrowForwardIcon } from "@chakra-ui/icons";
 import { motion } from "framer-motion";
 
-const MotionBox = motion.create(Box);
+const MotionBox = motion(Box);
 
-export default function RenderLcdItems(props) {
-    const { items, handleSellClick, handleUpdateClick, setDeleteItemId, setIsDeleteDialogOpen,disableUpdateButton } = props;
-    const textColor = useColorModeValue("gray.800", "white");
+export default function RenderLcdItems({
+                                           items,
+                                           handleSellClick,
+                                           handleUpdateClick,
+                                           setDeleteItemId,
+                                           setIsDeleteDialogOpen,
+                                           disableUpdateButton
+                                       }) {
     const bgColor = useColorModeValue("white", "gray.800");
+    const textColor = useColorModeValue("gray.700", "gray.200");
+    const cardHoverBg = useColorModeValue("gray.50", "gray.700");
+
+    // Stock level calculation
+    const getStockStatus = (quantity) => {
+        if (quantity === 0) return { color: 'red', status: 'Out of Stock', progress: 0 };
+        if (quantity <= 3) return { color: 'red', status: 'Critical Stock', progress: 20 };
+        if (quantity <= 10) return { color: 'blue', status: 'Good Stock', progress: 80 };
+        return { color: 'green', status: 'Optimal', progress: 100 };
+    };
 
     return (
         <SimpleGrid
@@ -15,72 +48,144 @@ export default function RenderLcdItems(props) {
             spacing={6}
             w="full"
         >
-            {items.map((item, index) => (
-                <MotionBox
-                    key={index}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5, delay: index * 0.1 }}
-                    borderRadius="lg"
-                    overflow="hidden"
-                    boxShadow="md"
-                    bg={bgColor}
-                    _hover={{ boxShadow: "lg", transform: "translateY(-5px)" }}
-                    p={{ base: 2, md: 5 }}
-                >
-                    <Box p={5}>
-                        <Heading size="md" mb={2} isTruncated>
-                            {item.product_name}
-                        </Heading>
-                        <Text fontSize="2xl" fontWeight="bold" mb={2}>
-                            {item.price}
-                        </Text>
-                        <Text color={textColor} mb={4}>
-                            Quantity: {item.quantity}
-                        </Text>
-                        <Badge colorScheme="teal" mb={4}>
-                            {item.quantity > 0 ? "In Stock" : "Out Of Stock"}
-                        </Badge>
-                        <HStack spacing={2} mt={4} wrap="wrap">
-                            <Button
-                                colorScheme="blue"
-                                size={{ base: "sm", md: "md" }}
-                                flex={{ base: "full", md: "initial" }}
-                                onClick={() => handleSellClick(item)}
-                                isDisabled={item.quantity < 1}
-                            >
-                                Sell
-                            </Button>
-                            {
-                                !disableUpdateButton && (
-                                    <HStack spacing={2} mt={4} wrap="wrap">
-                                    <Button
-                                        colorScheme="green"
-                                        variant="outline"
-                                        size={{ base: "sm", md: "md" }}
-                                        onClick={() => handleUpdateClick(item)}
-                                    >
-                                        Update
-                                    </Button>
-                                <Button
-                                leftIcon={<DeleteIcon />}
-                            colorScheme="red"
-                            variant="outline"
-                            size={{ base: "sm", md: "md" }}
-                            onClick={() => {
-                                setDeleteItemId(item.id);
-                                setIsDeleteDialogOpen(true);
+            {items.map((item, index) => {
+                const stockStatus = getStockStatus(item.quantity);
+
+                return (
+                    <MotionBox
+                        key={item.id || index}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.4, delay: index * 0.1 }}
+                    >
+                        <Card
+                            bg={bgColor}
+                            height="100%"
+                            borderRadius="xl"
+                            overflow="hidden"
+                            _hover={{
+                                transform: 'translateY(-2px)',
+                                shadow: 'lg',
+                                bg: cardHoverBg
                             }}
+                            transition="all 0.2s"
                         >
-                            Delete
-                        </Button>
-                                    </HStack>
-                                )
-                            }
-                        </HStack>
-                    </Box>
-                </MotionBox>
-            ))}
+                            <CardBody p={5}>
+                                <VStack spacing={4} align="stretch">
+                                    {/* Header with Stock Badge */}
+                                    <Flex justify="space-between" align="start" gap={2}>
+                                        <Heading
+                                            size="md"
+                                            noOfLines={2}
+                                            flex="1"
+                                        >
+                                            {item.product_name}
+                                        </Heading>
+                                        <Tooltip
+                                            label={`${item.quantity} units remaining`}
+                                            placement="top"
+                                            hasArrow
+                                        >
+                                            <Badge
+                                                colorScheme={stockStatus.color}
+                                                px={3}
+                                                py={1}
+                                                borderRadius="full"
+                                                textTransform="none"
+                                                display="flex"
+                                                alignItems="center"
+                                                gap={2}
+                                            >
+                                                {stockStatus.status}
+                                            </Badge>
+                                        </Tooltip>
+                                    </Flex>
+
+                                    {/* Stock Level Indicator */}
+                                    <Box>
+                                        <Text fontSize="sm" mb={1} color={textColor}>
+                                            Stock Level
+                                        </Text>
+                                        <Progress
+                                            value={stockStatus.progress}
+                                            colorScheme={stockStatus.color}
+                                            borderRadius="full"
+                                            size="sm"
+                                            hasStripe={item.quantity > 0}
+                                            isAnimated={item.quantity > 0}
+                                        />
+                                        <Text
+                                            fontSize="sm"
+                                            color={textColor}
+                                            mt={1}
+                                            textAlign="right"
+                                        >
+                                            {item.quantity} units
+                                        </Text>
+                                    </Box>
+
+                                    <Divider />
+
+                                    {/* Price Section */}
+                                    <Stack>
+                                        <Text fontSize="sm" color={textColor}>
+                                            Unit Price
+                                        </Text>
+                                        <Heading size="lg" color={useColorModeValue('blue.600', 'blue.300')}>
+                                            {parseFloat(item.price).toFixed(2)}
+                                        </Heading>
+                                    </Stack>
+
+                                    {/* Action Buttons */}
+                                    <VStack spacing={3}>
+                                        <Button
+                                            colorScheme="blue"
+                                            width="full"
+                                            size="lg"
+                                            isDisabled={item.quantity < 1}
+                                            onClick={() => handleSellClick(item)}
+                                            rightIcon={<ArrowForwardIcon />}
+                                            _hover={{ transform: 'translateY(-1px)' }}
+                                        >
+                                            Quick Sell
+                                        </Button>
+
+                                        {!disableUpdateButton && (
+                                            <HStack width="full" spacing={2}>
+                                                <Tooltip label="Update Item" hasArrow>
+                                                    <IconButton
+                                                        icon={<EditIcon />}
+                                                        variant="outline"
+                                                        colorScheme="gray"
+                                                        flex={1}
+                                                        onClick={() => handleUpdateClick(item)}
+                                                        size="lg"
+                                                        aria-label="Update item"
+                                                    />
+                                                </Tooltip>
+                                                <Tooltip label="Delete Item" hasArrow>
+                                                    <IconButton
+                                                        icon={<DeleteIcon />}
+                                                        variant="outline"
+                                                        colorScheme="red"
+                                                        flex={1}
+                                                        onClick={() => {
+                                                            setDeleteItemId(item.id);
+                                                            setIsDeleteDialogOpen(true);
+                                                        }}
+                                                        size="lg"
+                                                        aria-label="Delete item"
+                                                    />
+                                                </Tooltip>
+                                            </HStack>
+                                        )}
+                                    </VStack>
+                                </VStack>
+                            </CardBody>
+                        </Card>
+                    </MotionBox>
+                );
+            })}
         </SimpleGrid>
     );
 }

@@ -174,9 +174,7 @@ class SequalizerAuth {
             }
 
             const firebaseToken = await currentUser.getIdToken(true);
-            const response = await apiService.sequelizer_login({
-                firebaseToken
-            });
+            const response = await apiService.sequelizer_login(firebaseToken);
 
             if (response.status !== 200 || !response.data.token) {
                 throw new Error('Sequelizer authentication failed');

@@ -3,7 +3,7 @@ import { useToast } from "@chakra-ui/react";
 import { useState } from "react";
 import {setAccessoryData, setAccessorySearchResults} from "components/redux/actions/shopActions.js";
 import {apiService} from "../../apiService.js";
-import useAccessoryStore from "components/zuhan/useAccessoryStore.js";
+import useAccessoryStore from "components/zustand/useAccessoryStore.js";
 
 export const useSellAccessory = (token) => {
     const dispatch = useDispatch();

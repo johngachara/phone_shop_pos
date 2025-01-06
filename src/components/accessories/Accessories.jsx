@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import {
-    Box,
     Flex,
     SimpleGrid,
     useColorModeValue,
@@ -9,18 +8,17 @@ import {
     Center,
 } from "@chakra-ui/react";
 import { useNavigate } from "react-router-dom";
-import { useSelector, useDispatch } from "react-redux";
 import RenderAccessoryItems from "components/accessories/RenderAccessoryItems.jsx";
 import AccessoryBody from "components/accessories/AccessoryBody.jsx";
 import AccessoryDeleteDialog from "components/dialogs/AccessoryDeleteDialog.jsx";
 import useSearchAccessories from "components/hooks/useSearchAccessories.js";
 import AccessoryDrawers from "components/drawers/AccessoryDrawers.jsx";
-import useAccessoryStore from "components/zuhan/useAccessoryStore.js";
+import useAccessoryStore from "components/zustand/useAccessoryStore.js";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "components/firebase/firebase.js";
 
 export default function Accessories() {
-    const dispatch = useDispatch();
+
     const navigate = useNavigate();
     const toast = useToast();
 

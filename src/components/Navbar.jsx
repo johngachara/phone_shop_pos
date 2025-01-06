@@ -1,16 +1,10 @@
 import { useEffect, useState } from "react";
 import {
+    Box,
     Flex,
     Button,
-    useColorModeValue,
-    Box,
-    VStack,
     Text,
     Avatar,
-    Menu,
-    MenuButton,
-    MenuList,
-    MenuItem,
     useDisclosure,
     Drawer,
     DrawerBody,
@@ -21,268 +15,483 @@ import {
     IconButton,
     useBreakpointValue,
     useColorMode,
+    useColorModeValue,
+    VStack,
     Skeleton,
+    Tooltip,
+    Badge,
 } from "@chakra-ui/react";
+import {
+    HamburgerIcon,
+    MoonIcon,
+    SunIcon,
+    AddIcon,
+    StarIcon,
+    WarningIcon,
+    RepeatIcon,
+    SettingsIcon,
+    TimeIcon,
+    ChevronLeftIcon,
+    ChevronRightIcon,
+    ViewIcon,
+    DragHandleIcon
+} from "@chakra-ui/icons";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { ChevronDownIcon, HamburgerIcon, MoonIcon, SunIcon } from "@chakra-ui/icons";
+import { motion, AnimatePresence } from "framer-motion";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "./firebase/firebase.js";
-import AddScreenModal from "components/screens/AddScreenModal.jsx";
+import AddScreenModal from "./screens/AddScreenModal.jsx";
+import AddAccessoryModal from "./accessories/AddAccesoryModal.jsx";
+import useCheckRole from "./hooks/useCheckRole.js";
 
-import useCheckRole from "components/hooks/useCheckRole.js";
-import AddAccessoryModal from "components/accessories/AddAccesoryModal.jsx";
+const MotionBox = motion.create(Box);
+const MotionText = motion(Text);
 
 export default function Navbar() {
     const navigate = useNavigate();
     const [user, setUser] = useState(null);
     const location = useLocation();
-    const { isOpen, onOpen, onClose } = useDisclosure(); // Drawer control
+    const [isCollapsed, setIsCollapsed] = useState(false);
     const { colorMode, toggleColorMode } = useColorMode();
-    const bgColor = useColorModeValue("gray.100", "gray.800");
-    const textColor = useColorModeValue("gray.700", "gray.200");
-    const activeColor = useColorModeValue("blue.500", "blue.300");
-    const isMobile = useBreakpointValue({ base: true, md: false });
-    const { role, loading: roleLoading, error } = useCheckRole();
+    const { role, loading: roleLoading } = useCheckRole();
 
-    // Modal states
+    // Drawer and modal controls
+    const {
+        isOpen: isMobileDrawerOpen,
+        onOpen: openMobileDrawer,
+        onClose: closeMobileDrawer
+    } = useDisclosure();
+
     const {
         isOpen: isScreenModalOpen,
         onOpen: openScreenModal,
-        onClose: closeScreenModal,
+        onClose: closeScreenModal
     } = useDisclosure();
 
     const {
         isOpen: isAccessoryModalOpen,
         onOpen: openAccessoryModal,
-        onClose: closeAccessoryModal,
+        onClose: closeAccessoryModal
     } = useDisclosure();
 
-    const [activeModal, setActiveModal] = useState(null);
-
-    // Screen modal config
     const [isLoading, setIsLoading] = useState(false);
-    const fieldConfig = [
-        { label: "Screen Name", name: "screen_name", type: "text", placeholder: "Enter screen name" },
-        { label: "Resolution", name: "resolution", type: "text", placeholder: "Enter resolution" },
-        { label: "Price", name: "price", type: "number", placeholder: "Enter price" },
-    ];
+    const isMobile = useBreakpointValue({ base: true, md: false });
 
-    const primaryButtonConfig = {
-        label: "Add Screen",
-        onClick: () => {
-            setIsLoading(true);
-            setTimeout(() => {
-                console.log("Screen added successfully");
-                setIsLoading(false);
-                closeScreenModal();
-            }, 2000);
-        },
-    };
+    // Theme colors
+    const bgColor = useColorModeValue("white", "gray.900");
+    const textColor = useColorModeValue("gray.700", "gray.100");
+    const activeColor = useColorModeValue("blue.500", "blue.400");
+    const hoverBgColor = useColorModeValue("gray.50", "gray.800");
+    const borderColor = useColorModeValue("gray.200", "gray.700");
+    const shadowColor = useColorModeValue(
+        "0 4px 6px rgba(160, 174, 192, 0.1)",
+        "0 4px 6px rgba(9, 17, 28, 0.4)"
+    );
 
-    const secondaryButtonConfig = {
-        label: "Cancel",
-        onClick: closeScreenModal,
-    };
-
-    // Navigation helpers
-    const Logout = () => {
+    // Auth handlers
+    const handleLogout = () => {
         localStorage.removeItem("access");
         localStorage.removeItem("accessories");
-        localStorage.removeItem("refresh")
+        localStorage.removeItem("refresh");
         navigate("/Login");
     };
-
-    const isActive = (path) => location.pathname === path;
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
             if (!currentUser) navigate("/Login");
             setUser(currentUser);
-            console.log(currentUser.displayName)
         });
         return () => unsubscribe();
     }, [navigate]);
 
-    // Handle modal opens with active state
+    // Modal handlers
     const handleScreenModalOpen = () => {
-        setActiveModal('screen');
         openScreenModal();
+        if (isMobile) closeMobileDrawer();
     };
 
     const handleAccessoryModalOpen = () => {
-        setActiveModal('accessory');
         openAccessoryModal();
+        if (isMobile) closeMobileDrawer();
     };
 
-    // Handle modal closes
-    const handleScreenModalClose = () => {
-        setActiveModal(null);
-        closeScreenModal();
+    // Navigation item component
+    const NavItem = ({ to, icon, label, onClick, badgeCount }) => {
+        const isCurrentPath = location.pathname === to;
+
+        return (
+            <MotionBox
+                whileHover={{ x: 4 }}
+                transition={{ duration: 0.2 }}
+                position="relative"
+            >
+                <Tooltip
+                    label={isCollapsed ? label : ""}
+                    placement="right"
+                    isDisabled={!isCollapsed}
+                    hasArrow
+                >
+                    <Button
+                        as={Link}
+                        to={to}
+                        w="full"
+                        variant="ghost"
+                        justifyContent={isCollapsed ? "center" : "flex-start"}
+                        h="40px"
+                        mb={1}
+                        color={isCurrentPath ? activeColor : textColor}
+                        bg={isCurrentPath ? hoverBgColor : "transparent"}
+                        _hover={{
+                            bg: hoverBgColor,
+                            color: activeColor,
+                        }}
+                        onClick={onClick}
+                        position="relative"
+                    >
+                        {icon}
+                        <AnimatePresence>
+                            {!isCollapsed && (
+                                <MotionText
+                                    initial={{ opacity: 0, width: 0 }}
+                                    animate={{ opacity: 1, width: "auto" }}
+                                    exit={{ opacity: 0, width: 0 }}
+                                    ml={3}
+                                    overflow="hidden"
+                                    whiteSpace="nowrap"
+                                >
+                                    {label}
+                                </MotionText>
+                            )}
+                        </AnimatePresence>
+                        {badgeCount && !isCollapsed && (
+                            <Badge
+                                position="absolute"
+                                right={2}
+                                colorScheme="red"
+                                borderRadius="full"
+                            >
+                                {badgeCount}
+                            </Badge>
+                        )}
+                    </Button>
+                </Tooltip>
+                {isCurrentPath && (
+                    <Box
+                        position="absolute"
+                        left={0}
+                        top={0}
+                        bottom={0}
+                        w="3px"
+                        bg={activeColor}
+                        borderRightRadius="full"
+                    />
+                )}
+            </MotionBox>
+        );
     };
 
-    const handleAccessoryModalClose = () => {
-        setActiveModal(null);
-        closeAccessoryModal();
-    };
+    const SidebarContent = ({ isMobileView = false }) => (
+        <Flex direction="column" h="full" py={6} px={4} position="relative">
+            {/* Desktop Collapse Toggle */}
+            {!isMobileView && (
+                <IconButton
+                    icon={isCollapsed ? <ChevronRightIcon /> : <ChevronLeftIcon />}
+                    onClick={() => setIsCollapsed(!isCollapsed)}
+                    position="absolute"
+                    right={-4}
+                    top={2}
+                    transform="translateX(100%)"
+                    borderLeftRadius="0"
+                    bg={bgColor}
+                    borderLeft="1px"
+                    borderTop="1px"
+                    borderBottom="1px"
+                    borderColor={borderColor}
+                    size="sm"
+                    display={{ base: "none", md: "flex" }}
+                    zIndex={100}
+                    boxShadow={shadowColor}
+                    _hover={{ bg: hoverBgColor }}
+                />
+            )}
 
-    const DarkModeButton = () => (
-        <Button onClick={toggleColorMode} variant="ghost" mb={4}>
-            {colorMode === "light" ? <MoonIcon /> : <SunIcon />}
-        </Button>
-    );
-
-    const NavItem = ({ to, children, onClick }) => (
-        <Button
-            as={Link}
-            to={to}
-            color={isActive(to) ? activeColor : textColor}
-            fontWeight={isActive(to) ? "bold" : "normal"}
-            variant="ghost"
-            justifyContent="flex-start"
-            width="100%"
-            onClick={onClick}
-        >
-            {children}
-        </Button>
-    );
-
-    const ActionButton = ({ onClick, isActive, children }) => (
-        <Button
-            onClick={onClick}
-            variant="ghost"
-            justifyContent="flex-start"
-            fontWeight="normal"
-            width="100%"
-            color={isActive ? activeColor : textColor}
-        >
-            {children}
-        </Button>
-    );
-
-    const SidebarContent = () => (
-        <Flex direction="column" h="full" p={4}>
-            <Box mb={6}>
-                <Text fontSize="xl" fontWeight="bold" color={textColor}>
-                    ALLTECH
+            {/* Logo */}
+            <Flex align="center" mb={8} justify={isCollapsed && !isMobileView ? "center" : "flex-start"}>
+                <Text
+                    fontSize={isCollapsed && !isMobileView ? "xl" : "2xl"}
+                    fontWeight="bold"
+                    color={activeColor}
+                    letterSpacing="tight"
+                >
+                    {isCollapsed && !isMobileView ? "AT" : "ALLTECH"}
                 </Text>
-            </Box>
+            </Flex>
 
-            <VStack align="stretch" spacing={2} flex={1}>
-                <NavItem to="/" onClick={onClose}>Screens</NavItem>
-                <NavItem to="/Accessories" onClick={onClose}>Accessories</NavItem>
-                <ActionButton
+            {/* Main Navigation */}
+            <VStack align="stretch" flex={1} spacing={2}>
+                <NavItem
+                    to="/"
+                    icon={<StarIcon />}
+                    label="Screens"
+                    onClick={isMobileView ? closeMobileDrawer : undefined}
+                />
+                <NavItem
+                    to="/Accessories"
+                    icon={<SettingsIcon />}
+                    label="Accessories"
+                    onClick={isMobileView ? closeMobileDrawer : undefined}
+                />
+
+                <Button
                     onClick={handleScreenModalOpen}
-                    isActive={activeModal === 'screen'}
+                    variant="ghost"
+                    justifyContent={isCollapsed && !isMobileView ? "center" : "flex-start"}
+                    leftIcon={<AddIcon />}
+                    w="full"
+                    h="40px"
+                    mb={1}
                 >
-                    Add New Screen
-                </ActionButton>
-                <ActionButton
+                    {(!isCollapsed || isMobileView) && "Add Screen"}
+                </Button>
+
+                <Button
                     onClick={handleAccessoryModalOpen}
-                    isActive={activeModal === 'accessory'}
+                    variant="ghost"
+                    justifyContent={isCollapsed && !isMobileView ? "center" : "flex-start"}
+                    leftIcon={<AddIcon />}
+                    w="full"
+                    h="40px"
+                    mb={1}
                 >
-                    Add New Accessory
-                </ActionButton>
-                <NavItem to="/SavedOrders" onClick={onClose}>Unpaid Orders</NavItem>
-                <NavItem to="/LowStock" onClick={onClose}>Low Stock</NavItem>
+                    {(!isCollapsed || isMobileView) && "Add Accessory"}
+                </Button>
+
+                <NavItem
+                    to="/SavedOrders"
+                    icon={<TimeIcon />}
+                    label="Unpaid Orders"
+                    onClick={isMobileView ? closeMobileDrawer : undefined}
+                    badgeCount={3}
+                />
+                <NavItem
+                    to="/LowStock"
+                    icon={<WarningIcon />}
+                    label="Low Stock"
+                    onClick={isMobileView ? closeMobileDrawer : undefined}
+                />
 
                 {roleLoading ? (
-                    <Skeleton height="40px" width="100%" />
-                ) : error ? (
-                    <Text color="red.500">Failed to load role</Text>
-                ) : role === "admin" ? (
+                    <Skeleton height="40px" />
+                ) : role === "admin" && (
                     <>
-                        <NavItem to="/Admin" onClick={onClose}>Admin Dashboard</NavItem>
-                        <NavItem to="/detailed" onClick={onClose}>Shop Transactions</NavItem>
+                        <NavItem
+                            to="/Admin"
+                            icon={<SettingsIcon />}
+                            label="Admin Dashboard"
+                            onClick={isMobileView ? closeMobileDrawer : undefined}
+                        />
+                        <NavItem
+                            to="/detailed"
+                            icon={<ViewIcon />}
+                            label="Shop Transactions"
+                            onClick={isMobileView ? closeMobileDrawer : undefined}
+                        />
                     </>
-                ) : null}
+                )}
 
                 <Button
                     onClick={() => {
                         window.location.reload();
-                        onClose();
+                        if (isMobileView) closeMobileDrawer();
                     }}
                     variant="ghost"
+                    justifyContent={isCollapsed && !isMobileView ? "center" : "flex-start"}
+                    leftIcon={<RepeatIcon />}
+                    w="full"
+                    h="40px"
+                    mb={1}
                 >
-                    Refresh
+                    {(!isCollapsed || isMobileView) && "Refresh"}
                 </Button>
             </VStack>
 
-            <Menu>
-                <MenuButton as={Button} rightIcon={<ChevronDownIcon />} variant="ghost" size="sm" width="100%">
-                    <Flex align="center">
-                        <Avatar size="sm" name={user?.email === "alltechmain@gmail.com" ? "ALLTECH" : user?.displayName} src={user?.photoURL} mr={2} />
-                        <Text>{user?.email === "alltechmain@gmail.com" ? "ALLTECH" : user?.displayName}</Text>
-                    </Flex>
-                </MenuButton>
-                <MenuList>
-                    <MenuItem onClick={Logout}>Logout</MenuItem>
-                </MenuList>
-            </Menu>
+            {/* User Section - Replaced dropdown with direct buttons */}
+            <Box mt={6} pt={6} borderTop="1px" borderColor={borderColor}>
+                {/* User Info */}
+                <Flex align="center" mb={4}>
+                    <Avatar
+                        size="sm"
+                        name={user?.email === "alltechmain@gmail.com" ? "AT" : user?.displayName?.[0]}
+                        src={user?.photoURL}
+                    />
+                    {(!isCollapsed || isMobileView) && (
+                        <Box ml={3}>
+                            <Text fontSize="sm" fontWeight="medium" noOfLines={1}>
+                                {user?.displayName || "ALLTECH"}
+                            </Text>
+                            <Text fontSize="xs" color="gray.500">
+                                {role || "User"}
+                            </Text>
+                        </Box>
+                    )}
+                </Flex>
 
-            <DarkModeButton />
+                {/* Dark Mode Toggle */}
+                <Button
+                    onClick={toggleColorMode}
+                    variant="ghost"
+                    justifyContent={isCollapsed && !isMobileView ? "center" : "flex-start"}
+                    leftIcon={colorMode === "light" ? <MoonIcon /> : <SunIcon />}
+                    w="full"
+                    h="40px"
+                    mb={2}
+                >
+                    {(!isCollapsed || isMobileView) && (colorMode === "light" ? "Dark Mode" : "Light Mode")}
+                </Button>
+
+                {/* Logout Button */}
+                <Button
+                    onClick={handleLogout}
+                    variant="ghost"
+                    justifyContent={isCollapsed && !isMobileView ? "center" : "flex-start"}
+                    leftIcon={<DragHandleIcon />}
+                    w="full"
+                    h="40px"
+                    color="red.400"
+                    _hover={{
+                        bg: "red.50",
+                        color: "red.500"
+                    }}
+                >
+                    {(!isCollapsed || isMobileView) && "Logout"}
+                </Button>
+            </Box>
         </Flex>
     );
-
+    // Mobile View
     if (isMobile) {
         return (
             <>
-                <Box position="fixed" top={3} right={4} zIndex={20}>
-                    <IconButton aria-label="Open menu" icon={<HamburgerIcon />} onClick={onOpen} />
+                {/* Mobile Header */}
+                <Box
+                    position="fixed"
+                    top={0}
+                    left={0}
+                    right={0}
+                    bg={bgColor}
+                    px={4}
+                    py={3}
+                    borderBottom="1px"
+                    borderColor={borderColor}
+                    zIndex={99}
+                    boxShadow={shadowColor}
+                >
+                    <Flex justify="space-between" align="center">
+                        <Text fontSize="xl" fontWeight="bold" color={activeColor}>
+                            ALLTECH
+                        </Text>
+                        <IconButton
+                            aria-label="Menu"
+                            icon={<HamburgerIcon />}
+                            onClick={openMobileDrawer}
+                            variant="ghost"
+                        />
+                    </Flex>
                 </Box>
-                <Drawer isOpen={isOpen} placement="left" onClose={onClose}>
-                    <DrawerOverlay>
-                        <DrawerContent bg={bgColor}>
-                            <DrawerCloseButton />
-                            <DrawerHeader>Menu</DrawerHeader>
-                            <DrawerBody>
-                                <SidebarContent />
-                            </DrawerBody>
-                        </DrawerContent>
-                    </DrawerOverlay>
+
+                {/* Mobile Drawer */}
+                <Drawer
+                    isOpen={isMobileDrawerOpen}
+                    placement="left"
+                    onClose={closeMobileDrawer}
+                    zIndex={1000}
+                >
+                    <DrawerOverlay />
+                    <DrawerContent bg={bgColor}>
+                        <DrawerHeader borderBottomWidth="1px">
+                            <Flex justify="space-between" align="center">
+                                <Text fontSize="xl" fontWeight="bold">Menu</Text>
+                                <DrawerCloseButton />
+                            </Flex>
+                        </DrawerHeader>
+                        <DrawerBody p={0}>
+                            <SidebarContent isMobileView={true} />
+                        </DrawerBody>
+                    </DrawerContent>
                 </Drawer>
 
+                {/* Content Spacer */}
+                <Box pt="60px">
+                    {/* Content goes here */}
+                </Box>
+
+                {/* Modals */}
                 <AddScreenModal
                     isOpen={isScreenModalOpen}
-                    onClose={handleScreenModalClose}
+                    onClose={closeScreenModal}
                     isLoading={isLoading}
-                    fieldConfig={fieldConfig}
-                    primaryButtonConfig={primaryButtonConfig}
-                    secondaryButtonConfig={secondaryButtonConfig}
                 />
 
-
+                <AddAccessoryModal
+                    isOpen={isAccessoryModalOpen}
+                    onClose={closeAccessoryModal}
+                />
             </>
         );
     }
-
     return (
-        <Box
-            bg={bgColor}
-            w={{ base: "full", md: "250px" }}
-            h="100vh"
-            position="fixed"
-            left={0}
-            top={0}
-            boxShadow="sm"
-            p={4}
-            zIndex="20"
-            display={{ base: "none", md: "block" }}
-        >
-            <SidebarContent />
+        <>
+            <MotionBox
+                bg={bgColor}
+                h="100vh"
+                position="fixed"
+                left={0}
+                top={0}
+                borderRight="1px"
+                borderColor={borderColor}
+                initial={{ width: "250px" }}
+                animate={{ width: isCollapsed ? "80px" : "250px" }}
+                transition={{ duration: 0.2 }}
+                zIndex={99}
+                overflowY="auto"
+                overflowX="hidden"
+                css={{
+                    '&::-webkit-scrollbar': {
+                        width: '4px',
+                    },
+                    '&::-webkit-scrollbar-track': {
+                        width: '6px',
+                    },
+                    '&::-webkit-scrollbar-thumb': {
+                        background: borderColor,
+                        borderRadius: '24px',
+                    },
+                }}
+                boxShadow={shadowColor}
+            >
+                <SidebarContent isMobileView={false} />
+            </MotionBox>
 
+            {/* Main Content Area - Adjusts based on sidebar state */}
+            <Box
+                ml={{ base: 0, md: isCollapsed ? "80px" : "250px" }}
+                transition="margin 0.2s"
+                p={4}
+            >
+                {/* Content goes here */}
+            </Box>
+
+            {/* Modals */}
             <AddScreenModal
                 isOpen={isScreenModalOpen}
-                onClose={handleScreenModalClose}
+                onClose={closeScreenModal}
                 isLoading={isLoading}
-                fieldConfig={fieldConfig}
-                primaryButtonConfig={primaryButtonConfig}
-                secondaryButtonConfig={secondaryButtonConfig}
             />
 
             <AddAccessoryModal
                 isOpen={isAccessoryModalOpen}
-                onClose={handleAccessoryModalClose}
+                onClose={closeAccessoryModal}
             />
-        </Box>
+        </>
     );
 }

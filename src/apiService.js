@@ -26,11 +26,10 @@ export const apiService = {
     sequelizer_login: async (idToken) => {
         try {
             const response = await axios.post(
-                `${API_URL}/nodeapp/authenticate`,
+                `${API_URL}/sequel/api/authenticate`,
                 { idToken },
                 { headers: { 'Content-Type': 'application/json' }, withCredentials: true }
             );
-            console.log(response)
             return {
                 data: response.data,
                 status: response.status,

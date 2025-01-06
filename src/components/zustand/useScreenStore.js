@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import authService from "components/axios/authService.js";
-import useUnpaidStore from "components/zuhan/useUnpaidStore.js";
+import useUnpaidStore from "components/zustand/useUnpaidStore.js";
 
 const useScreenStore = create(
     persist(

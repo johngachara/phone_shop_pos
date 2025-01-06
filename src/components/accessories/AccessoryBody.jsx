@@ -12,101 +12,178 @@ import {
     Skeleton,
     Text,
     HStack,
-    Button, useColorModeValue,
+    Button,
+    useColorModeValue,
+    Card,
+    CardBody,
+    Badge,
+    IconButton,
+    Breadcrumb,
+    BreadcrumbItem,
+    BreadcrumbLink,
 } from '@chakra-ui/react';
-import { SearchIcon } from '@chakra-ui/icons';
+import { SearchIcon, ChevronRightIcon, RepeatIcon } from '@chakra-ui/icons';
 import Navbar from '../Navbar.jsx';
 
-
 const AccessoryBody = ({
-                             pageBgColor,
-                             searchParam,
-                             setSearchParam,
-                             loading,
-                             searchResults,
-                             shopData,
-                             renderItems,
-                             currentPage,
-                             setCurrentPage,
-                         }) => {
+                           pageBgColor,
+                           searchParam,
+                           setSearchParam,
+                           loading,
+                           searchResults,
+                           shopData,
+                           renderItems,
+                           currentPage,
+                           setCurrentPage,
+                       }) => {
+    const headerBg = useColorModeValue('white', 'gray.800');
+    const borderColor = useColorModeValue('gray.200', 'gray.700');
+    const searchBg = useColorModeValue('gray.50', 'gray.700');
+
     return (
         <Flex direction="column" minH="100vh">
             <Navbar />
             <Box
                 bg={pageBgColor}
                 flex={1}
-                p={{ base: 4, md: 8 }}
                 ml={{ base: 0, md: '250px' }}
                 transition="margin-left 0.3s"
             >
-                <Container maxW="container.xl" py={8}>
-                    <VStack spacing={8} align="stretch">
-                        <Flex
-                            direction={{ base: 'column', md: 'row' }}
-                            justify="space-between"
-                            align={{ base: 'stretch', md: 'center' }}
-                            wrap="wrap"
-                            mb={6}
+                <Container maxW="container.xl" py={6}>
+                    <VStack spacing={6} align="stretch">
+                        {/* Header Section */}
+                        <Card
+                            bg={headerBg}
+                            borderBottom="1px"
+                            borderColor={borderColor}
+                            shadow="sm"
                         >
-                            <Heading
-                                as="h1"
-                                size={{ base: 'xl', md: '2xl' }}
-                                color={useColorModeValue('gray.800', 'white')}
-                                mb={{ base: 4, md: 0 }}
-                            >
-                                Shop 2 Accessories
-                            </Heading>
-                            <InputGroup maxW={{ base: '100%', md: 'md' }} width="full">
-                                <Input
-                                    placeholder="Search accessories"
-                                    value={searchParam}
-                                    onChange={(e) => setSearchParam(e.target.value)}
-                                    borderRadius="full"
-                                />
-                                <InputRightElement>
-                                    <Icon as={SearchIcon} color="gray.500" />
-                                </InputRightElement>
-                            </InputGroup>
-                        </Flex>
+                            <CardBody>
+                                <Flex
+                                    direction={{ base: 'column', md: 'row' }}
+                                    justify="space-between"
+                                    align={{ base: 'stretch', md: 'center' }}
+                                    gap={4}
+                                >
+                                    <VStack align="stretch" spacing={2}>
+                                        <Breadcrumb
+                                            spacing="8px"
+                                            separator={<ChevronRightIcon color="gray.500" />}
+                                        >
+                                            <BreadcrumbItem>
+                                                <BreadcrumbLink color="blue.500">Shop</BreadcrumbLink>
+                                            </BreadcrumbItem>
+                                            <BreadcrumbItem isCurrentPage>
+                                                <BreadcrumbLink>Accessories</BreadcrumbLink>
+                                            </BreadcrumbItem>
+                                        </Breadcrumb>
 
-                        {loading ? (
-                            <SimpleGrid
-                                columns={{ base: 1, sm: 2, md: 3, lg: 4 }}
-                                spacing={{ base: 4, md: 6 }}
-                                w="full"
-                            >
-                                {[...Array(8)].map((_, index) => (
-                                    <Skeleton
-                                        key={index}
-                                        height={{ base: '250px', sm: '300px' }}
-                                        borderRadius="lg"
-                                    />
-                                ))}
-                            </SimpleGrid>
-                        ) : searchResults.length > 0 || shopData ? (
-                            renderItems(searchResults.length > 0 ? searchResults : shopData)
-                        ) : (
-                            <Text fontSize={{ base: 'lg', md: 'xl' }} textAlign="center">
-                                No items found.
-                            </Text>
-                        )}
+                                        <Heading
+                                            as="h1"
+                                            size={{ base: 'lg', md: 'xl' }}
+                                            color={useColorModeValue('gray.800', 'white')}
+                                        >
+                                            Shop 2 Accessories
+                                        </Heading>
+                                    </VStack>
 
+                                    <InputGroup maxW={{ base: '100%', md: 'md' }}>
+                                        <Input
+                                            placeholder="Search accessories..."
+                                            value={searchParam}
+                                            onChange={(e) => setSearchParam(e.target.value)}
+                                            bg={searchBg}
+                                            borderRadius="lg"
+                                            fontSize="md"
+                                            _focus={{
+                                                borderColor: 'blue.400',
+                                                boxShadow: 'outline',
+                                            }}
+                                        />
+                                        <InputRightElement>
+                                            <Icon as={SearchIcon} color="gray.500" />
+                                        </InputRightElement>
+                                    </InputGroup>
+                                </Flex>
+                            </CardBody>
+                        </Card>
+
+                        {/* Content Section */}
+                        <Box>
+                            {loading ? (
+                                <SimpleGrid
+                                    columns={{ base: 1, sm: 2, md: 3, lg: 4 }}
+                                    spacing={{ base: 4, md: 6 }}
+                                    w="full"
+                                >
+                                    {[...Array(8)].map((_, index) => (
+                                        <Skeleton
+                                            key={index}
+                                            height="320px"
+                                            borderRadius="xl"
+                                        />
+                                    ))}
+                                </SimpleGrid>
+                            ) : searchResults.length > 0 || shopData ? (
+                                renderItems(searchResults.length > 0 ? searchResults : shopData)
+                            ) : (
+                                <Card bg={headerBg} shadow="sm">
+                                    <CardBody>
+                                        <VStack py={10} spacing={4}>
+                                            <Text
+                                                fontSize={{ base: 'lg', md: 'xl' }}
+                                                color="gray.500"
+                                                textAlign="center"
+                                            >
+                                                No accessories found matching your search.
+                                            </Text>
+                                            <Button
+                                                leftIcon={<RepeatIcon />}
+                                                colorScheme="blue"
+                                                variant="outline"
+                                                onClick={() => setSearchParam('')}
+                                            >
+                                                Clear Search
+                                            </Button>
+                                        </VStack>
+                                    </CardBody>
+                                </Card>
+                            )}
+                        </Box>
+
+                        {/* Pagination */}
                         {searchResults.length === 0 && !loading && (
-                            <HStack justify="center" spacing={4} mt={6}>
-                                <Button
-                                    onClick={() => setCurrentPage((prev) => prev - 1)}
-                                    isDisabled={currentPage === 1}
-                                    size={{ base: 'sm', md: 'md' }}
-                                >
-                                    Previous
-                                </Button>
-                                <Button
-                                    onClick={() => setCurrentPage((prev) => prev + 1)}
-                                    size={{ base: 'sm', md: 'md' }}
-                                >
-                                    Next
-                                </Button>
-                            </HStack>
+                            <Card bg={headerBg} shadow="sm">
+                                <CardBody>
+                                    <HStack justify="center" spacing={4}>
+                                        <Button
+                                            onClick={() => setCurrentPage((prev) => prev - 1)}
+                                            isDisabled={currentPage === 1}
+                                            size={{ base: 'md', md: 'lg' }}
+                                            colorScheme="blue"
+                                            variant="outline"
+                                            leftIcon={<ChevronRightIcon transform="rotate(180deg)" />}
+                                        >
+                                            Previous Page
+                                        </Button>
+                                        <Text
+                                            fontSize="md"
+                                            fontWeight="medium"
+                                            color="gray.600"
+                                        >
+                                            Page {currentPage}
+                                        </Text>
+                                        <Button
+                                            onClick={() => setCurrentPage((prev) => prev + 1)}
+                                            size={{ base: 'md', md: 'lg' }}
+                                            colorScheme="blue"
+                                            rightIcon={<ChevronRightIcon />}
+                                        >
+                                            Next Page
+                                        </Button>
+                                    </HStack>
+                                </CardBody>
+                            </Card>
                         )}
                     </VStack>
                 </Container>

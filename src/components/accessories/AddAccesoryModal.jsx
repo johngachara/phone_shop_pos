@@ -15,7 +15,7 @@ import {
     useToast,
     FormErrorMessage,
 } from "@chakra-ui/react";
-import useAccessoryStore from "components/zuhan/useAccessoryStore.js";
+import useAccessoryStore from "components/zustand/useAccessoryStore.js";
 
 
 const AddAccessoryModal = ({ isOpen, onClose }) => {

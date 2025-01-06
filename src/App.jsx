@@ -1,39 +1,73 @@
-import  { Suspense, lazy } from 'react';
+import { Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import SkeletonLoader from "components/SkeletonLoader.jsx";
 import NotFound from "components/NotFound.jsx";
+import PrivateRoute from "components/ProtectedRoute.jsx"
 
-
-
-// Lazy load all route components
+// Lazy load components (unchanged)
 const Signin = lazy(() => import("./components/Signin"));
 const Shopstock = lazy(() => import("components/screens/Shopstock.jsx"));
 const AddScreen = lazy(() => import("components/screens/AddScreenModal.jsx"));
 const SavedOrders = lazy(() => import("components/unpaid/SavedOrders.jsx"));
-const Accessories = lazy(()=> import("components/accessories/Accessories.jsx"))
+const Accessories = lazy(() => import("components/accessories/Accessories.jsx"));
 const AddAccesory = lazy(() => import("components/accessories/AddAccesoryModal.jsx"));
 const Dashboard = lazy(() => import("./components/Dashboard"));
 const DetailedDataView = lazy(() => import("./components/DetailedDataView"));
 const LowStock = lazy(() => import("./components/LowStock"));
+
 function App() {
     return (
         <Router basename='/'>
             <Suspense fallback={<SkeletonLoader />}>
                 <Routes>
-                    <Route path="/" element={<Shopstock />} />
+                    {/* Public route */}
                     <Route path="/Login" element={<Signin />} />
-                    <Route path="/AddScreen" element={<AddScreen />} />
-                    <Route path="/SavedOrders" element={<SavedOrders />} />
-                    <Route path="/Add" element={<AddAccesory />} />
-                    <Route path='/Accessories' element={<Accessories />} />
-                    <Route path="/Admin" element={<Dashboard />} />
-                    <Route path="/detailed" element={<DetailedDataView />} />
-                    <Route path='/LowStock' element={<LowStock />} />
+
+                    {/* Protected routes */}
+                    <Route path="/" element={
+                        <PrivateRoute>
+                            <Shopstock />
+                        </PrivateRoute>
+                    } />
+                    <Route path="/AddScreen" element={
+                        <PrivateRoute>
+                            <AddScreen />
+                        </PrivateRoute>
+                    } />
+                    <Route path="/SavedOrders" element={
+                        <PrivateRoute>
+                            <SavedOrders />
+                        </PrivateRoute>
+                    } />
+                    <Route path="/Add" element={
+                        <PrivateRoute>
+                            <AddAccesory />
+                        </PrivateRoute>
+                    } />
+                    <Route path='/Accessories' element={
+                        <PrivateRoute>
+                            <Accessories />
+                        </PrivateRoute>
+                    } />
+                    <Route path="/Admin" element={
+                        <PrivateRoute>
+                            <Dashboard />
+                        </PrivateRoute>
+                    } />
+                    <Route path="/detailed" element={
+                        <PrivateRoute>
+                            <DetailedDataView />
+                        </PrivateRoute>
+                    } />
+                    <Route path='/LowStock' element={
+                        <PrivateRoute>
+                            <LowStock />
+                        </PrivateRoute>
+                    } />
                     <Route path="*" element={<NotFound />} />
                 </Routes>
             </Suspense>
         </Router>
     );
 }
-
-export default App;
+export default App
