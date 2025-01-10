@@ -150,7 +150,7 @@ export default function RenderLcdItems({
                                             Quick Sell
                                         </Button>
 
-                                        {!disableUpdateButton && (
+
                                             <HStack width="full" spacing={2}>
                                                 <Tooltip label="Update Item" hasArrow>
                                                     <IconButton
@@ -178,7 +178,7 @@ export default function RenderLcdItems({
                                                     />
                                                 </Tooltip>
                                             </HStack>
-                                        )}
+
                                     </VStack>
                                 </VStack>
                             </CardBody>
