@@ -11,8 +11,6 @@ const AddScreen = lazy(() => import("components/screens/AddScreenModal.jsx"));
 const SavedOrders = lazy(() => import("components/unpaid/SavedOrders.jsx"));
 const Accessories = lazy(() => import("components/accessories/Accessories.jsx"));
 const AddAccesory = lazy(() => import("components/accessories/AddAccesoryModal.jsx"));
-const Dashboard = lazy(() => import("./components/Dashboard"));
-const DetailedDataView = lazy(() => import("./components/DetailedDataView"));
 const LowStock = lazy(() => import("./components/LowStock"));
 
 function App() {
@@ -47,16 +45,6 @@ function App() {
                     <Route path='/Accessories' element={
                         <PrivateRoute>
                             <Accessories />
-                        </PrivateRoute>
-                    } />
-                    <Route path="/Admin" element={
-                        <PrivateRoute>
-                            <Dashboard />
-                        </PrivateRoute>
-                    } />
-                    <Route path="/detailed" element={
-                        <PrivateRoute>
-                            <DetailedDataView />
                         </PrivateRoute>
                     } />
                     <Route path='/LowStock' element={

@@ -65,7 +65,7 @@ export default function LcdBody({
                                 maxW={{ base: "100%", md: "2xl" }}
                             >
                                 <Input
-                                    placeholder="Search by name, category, or SKU..."
+                                    placeholder="Search by product name"
                                     value={searchParam}
                                     onChange={(e) => setSearchParam(e.target.value)}
                                     borderRadius="full"

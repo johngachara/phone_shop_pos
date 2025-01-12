@@ -17,7 +17,6 @@ import {
     useColorMode,
     useColorModeValue,
     VStack,
-    Skeleton,
     Tooltip,
     Badge,
 } from "@chakra-ui/react";
@@ -33,7 +32,6 @@ import {
     TimeIcon,
     ChevronLeftIcon,
     ChevronRightIcon,
-    ViewIcon,
     DragHandleIcon
 } from "@chakra-ui/icons";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -279,26 +277,6 @@ export default function Navbar() {
                     label="Low Stock"
                     onClick={isMobileView ? closeMobileDrawer : undefined}
                 />
-
-                {roleLoading ? (
-                    <Skeleton height="40px" />
-                ) : role === "admin" && (
-                    <>
-                        <NavItem
-                            to="/Admin"
-                            icon={<SettingsIcon />}
-                            label="Admin Dashboard"
-                            onClick={isMobileView ? closeMobileDrawer : undefined}
-                        />
-                        <NavItem
-                            to="/detailed"
-                            icon={<ViewIcon />}
-                            label="Shop Transactions"
-                            onClick={isMobileView ? closeMobileDrawer : undefined}
-                        />
-                    </>
-                )}
-
                 <Button
                     onClick={() => {
                         window.location.reload();
@@ -315,7 +293,7 @@ export default function Navbar() {
                 </Button>
             </VStack>
 
-            {/* User Section - Replaced dropdown with direct buttons */}
+            {/* User Section*/}
             <Box mt={6} pt={6} borderTop="1px" borderColor={borderColor}>
                 {/* User Info */}
                 <Flex align="center" mb={4}>

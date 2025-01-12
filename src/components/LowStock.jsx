@@ -90,10 +90,8 @@ const LowStock = () => {
         )
     );
 
-    const getQuantityColor = (quantity) => {
-        if (quantity <= 5) return 'red';
-        if (quantity <= 10) return 'orange';
-        return 'yellow';
+    const getQuantityColor = () => {
+        return 'white';
     };
 
     return (
@@ -155,7 +153,7 @@ const LowStock = () => {
                                                         <Td fontWeight="medium">{item.product_name}</Td>
                                                         <Td>
                                                             <Badge
-                                                                colorScheme={getQuantityColor(item.quantity)}
+                                                                colorScheme={getQuantityColor()}
                                                                 borderRadius="full"
                                                                 px={3}
                                                                 py={1}
