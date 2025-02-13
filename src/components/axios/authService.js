@@ -3,6 +3,7 @@ import Cookies from 'js-cookie';
 import { auth, firestore } from "components/firebase/firebase.js";
 import { doc, getDoc } from 'firebase/firestore';
 import { encrypt, decrypt } from './encryption';
+import {tokenCleanup} from "components/axios/tokenCleanup.js";
 
 const API_URL = import.meta.env.VITE_ALLTECH_URL;
 
@@ -168,17 +169,8 @@ class AuthService {
             localStorage.removeItem(`auth_tokens_${sessionId}`);
             Cookies.remove('auth_session');
         }
+        tokenCleanup.clearExpiredTokens('auth_tokens_');
     }
-
-    logout() {
-        this.clearTokens();
-        return auth.signOut()
-            .catch(error => console.error('Firebase sign out error:', error))
-            .finally(() => {
-                window.location.href = '/login';
-            });
-    }
-
     getTokens() {
         return {
             access: this.getAccessToken(),

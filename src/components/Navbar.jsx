@@ -41,7 +41,7 @@ import { auth } from "./firebase/firebase.js";
 import AddScreenModal from "./screens/AddScreenModal.jsx";
 import AddAccessoryModal from "./accessories/AddAccesoryModal.jsx";
 import useCheckRole from "./hooks/useCheckRole.js";
-
+import SequelizerAuth from "./axios/sequalizerAuth.js"
 const MotionBox = motion.create(Box);
 const MotionText = motion(Text);
 
@@ -88,10 +88,7 @@ export default function Navbar() {
 
     // Auth handlers
     const handleLogout = () => {
-        localStorage.removeItem("access");
-        localStorage.removeItem("accessories");
-        localStorage.removeItem("refresh");
-        navigate("/Login");
+        SequelizerAuth.logout();
     };
 
     useEffect(() => {

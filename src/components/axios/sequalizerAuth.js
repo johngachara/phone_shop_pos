@@ -4,6 +4,8 @@ import { auth, firestore } from "components/firebase/firebase.js";
 import { doc, getDoc } from 'firebase/firestore';
 import { encrypt, decrypt } from './encryption';
 import { apiService } from "../../apiService.js";
+import authService from "components/axios/authService.js";
+import {tokenCleanup} from "components/axios/tokenCleanup.js";
 
 const API_URL = import.meta.env.VITE_ALLTECH_URL;
 
@@ -72,6 +74,7 @@ class SequalizerAuth {
             } catch (error) {
                 console.error('Error clearing localStorage:', error);
             }
+            tokenCleanup.clearExpiredTokens('sequal_tokens_');
             Cookies.remove('sequal_session');
         }
     }
@@ -191,6 +194,7 @@ class SequalizerAuth {
     async logout() {
         try {
             await this.clearStoredTokens();
+            authService.clearTokens()
             await auth.signOut();
         } catch (error) {
             console.error('Logout error:', error);
@@ -204,5 +208,5 @@ class SequalizerAuth {
     };
 }
 
-// Create and export a singleton instance
+
 export default new SequalizerAuth();
