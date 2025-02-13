@@ -9,20 +9,21 @@
     "@chakra-ui/system": "^2.6.2",
     "@emotion/react": "^11.13.3",
     "@emotion/styled": "^11.13.0",
-    "@firebase/app": "^0.10.13",
+    "@firebase/app": "0.11.1",
     "@firebase/messaging": "^0.12.14",
     "@jridgewell/sourcemap-codec": "^1.5.0",
     "@reduxjs/toolkit": "^2.3.0",
     "@testing-library/jest-dom": "^5.17.0",
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^13.5.0",
+    "@vercel/speed-insights": "^1.2.0",
     "aws-amplify": "^6.8.2",
     "axios": "^1.7.7",
     "braces": "^3.0.3",
     "class-variance-authority": "^0.7.0",
     "core-js": "^3.39.0",
     "date-fns": "^3.6.0",
-    "firebase": "^10.14.1",
+    "firebase": "^11.3.1",
     "framer-motion": "^11.11.17",
     "js-yaml": "^4.1.0",
     "lodash": "^4.17.21",
@@ -51,6 +52,9 @@
     "workbox-routing": "^7.3.0",
     "workbox-strategies": "^7.3.0",
     "zustand": "^5.0.1"
+  },
+  "resolutions": {
+    "@firebase/app": "0.11.1"
   },
   "scripts": {
     "start": "vite",
