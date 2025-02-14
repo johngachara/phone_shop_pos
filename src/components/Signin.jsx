@@ -35,12 +35,13 @@ import axios from "axios";
 import {doc, getDoc} from "firebase/firestore";
 
 const MotionBox = motion.create(Box);
-const axiosInstance = axios({
-    baseURL : import.meta.env.VITE_ALLTECH_URL,
-    headers : {
+const axiosInstance = axios.create({
+    baseURL: import.meta.env.VITE_ALLTECH_URL,
+    headers: {
         "Content-Type": "application/json",
-    }
-})
+    },
+});
+
 const SignIn = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
