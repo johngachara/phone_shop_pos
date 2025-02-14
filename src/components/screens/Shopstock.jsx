@@ -12,9 +12,6 @@ import { DeleteAlertDialog } from "components/dialogs/DeleteAlertDialog.jsx";
 import { UpdateDrawer } from "components/drawers/UpdateDrawer.jsx";
 import { SellDrawer } from "components/drawers/SellDrawer.jsx";
 import useScreenStore from "components/zustand/useScreenStore.js";
-import { onAuthStateChanged } from "firebase/auth";
-import { useNavigate } from "react-router-dom";
-import { auth } from "components/firebase/firebase.js";
 import useCheckRole from "components/hooks/useCheckRole.js";
 import ShopStockSkeleton from "components/screens/ShopStockSkeleton.jsx";
 
@@ -26,8 +23,6 @@ export default function Shopstock() {
     const [selectedItem, setSelectedItem] = useState(null);
     const [sellingPrice, setSellingPrice] = useState(0);
     const [customer, setCustomer] = useState("");
-    const [authLoading, setAuthLoading] = useState(true);
-    const navigate = useNavigate();
     const {loading:roleLoading,role} =  useCheckRole()
     const {
         data: shopData,
@@ -170,28 +165,13 @@ export default function Shopstock() {
     const checkValue = (event) => {
         setSellingPrice(handleDecimalsOnValue(event.target.value));
     };
-    const isLoading = authLoading || isLoadingData || roleLoading || !hasHydrated;
+    const isLoading =  isLoadingData || roleLoading || !hasHydrated;
 
-    useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, (user) => {
-            if (user) {
-                setAuthLoading(false); // Auth confirmed, continue loading data
-            } else {
-                console.warn("No Firebase user found, redirecting to login.");
-                toast({
-                    status: "warning",
-                    description: "You must be logged in to access this page.",
-                    position: "top",
-                });
-            }
-        });
 
-        return () => unsubscribe(); // Cleanup on unmount
-    }, [navigate, toast]);
 
     // Initial data load based on Firebase auth state
     useEffect(() => {
-        if (!authLoading && hasHydrated) {
+        if (  hasHydrated) {
             fetchScreens().catch((error) => {
                 console.error('Error fetching shop stock:', error);
                 toast({
@@ -202,7 +182,7 @@ export default function Shopstock() {
                 });
             });
         }
-    }, [authLoading, hasHydrated, fetchScreens, toast]);
+    }, [ hasHydrated, fetchScreens, toast]);
 
     return (
         <Box bg={useColorModeValue("gray.50", "gray.900")}  ml={{ base: 0, md: "250px" }}  minH="100vh" >
