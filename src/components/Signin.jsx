@@ -82,7 +82,7 @@ const SignIn = () => {
             const options = optionsResponse.data;
 
             // Start the authentication process
-            const authResp = await startAuthentication(options);
+            const authResp = await startAuthentication({optionsJSON : options });
 
             // Send verification request
             const verificationResp = await axiosInstance.post('/sequel/api/verify-authentication',
@@ -135,7 +135,7 @@ const SignIn = () => {
             const options = response.data
             let attResp;
             // Pass the options to the authenticator and wait for a response
-            attResp = await startRegistration(options);
+            attResp = await startRegistration({optionsJSON : options ,useAutoRegister : true});
             const verificationResp = await axiosInstance.post('/sequel/api/verify-registration',{ idToken , response : attResp });
 
             if (verificationResp && verificationResp.data.success) {
