@@ -17,7 +17,7 @@ import {
     Text
 } from '@chakra-ui/react';
 import { ChatIcon } from '@chakra-ui/icons';
-import AskAi from './screens/AskAi.jsx';
+import AskAi from '../screens/AskAi.jsx';
 
 function ChatbotWidget() {
     const [isOpen, setIsOpen] = useState(false);

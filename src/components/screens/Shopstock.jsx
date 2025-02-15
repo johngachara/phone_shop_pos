@@ -5,8 +5,8 @@ import {
     useDisclosure,
     useToast,
 } from "@chakra-ui/react";
-import Navbar from "../Navbar.jsx";
-import ChatbotWidget from "../ChatBotWidget.jsx";
+import Navbar from "../general/Navbar.jsx";
+import ChatbotWidget from "../general/ChatBotWidget.jsx";
 import LcdBody from "components/screens/LcdBody.jsx";
 import { DeleteAlertDialog } from "components/dialogs/DeleteAlertDialog.jsx";
 import { UpdateDrawer } from "components/drawers/UpdateDrawer.jsx";

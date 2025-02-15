@@ -6,7 +6,7 @@ import {
     Container,
     useToast
 } from "@chakra-ui/react";
-import Navbar from "../Navbar.jsx";
+import Navbar from "../general/Navbar.jsx";
 import UnpaidOrdersBody from "components/unpaid/UnpaidOrdersBody.jsx";
 import UnpaidOrdersDialog from "components/dialogs/UnpaidOrdersDialog.jsx";
 import useUnpaidStore from "components/zustand/useUnpaidStore.js";

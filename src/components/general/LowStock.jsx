@@ -30,7 +30,7 @@ import {
 import { SearchIcon, WarningIcon } from '@chakra-ui/icons';
 import Navbar from "./Navbar.jsx";
 import { useNavigate } from "react-router-dom";
-import { apiService } from "../apiService.js";
+import { apiService } from "../../apiService.js";
 
 const LowStock = () => {
     const [data, setData] = useState([]);

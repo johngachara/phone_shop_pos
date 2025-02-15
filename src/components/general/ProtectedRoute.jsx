@@ -1,10 +1,10 @@
 import { Navigate, useLocation } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import authService from '../components/axios/authService';
-import sequalizerAuth from '../components/axios/sequalizerAuth';
-import { auth } from '../components/firebase/firebase';
+import authService from '../axios/authService.js';
+import sequalizerAuth from '../axios/sequalizerAuth.js';
+import { auth } from '../firebase/firebase.js';
 import { onAuthStateChanged } from 'firebase/auth';
-import SkeletonLoader from "components/SkeletonLoader.jsx";
+import SkeletonLoader from "components/general/SkeletonLoader.jsx";
 import {tokenCleanup} from "components/axios/tokenCleanup.js";
 
 const PrivateRoute = ({ children }) => {

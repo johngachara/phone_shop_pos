@@ -19,12 +19,12 @@ import {
     Divider, Stack
 } from "@chakra-ui/react";
 import { FcGoogle } from "react-icons/fc";
-import SequelizerAuth from "../components/axios/sequalizerAuth.js"
+import SequelizerAuth from "../axios/sequalizerAuth.js"
 import { motion } from "framer-motion";
 import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import authService from "components/axios/authService.js";
-import { auth, firestore } from "../components/firebase/firebase.js";
-import {apiService} from "../apiService.js";
+import { auth, firestore } from "../firebase/firebase.js";
+import {apiService} from "../../apiService.js";
 import {
     browserSupportsWebAuthn,
     platformAuthenticatorIsAvailable,

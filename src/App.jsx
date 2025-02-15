@@ -1,17 +1,17 @@
 import { Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
-import SkeletonLoader from "components/SkeletonLoader.jsx";
-import NotFound from "components/NotFound.jsx";
-import PrivateRoute from "components/ProtectedRoute.jsx"
+import SkeletonLoader from "components/general/SkeletonLoader.jsx";
+import NotFound from "components/general/NotFound.jsx";
+import PrivateRoute from "components/general/ProtectedRoute.jsx"
 
 // Lazy load components (unchanged)
-const Signin = lazy(() => import("./components/Signin"));
+const Signin = lazy(() => import("components/general/Signin.jsx"));
 const Shopstock = lazy(() => import("components/screens/Shopstock.jsx"));
 const AddScreen = lazy(() => import("components/screens/AddScreenModal.jsx"));
 const SavedOrders = lazy(() => import("components/unpaid/SavedOrders.jsx"));
 const Accessories = lazy(() => import("components/accessories/Accessories.jsx"));
 const AddAccesory = lazy(() => import("components/accessories/AddAccesoryModal.jsx"));
-const LowStock = lazy(() => import("./components/LowStock"));
+const LowStock = lazy(() => import("components/general/LowStock.jsx"));
 
 function App() {
     return (
@@ -53,6 +53,19 @@ function App() {
                         </PrivateRoute>
                     } />
                     <Route path="*" element={<NotFound />} />
+
+                    {
+                        /*
+                        * mount only when users need help registering new passkeys
+                        * <Route
+                        path="/passkeys"
+                        element={
+                                <AdminPasskeyManager />
+                        }
+                    />
+                        *
+                        * */
+                    }
                 </Routes>
             </Suspense>
         </Router>

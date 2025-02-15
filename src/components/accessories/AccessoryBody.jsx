@@ -23,7 +23,7 @@ import {
     BreadcrumbLink,
 } from '@chakra-ui/react';
 import { SearchIcon, ChevronRightIcon, RepeatIcon } from '@chakra-ui/icons';
-import Navbar from '../Navbar.jsx';
+import Navbar from '../general/Navbar.jsx';
 
 const AccessoryBody = ({
                            pageBgColor,

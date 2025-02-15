@@ -37,11 +37,11 @@ import {
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { onAuthStateChanged } from "firebase/auth";
-import { auth } from "./firebase/firebase.js";
-import AddScreenModal from "./screens/AddScreenModal.jsx";
-import AddAccessoryModal from "./accessories/AddAccesoryModal.jsx";
-import useCheckRole from "./hooks/useCheckRole.js";
-import SequelizerAuth from "./axios/sequalizerAuth.js"
+import { auth } from "../firebase/firebase.js";
+import AddScreenModal from "../screens/AddScreenModal.jsx";
+import AddAccessoryModal from "../accessories/AddAccesoryModal.jsx";
+import useCheckRole from "../hooks/useCheckRole.js";
+import SequelizerAuth from "../axios/sequalizerAuth.js"
 const MotionBox = motion.create(Box);
 const MotionText = motion(Text);
 
