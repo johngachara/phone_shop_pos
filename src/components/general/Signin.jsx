@@ -102,13 +102,14 @@ const SignIn = () => {
                     description: "Successfully signed in with passkey",
                 });
 
-                navigate("/");
+                navigate("/",{
+                    replace : true
+                });
             } else {
                 toast({
                     status: "error",
                     description: "Unable to verify your identity",
                 })
-                throw new Error(verificationResp.data.message || 'Verification failed');
             }
         } catch (error) {
             console.error('Passkey verification failed:', error);

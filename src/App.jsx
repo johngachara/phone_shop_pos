@@ -4,7 +4,7 @@ import SkeletonLoader from "components/general/SkeletonLoader.jsx";
 import NotFound from "components/general/NotFound.jsx";
 import PrivateRoute from "components/general/ProtectedRoute.jsx"
 
-// Lazy load components (unchanged)
+
 const Signin = lazy(() => import("components/general/Signin.jsx"));
 const Shopstock = lazy(() => import("components/screens/Shopstock.jsx"));
 const AddScreen = lazy(() => import("components/screens/AddScreenModal.jsx"));
