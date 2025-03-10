@@ -12,7 +12,6 @@ import { DeleteAlertDialog } from "components/dialogs/DeleteAlertDialog.jsx";
 import { UpdateDrawer } from "components/drawers/UpdateDrawer.jsx";
 import { SellDrawer } from "components/drawers/SellDrawer.jsx";
 import useScreenStore from "components/zustand/useScreenStore.js";
-import useCheckRole from "components/hooks/useCheckRole.js";
 import ShopStockSkeleton from "components/screens/ShopStockSkeleton.jsx";
 
 export default function Shopstock() {
@@ -23,7 +22,7 @@ export default function Shopstock() {
     const [selectedItem, setSelectedItem] = useState(null);
     const [sellingPrice, setSellingPrice] = useState(0);
     const [customer, setCustomer] = useState("");
-    const {loading:roleLoading,role} =  useCheckRole()
+
     const {
         data: shopData,
         isLoading: isLoadingData,
@@ -165,7 +164,7 @@ export default function Shopstock() {
     const checkValue = (event) => {
         setSellingPrice(handleDecimalsOnValue(event.target.value));
     };
-    const isLoading =  isLoadingData || roleLoading || !hasHydrated;
+    const isLoading =  isLoadingData  || !hasHydrated;
 
 
 
@@ -203,7 +202,6 @@ export default function Shopstock() {
                     currentPage={currentPage}
                     setCurrentPage={setCurrentPage}
                     onLoadMore={handleLoadMore}
-                    disableUpdateButton={role !== "admin"}
                 />
             )}
 

@@ -25,7 +25,7 @@ import {
 } from "@chakra-ui/react";
 import { SearchIcon, DeleteIcon, EditIcon, ArrowForwardIcon } from "@chakra-ui/icons";
 
-const ShopStockSkeleton = () => {
+const AccessoriesSkeleton = () => {
     const bgColor = useColorModeValue("white", "gray.800");
     const textColor = useColorModeValue("gray.700", "gray.200");
     const cardHoverBg = useColorModeValue("gray.50", "gray.700");
@@ -34,45 +34,7 @@ const ShopStockSkeleton = () => {
         <Box bg={useColorModeValue("gray.50", "gray.900")} minH="100vh">
             <Container maxW="8xl" py={8}>
                 <VStack spacing={8} align="stretch">
-                    {/* Header Section - Fully Rendered */}
-                    <Box
-                        bg={bgColor}
-                        p={6}
-                        borderRadius="xl"
-                        boxShadow="sm"
-                        position="sticky"
-                        top="0"
-                        zIndex="sticky"
-                    >
-                        <VStack spacing={4} align={{ base: "center", md: "stretch" }}>
-                            <Heading
-                                fontSize={{ base: "2xl", md: "3xl" }}
-                                fontWeight="bold"
-                                color={textColor}
-                                textAlign={{ base: "center", md: "left" }}
-                            >
-                                Screens Inventory
-                            </Heading>
-                            <InputGroup
-                                size="lg"
-                                maxW={{ base: "100%", md: "2xl" }}
-                            >
-                                <Input
-                                    placeholder="Search by product name"
-                                    borderRadius="full"
-                                    bg={useColorModeValue("white", "gray.700")}
-                                    _focus={{
-                                        boxShadow: "outline",
-                                        borderColor: "blue.400"
-                                    }}
-                                    fontSize="md"
-                                />
-                                <InputRightElement pointerEvents="none">
-                                    <Icon as={SearchIcon} color="gray.400" w={5} h={5} />
-                                </InputRightElement>
-                            </InputGroup>
-                        </VStack>
-                    </Box>
+
 
                     {/* Cards with Skeleton Content */}
                     <SimpleGrid
@@ -189,4 +151,4 @@ const ShopStockSkeleton = () => {
     );
 };
 
-export default ShopStockSkeleton;
+export default AccessoriesSkeleton;

@@ -36,22 +36,17 @@ import {
 } from "@chakra-ui/icons";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { onAuthStateChanged } from "firebase/auth";
-import { auth } from "../firebase/firebase.js";
 import AddScreenModal from "../screens/AddScreenModal.jsx";
 import AddAccessoryModal from "../accessories/AddAccesoryModal.jsx";
-import useCheckRole from "../hooks/useCheckRole.js";
 import SequelizerAuth from "../axios/sequalizerAuth.js"
 const MotionBox = motion.create(Box);
 const MotionText = motion(Text);
 
 export default function Navbar() {
     const navigate = useNavigate();
-    const [user, setUser] = useState(null);
     const location = useLocation();
     const [isCollapsed, setIsCollapsed] = useState(false);
     const { colorMode, toggleColorMode } = useColorMode();
-    const { role, loading: roleLoading } = useCheckRole();
 
     // Drawer and modal controls
     const {
@@ -90,14 +85,6 @@ export default function Navbar() {
     const handleLogout = () => {
         SequelizerAuth.logout();
     };
-
-    useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-            if (!currentUser) navigate("/Login");
-            setUser(currentUser);
-        });
-        return () => unsubscribe();
-    }, [navigate]);
 
     // Modal handlers
     const handleScreenModalOpen = () => {
@@ -292,20 +279,20 @@ export default function Navbar() {
 
             {/* User Section*/}
             <Box mt={6} pt={6} borderTop="1px" borderColor={borderColor}>
-                {/* User Info */}
+                {/* System Info */}
                 <Flex align="center" mb={4}>
                     <Avatar
                         size="sm"
-                        name={user?.email === "alltechmain@gmail.com" ? "AT" : user?.displayName?.[0]}
-                        src={user?.photoURL}
+                        name="AT"
+                        bg={activeColor}
                     />
                     {(!isCollapsed || isMobileView) && (
                         <Box ml={3}>
                             <Text fontSize="sm" fontWeight="medium" noOfLines={1}>
-                                {user?.displayName || "ALLTECH"}
+                                ALLTECH System
                             </Text>
                             <Text fontSize="xs" color="gray.500">
-                                {role || "User"}
+                                Admin
                             </Text>
                         </Box>
                     )}

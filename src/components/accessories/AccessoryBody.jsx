@@ -16,14 +16,13 @@ import {
     useColorModeValue,
     Card,
     CardBody,
-    Badge,
-    IconButton,
     Breadcrumb,
     BreadcrumbItem,
     BreadcrumbLink,
 } from '@chakra-ui/react';
 import { SearchIcon, ChevronRightIcon, RepeatIcon } from '@chakra-ui/icons';
 import Navbar from '../general/Navbar.jsx';
+import AccessoriesSkeleton from "components/accessories/AccessoriesSkeleton.jsx";
 
 const AccessoryBody = ({
                            pageBgColor,
@@ -111,19 +110,7 @@ const AccessoryBody = ({
                         {/* Content Section */}
                         <Box>
                             {loading ? (
-                                <SimpleGrid
-                                    columns={{ base: 1, sm: 2, md: 3, lg: 4 }}
-                                    spacing={{ base: 4, md: 6 }}
-                                    w="full"
-                                >
-                                    {[...Array(8)].map((_, index) => (
-                                        <Skeleton
-                                            key={index}
-                                            height="320px"
-                                            borderRadius="xl"
-                                        />
-                                    ))}
-                                </SimpleGrid>
+                               <AccessoriesSkeleton />
                             ) : searchResults.length > 0 || shopData ? (
                                 renderItems(searchResults.length > 0 ? searchResults : shopData)
                             ) : (

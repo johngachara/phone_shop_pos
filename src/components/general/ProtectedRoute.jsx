@@ -1,11 +1,11 @@
 import { Navigate, useLocation } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import authService from '../axios/authService.js';
 import sequalizerAuth from '../axios/sequalizerAuth.js';
 import { auth } from '../firebase/firebase.js';
 import { onAuthStateChanged } from 'firebase/auth';
 import SkeletonLoader from "components/general/SkeletonLoader.jsx";
-import {tokenCleanup} from "components/axios/tokenCleanup.js";
+import { tokenCleanup } from "components/axios/tokenCleanup.js";
 
 const PrivateRoute = ({ children }) => {
     const [authState, setAuthState] = useState({
@@ -13,35 +13,48 @@ const PrivateRoute = ({ children }) => {
         isAuthenticated: false
     });
     const location = useLocation();
+    const tokenCheckIntervalRef = useRef(null);
+    const cleanupIntervalRef = useRef(null);
+    const isInitialMount = useRef(true);
+    const lastTokenCheck = useRef(0);
 
+    // Memoize token refresh to prevent duplicate calls
     const refreshTokens = async () => {
         try {
-            await Promise.all([
+            // Use a single request if possible instead of parallel requests
+            const results = await Promise.all([
                 authService.refreshAuth(),
                 sequalizerAuth.refreshAuth()
             ]);
-            return true;
+            return results.every(result => result);
         } catch (error) {
             console.error('Token refresh failed:', error);
             return false;
         }
     };
 
-    const validateTokens = async () => {
+    const validateTokens = async (forceRefresh = false) => {
+        // Skip frequent checks (throttle to once per minute)
+        const now = Date.now();
+        if (!forceRefresh && now - lastTokenCheck.current < 60000) {
+            return true; // Skip validation if checked recently
+        }
+
+        lastTokenCheck.current = now;
+
         try {
+            // Check token expiration instead of just existence if possible
             const [mainToken, sequalToken] = await Promise.all([
                 authService.getAccessToken(),
                 sequalizerAuth.getAccessToken()
             ]);
 
-            if (!mainToken || !sequalToken) {
-                // Try to refresh tokens if either is missing
+            if (!mainToken || !sequalToken || forceRefresh) {
                 const refreshSuccess = await refreshTokens();
                 if (!refreshSuccess) {
                     return false;
                 }
 
-                // Verify tokens again after refresh
                 const [newMainToken, newSequalToken] = await Promise.all([
                     authService.getAccessToken(),
                     sequalizerAuth.getAccessToken()
@@ -59,10 +72,19 @@ const PrivateRoute = ({ children }) => {
 
     useEffect(() => {
         let unsubscribe;
-        let tokenCheckInterval;
 
         const checkAuthentication = async () => {
             try {
+                // Check local storage first for tokens before Firebase auth
+                const hasLocalTokens = await validateTokens(false);
+
+                if (hasLocalTokens && !isInitialMount.current) {
+                    setAuthState({
+                        isChecking: false,
+                        isAuthenticated: true
+                    });
+                }
+
                 unsubscribe = onAuthStateChanged(auth, async (user) => {
                     if (!user) {
                         setAuthState({
@@ -72,27 +94,32 @@ const PrivateRoute = ({ children }) => {
                         return;
                     }
 
-                    const isValid = await validateTokens();
+                    const isValid = await validateTokens(isInitialMount.current);
                     setAuthState({
                         isChecking: false,
                         isAuthenticated: isValid
                     });
 
-                    // Set up periodic token validation
+                    // Only set up interval if authenticated
                     if (isValid) {
-                        tokenCheckInterval = setInterval(async () => {
+                        if (tokenCheckIntervalRef.current) {
+                            clearInterval(tokenCheckIntervalRef.current);
+                        }
+
+                        tokenCheckIntervalRef.current = setInterval(async () => {
                             const stillValid = await validateTokens();
                             if (!stillValid) {
                                 setAuthState({
                                     isChecking: false,
                                     isAuthenticated: false
                                 });
-                                clearInterval(tokenCheckInterval);
+                                clearInterval(tokenCheckIntervalRef.current);
                             }
-                        }, 5 * 60 * 1000); // Check every 5 minutes
+                        }, 15 * 60 * 1000); // Check every 15 minutes
                     }
-
                 });
+
+                isInitialMount.current = false;
             } catch (error) {
                 console.error('Auth check failed:', error);
                 setAuthState({
@@ -101,26 +128,38 @@ const PrivateRoute = ({ children }) => {
                 });
             }
         };
-        // periodic cleanup
-        const cleanupInterval = setInterval(() => {
-            tokenCleanup.performFullCleanup();
-        }, 30 * 60 * 1000); // Run every 30 minutes
 
         checkAuthentication();
+
+        // Set up cleanup interval only once
+        if (!cleanupIntervalRef.current) {
+            cleanupIntervalRef.current = setInterval(() => {
+                tokenCleanup.performFullCleanup();
+            }, 60 * 60 * 1000); // Run every 60 minutes
+        }
 
         return () => {
             if (unsubscribe) {
                 unsubscribe();
             }
-            if (tokenCheckInterval) {
-                clearInterval(tokenCheckInterval);
+            if (tokenCheckIntervalRef.current) {
+                clearInterval(tokenCheckIntervalRef.current);
             }
-            clearInterval(cleanupInterval); // Clear cleanup interval
+        };
+    }, []);
+
+    // Clean up all intervals on component unmount
+    useEffect(() => {
+        return () => {
+            if (cleanupIntervalRef.current) {
+                clearInterval(cleanupIntervalRef.current);
+                cleanupIntervalRef.current = null;
+            }
         };
     }, []);
 
     if (authState.isChecking) {
-        return <SkeletonLoader />;
+        return <SkeletonLoader message="Ensuring that you are signed in..." mode="auth"/>;
     }
 
     if (!authState.isAuthenticated) {

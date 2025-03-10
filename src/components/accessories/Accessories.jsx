@@ -4,22 +4,15 @@ import {
     SimpleGrid,
     useColorModeValue,
     useToast,
-    Spinner,
-    Center,
 } from "@chakra-ui/react";
-import { useNavigate } from "react-router-dom";
 import RenderAccessoryItems from "components/accessories/RenderAccessoryItems.jsx";
 import AccessoryBody from "components/accessories/AccessoryBody.jsx";
 import AccessoryDeleteDialog from "components/dialogs/AccessoryDeleteDialog.jsx";
 import useSearchAccessories from "components/hooks/useSearchAccessories.js";
 import AccessoryDrawers from "components/drawers/AccessoryDrawers.jsx";
 import useAccessoryStore from "components/zustand/useAccessoryStore.js";
-import { onAuthStateChanged } from "firebase/auth";
-import { auth } from "components/firebase/firebase.js";
 
 export default function Accessories() {
-
-    const navigate = useNavigate();
     const toast = useToast();
 
     // State management
@@ -33,11 +26,7 @@ export default function Accessories() {
     const [sellingPrice, setSellingPrice] = useState(0);
     const [sellingQuantity, setSellingQuantity] = useState("");
     const [customer, setCustomer] = useState("");
-    const [authState, setAuthState] = useState({
-        isAuthenticated: false,
-        isLoading: true,
-        user: null
-    });
+
 
     const cancelRef = useRef();
 
@@ -59,58 +48,11 @@ export default function Accessories() {
     const textColor = useColorModeValue("gray.600", "gray.300");
     const pageBgColor = useColorModeValue("gray.50", "gray.900");
 
-    // Authentication effect
-    useEffect(() => {
-        let mounted = true;
 
-        const unsubscribe = onAuthStateChanged(auth, async (user) => {
-            if (!mounted) return;
-
-            if (user) {
-                try {
-                    // Get the ID token to verify authentication
-                    const token = await user.getIdToken();
-                    if (mounted) {
-                        setAuthState({
-                            isAuthenticated: true,
-                            isLoading: false,
-                            user
-                        });
-                    }
-                } catch (error) {
-                    console.error("Error getting user token:", error);
-                    handleAuthError();
-                }
-            } else {
-                handleAuthError();
-            }
-        });
-
-        return () => {
-            mounted = false;
-            unsubscribe();
-        };
-    }, [navigate]);
-
-    const handleAuthError = () => {
-        setAuthState({
-            isAuthenticated: false,
-            isLoading: false,
-            user: null
-        });
-
-        // Don't navigate if we're already on the login page
-        if (window.location.pathname !== '/login') {
-            navigate('/login', {
-                replace: true,
-                state: { from: window.location.pathname }
-            });
-        }
-    };
 
     // Data fetching effect
     useEffect(() => {
-        if (authState.isAuthenticated && hasHydrated && !accessoryLoading) {
+        if (hasHydrated && !accessoryLoading) {
             fetchAccessories(currentPage).catch((error) => {
                 console.error("Error fetching accessories:", error);
                 toast({
@@ -121,7 +63,7 @@ export default function Accessories() {
                 });
             });
         }
-    }, [authState.isAuthenticated, hasHydrated, currentPage, fetchAccessories]);
+    }, [hasHydrated, currentPage, fetchAccessories]);
 
     // Search effect
     useEffect(() => {
@@ -131,15 +73,6 @@ export default function Accessories() {
     }, [currentPage]);
 
     const handleSellAccessory = async () => {
-        if (!authState.isAuthenticated) {
-            toast({
-                status: "error",
-                description: "You must be logged in to perform this action",
-                position: "top",
-            });
-            return;
-        }
-
         await sellAccessory(
             selectedItem.id,
             {
@@ -155,14 +88,6 @@ export default function Accessories() {
     };
 
     const handleUpdateAccessory = async () => {
-        if (!authState.isAuthenticated) {
-            toast({
-                status: "error",
-                description: "You must be logged in to perform this action",
-                position: "top",
-            });
-            return;
-        }
 
         await updateAccessory(
             selectedItem,
@@ -204,19 +129,6 @@ export default function Accessories() {
         </SimpleGrid>
     );
 
-    // Show loading state
-    if (authState.isLoading) {
-        return (
-            <Center h="100vh">
-                <Spinner size="xl" />
-            </Center>
-        );
-    }
-
-    // Show page content only if authenticated
-    if (!authState.isAuthenticated) {
-        return null; // The useEffect will handle navigation
-    }
 
     return (
         <Flex direction="column" minH="100vh">
