@@ -17,9 +17,6 @@ import {
     Stack
 } from '@chakra-ui/react';
 import { DeleteIcon, EditIcon, ArrowForwardIcon } from '@chakra-ui/icons';
-import { motion } from 'framer-motion';
-
-const MotionBox = motion.create(Box);
 
 const RenderAccessoryItems = ({
                                   item,
@@ -44,11 +41,7 @@ const RenderAccessoryItems = ({
     const stockStatus = getStockStatus(item.quantity);
 
     return (
-        <MotionBox
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: index * 0.1 }}
-        >
+        <Box>
             <Card
                 bg={bgColor}
                 height="100%"
@@ -173,7 +166,7 @@ const RenderAccessoryItems = ({
                     </VStack>
                 </CardBody>
             </Card>
-        </MotionBox>
+        </Box>
     );
 };
 

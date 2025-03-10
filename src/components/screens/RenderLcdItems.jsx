@@ -18,10 +18,6 @@ import {
     Stack
 } from "@chakra-ui/react";
 import { DeleteIcon, EditIcon, ArrowForwardIcon } from "@chakra-ui/icons";
-import { motion } from "framer-motion";
-
-const MotionBox = motion(Box);
-
 export default function RenderLcdItems({
                                            items,
                                            handleSellClick,
@@ -52,11 +48,8 @@ export default function RenderLcdItems({
                 const stockStatus = getStockStatus(item.quantity);
 
                 return (
-                    <MotionBox
+                    <Box
                         key={item.id || index}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.4, delay: index * 0.1 }}
                     >
                         <Card
                             bg={bgColor}
@@ -181,7 +174,7 @@ export default function RenderLcdItems({
                                 </VStack>
                             </CardBody>
                         </Card>
-                    </MotionBox>
+                    </Box>
                 );
             })}
         </SimpleGrid>
