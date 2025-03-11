@@ -41,7 +41,6 @@ const LowStock = () => {
     const navigate = useNavigate();
 
     // Color mode values
-    const cardBg = useColorModeValue('white', 'gray.800');
     const borderColor = useColorModeValue('gray.200', 'gray.700');
     const headerBg = useColorModeValue('gray.50', 'gray.900');
 
