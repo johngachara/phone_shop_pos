@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, memo, useMemo } from "react";
 import {
     Box,
     Flex,
@@ -38,8 +38,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import AddScreenModal from "../screens/AddScreenModal.jsx";
 import AddAccessoryModal from "../accessories/AddAccesoryModal.jsx";
-import SequelizerAuth from "../axios/sequalizerAuth.js"
-const MotionBox = motion.create(Box);
+import SequelizerAuth from "../axios/sequalizerAuth.js";
 const MotionText = motion(Text);
 
 export default function Navbar() {
@@ -68,45 +67,60 @@ export default function Navbar() {
     } = useDisclosure();
 
     const [isLoading, setIsLoading] = useState(false);
+
+    // Only check breakpoint value when component mounts or window resizes
     const isMobile = useBreakpointValue({ base: true, md: false });
 
-    // Theme colors
-    const bgColor = useColorModeValue("white", "gray.900");
-    const textColor = useColorModeValue("gray.700", "gray.100");
-    const activeColor = useColorModeValue("blue.500", "blue.400");
-    const hoverBgColor = useColorModeValue("gray.50", "gray.800");
-    const borderColor = useColorModeValue("gray.200", "gray.700");
-    const shadowColor = useColorModeValue(
-        "0 4px 6px rgba(160, 174, 192, 0.1)",
-        "0 4px 6px rgba(9, 17, 28, 0.4)"
-    );
+    // Memoize theme colors to prevent recalculations on every render
+    const themeColors = useMemo(() => ({
+        bgColor: useColorModeValue("white", "gray.900"),
+        textColor: useColorModeValue("gray.700", "gray.100"),
+        activeColor: useColorModeValue("blue.500", "blue.400"),
+        hoverBgColor: useColorModeValue("gray.50", "gray.800"),
+        borderColor: useColorModeValue("gray.200", "gray.700"),
+        shadowColor: useColorModeValue(
+            "0 4px 6px rgba(160, 174, 192, 0.1)",
+            "0 4px 6px rgba(9, 17, 28, 0.4)"
+        )
+    }), [colorMode]);
+
+    const { bgColor, textColor, activeColor, hoverBgColor, borderColor, shadowColor } = themeColors;
 
     // Auth handlers
-    const handleLogout = () => {
+    const handleLogout = useMemo(() => () => {
         SequelizerAuth.logout();
-    };
+    }, []);
 
-    // Modal handlers
-    const handleScreenModalOpen = () => {
+    // Modal handlers - memoized to prevent recreating functions on every render
+    const handleScreenModalOpen = useMemo(() => () => {
         openScreenModal();
         if (isMobile) closeMobileDrawer();
-    };
+    }, [isMobile, openScreenModal, closeMobileDrawer]);
 
-    const handleAccessoryModalOpen = () => {
+    const handleAccessoryModalOpen = useMemo(() => () => {
         openAccessoryModal();
         if (isMobile) closeMobileDrawer();
-    };
+    }, [isMobile, openAccessoryModal, closeMobileDrawer]);
 
-    // Navigation item component
-    const NavItem = ({ to, icon, label, onClick, badgeCount }) => {
+    // Optimize resize handling with proper dependency array
+    useEffect(() => {
+        const handleResize = () => {
+            const shouldCollapse = window.innerWidth < 768 && window.innerWidth > 480;
+            if (isCollapsed !== shouldCollapse) {
+                setIsCollapsed(shouldCollapse);
+            }
+        };
+
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, [isCollapsed]);
+
+    // Navigation item component - memoized to prevent unnecessary re-renders
+    const NavItem = memo(({ to, icon, label, onClick, badgeCount }) => {
         const isCurrentPath = location.pathname === to;
 
         return (
-            <MotionBox
-                whileHover={{ x: 4 }}
-                transition={{ duration: 0.2 }}
-                position="relative"
-            >
+            <Box position="relative">
                 <Tooltip
                     label={isCollapsed ? label : ""}
                     placement="right"
@@ -168,11 +182,12 @@ export default function Navbar() {
                         borderRightRadius="full"
                     />
                 )}
-            </MotionBox>
+            </Box>
         );
-    };
+    });
 
-    const SidebarContent = ({ isMobileView = false }) => (
+    // Memoize the SidebarContent component
+    const SidebarContent = memo(({ isMobileView = false }) => (
         <Flex direction="column" h="full" py={6} px={4} position="relative">
             {/* Desktop Collapse Toggle */}
             {!isMobileView && (
@@ -329,7 +344,8 @@ export default function Navbar() {
                 </Button>
             </Box>
         </Flex>
-    );
+    ));
+
     // Mobile View
     if (isMobile) {
         return (
@@ -401,9 +417,11 @@ export default function Navbar() {
             </>
         );
     }
+
     return (
         <>
-            <MotionBox
+            {/* Use regular Box instead of MotionBox for the sidebar container */}
+            <Box
                 bg={bgColor}
                 h="100vh"
                 position="fixed"
@@ -411,9 +429,8 @@ export default function Navbar() {
                 top={0}
                 borderRight="1px"
                 borderColor={borderColor}
-                initial={{ width: "250px" }}
-                animate={{ width: isCollapsed ? "80px" : "250px" }}
-                transition={{ duration: 0.2 }}
+                width={isCollapsed ? "80px" : "250px"}
+                style={{ transition: "width 0.2s" }}
                 zIndex={99}
                 overflowY="auto"
                 overflowX="hidden"
@@ -432,7 +449,7 @@ export default function Navbar() {
                 boxShadow={shadowColor}
             >
                 <SidebarContent isMobileView={false} />
-            </MotionBox>
+            </Box>
 
             {/* Main Content Area - Adjusts based on sidebar state */}
             <Box

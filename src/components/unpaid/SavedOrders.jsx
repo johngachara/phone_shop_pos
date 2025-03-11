@@ -10,10 +10,6 @@ import Navbar from "../general/Navbar.jsx";
 import UnpaidOrdersBody from "components/unpaid/UnpaidOrdersBody.jsx";
 import UnpaidOrdersDialog from "components/dialogs/UnpaidOrdersDialog.jsx";
 import useUnpaidStore from "components/zustand/useUnpaidStore.js";
-import {onAuthStateChanged} from "firebase/auth";
-import {auth} from "components/firebase/firebase.js";
-import {useNavigate} from "react-router-dom";
-
 
 export default function SavedOrders() {
     const toast = useToast();
@@ -26,46 +22,25 @@ export default function SavedOrders() {
         completeOrder,
         hasHydrated
     } = useUnpaidStore();
-    const navigate = useNavigate();
-    const [authLoading, setAuthLoading] = useState(true);
+
     const [isDialogOpen, setDialogOpen] = useState(false);
     const [refundId, setRefundId] = useState(null);
     const [cancelButton, setCancelButton] = useState(false);
     const [searchTerm, setSearchTerm] = useState("");
-    useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, (user) => {
-            if (user) {
-                console.log("User authenticated:", user);
-                setAuthLoading(false);
-            } else {
-                console.warn("No Firebase user found, redirecting to login.");
-                setAuthLoading(false);
-                toast({
-                    status: "warning",
-                    description: "You must be logged in to access this page.",
-                    position: "top",
-                });
-            }
-        });
-        return () => unsubscribe();
-    }, [navigate, toast]);
 
     useEffect(() => {
-        if (!authLoading && hasHydrated) {
+        if (hasHydrated) {
             fetchUnpaidOrders().catch((error) => {
-                console.error("Error fetching shop stock:", error);
+                console.error("Error fetching unpaid orders:", error);
                 toast({
                     status: "error",
-                    description: "Failed to fetch stock",
+                    description: "Failed to fetch unpaid orders",
                     position: "bottom-right",
                     isClosable: true,
                 });
             });
         }
-    }, [authLoading, hasHydrated, fetchUnpaidOrders, toast]);
-
-
-
+    }, [hasHydrated, fetchUnpaidOrders, toast]);
 
     const complete = async (id) => {
         try {

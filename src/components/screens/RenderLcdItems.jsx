@@ -15,16 +15,20 @@ import {
     IconButton,
     Flex,
     Divider,
-    Stack
+    Stack,
+    Skeleton
 } from "@chakra-ui/react";
 import { DeleteIcon, EditIcon, ArrowForwardIcon } from "@chakra-ui/icons";
+import ItemSkeleton from "./ItemSkeleton";
+
 export default function RenderLcdItems({
                                            items,
                                            handleSellClick,
                                            handleUpdateClick,
                                            setDeleteItemId,
                                            setIsDeleteDialogOpen,
-                                           disableUpdateButton
+                                           disableUpdateButton,
+                                           isItemsLoading
                                        }) {
     const bgColor = useColorModeValue("white", "gray.800");
     const textColor = useColorModeValue("gray.700", "gray.200");
@@ -46,6 +50,15 @@ export default function RenderLcdItems({
         >
             {items.map((item, index) => {
                 const stockStatus = getStockStatus(item.quantity);
+
+                // If items are still loading but we have skeleton data, show skeleton inside each card
+                if (isItemsLoading) {
+                    return (
+                        <Box key={item.id || index}>
+                            <ItemSkeleton />
+                        </Box>
+                    );
+                }
 
                 return (
                     <Box
@@ -125,7 +138,7 @@ export default function RenderLcdItems({
                                             Unit Price
                                         </Text>
                                         <Heading size="lg" color={useColorModeValue('blue.600', 'blue.300')}>
-                                            {parseFloat(item.price).toFixed(2)}
+                                            {parseFloat(item.price).toFixed(0)}
                                         </Heading>
                                     </Stack>
 
@@ -142,34 +155,33 @@ export default function RenderLcdItems({
                                         >
                                             Quick Sell
                                         </Button>
-                                            <HStack width="full" spacing={2}>
-                                                <Tooltip label="Update Item" hasArrow>
-                                                    <IconButton
-                                                        icon={<EditIcon />}
-                                                        variant="outline"
-                                                        colorScheme="gray"
-                                                        flex={1}
-                                                        onClick={() => handleUpdateClick(item)}
-                                                        size="lg"
-                                                        aria-label="Update item"
-                                                    />
-                                                </Tooltip>
-                                                <Tooltip label="Delete Item" hasArrow>
-                                                    <IconButton
-                                                        icon={<DeleteIcon />}
-                                                        variant="outline"
-                                                        colorScheme="red"
-                                                        flex={1}
-                                                        onClick={() => {
-                                                            setDeleteItemId(item.id);
-                                                            setIsDeleteDialogOpen(true);
-                                                        }}
-                                                        size="lg"
-                                                        aria-label="Delete item"
-                                                    />
-                                                </Tooltip>
-                                            </HStack>
-
+                                        <HStack width="full" spacing={2}>
+                                            <Tooltip label="Update Item" hasArrow>
+                                                <IconButton
+                                                    icon={<EditIcon />}
+                                                    variant="outline"
+                                                    colorScheme="gray"
+                                                    flex={1}
+                                                    onClick={() => handleUpdateClick(item)}
+                                                    size="lg"
+                                                    aria-label="Update item"
+                                                />
+                                            </Tooltip>
+                                            <Tooltip label="Delete Item" hasArrow>
+                                                <IconButton
+                                                    icon={<DeleteIcon />}
+                                                    variant="outline"
+                                                    colorScheme="red"
+                                                    flex={1}
+                                                    onClick={() => {
+                                                        setDeleteItemId(item.id);
+                                                        setIsDeleteDialogOpen(true);
+                                                    }}
+                                                    size="lg"
+                                                    aria-label="Delete item"
+                                                />
+                                            </Tooltip>
+                                        </HStack>
                                     </VStack>
                                 </VStack>
                             </CardBody>

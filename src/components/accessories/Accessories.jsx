@@ -9,8 +9,8 @@ import RenderAccessoryItems from "components/accessories/RenderAccessoryItems.js
 import AccessoryBody from "components/accessories/AccessoryBody.jsx";
 import AccessoryDeleteDialog from "components/dialogs/AccessoryDeleteDialog.jsx";
 import useSearchAccessories from "components/hooks/useSearchAccessories.js";
-import AccessoryDrawers from "components/drawers/AccessoryDrawers.jsx";
 import useAccessoryStore from "components/zustand/useAccessoryStore.js";
+import AccessoryDrawers from "components/drawers/AccessoryDrawers.jsx";
 
 export default function Accessories() {
     const toast = useToast();
@@ -26,7 +26,6 @@ export default function Accessories() {
     const [sellingPrice, setSellingPrice] = useState(0);
     const [sellingQuantity, setSellingQuantity] = useState("");
     const [customer, setCustomer] = useState("");
-
 
     const cancelRef = useRef();
 
@@ -48,11 +47,12 @@ export default function Accessories() {
     const textColor = useColorModeValue("gray.600", "gray.300");
     const pageBgColor = useColorModeValue("gray.50", "gray.900");
 
-
+    // We don't want to block the entire UI rendering, only show loading state for data
+    const isDataLoading = accessoryLoading || searchLoading;
 
     // Data fetching effect
     useEffect(() => {
-        if (hasHydrated && !accessoryLoading) {
+        if (hasHydrated) {
             fetchAccessories(currentPage).catch((error) => {
                 console.error("Error fetching accessories:", error);
                 toast({
@@ -63,7 +63,7 @@ export default function Accessories() {
                 });
             });
         }
-    }, [hasHydrated, currentPage, fetchAccessories]);
+    }, [hasHydrated, currentPage, fetchAccessories, toast]);
 
     // Search effect
     useEffect(() => {
@@ -88,7 +88,6 @@ export default function Accessories() {
     };
 
     const handleUpdateAccessory = async () => {
-
         await updateAccessory(
             selectedItem,
             sellingPrice,
@@ -124,11 +123,11 @@ export default function Accessories() {
                     openDrawer={openDrawer}
                     setDeleteItemId={setDeleteItemId}
                     setIsDeleteDialogOpen={setIsDeleteDialogOpen}
+                    isLoading={isDataLoading}
                 />
             ))}
         </SimpleGrid>
     );
-
 
     return (
         <Flex direction="column" minH="100vh">
@@ -136,12 +135,13 @@ export default function Accessories() {
                 pageBgColor={pageBgColor}
                 searchParam={searchParam}
                 setSearchParam={setSearchParam}
-                loading={accessoryLoading || searchLoading}
+                loading={isDataLoading}
                 searchResults={searchResults}
                 shopData={accessories}
                 renderItems={renderItems}
                 currentPage={currentPage}
                 setCurrentPage={setCurrentPage}
+                hasData={!!accessories && accessories.length > 0}
             />
 
             <AccessoryDeleteDialog

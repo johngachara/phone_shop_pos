@@ -12,7 +12,6 @@ import { DeleteAlertDialog } from "components/dialogs/DeleteAlertDialog.jsx";
 import { UpdateDrawer } from "components/drawers/UpdateDrawer.jsx";
 import { SellDrawer } from "components/drawers/SellDrawer.jsx";
 import useScreenStore from "components/zustand/useScreenStore.js";
-import ShopStockSkeleton from "components/screens/ShopStockSkeleton.jsx";
 
 export default function Shopstock() {
     const [searchParam, setSearchParam] = useState("");
@@ -164,13 +163,12 @@ export default function Shopstock() {
     const checkValue = (event) => {
         setSellingPrice(handleDecimalsOnValue(event.target.value));
     };
-    const isLoading =  isLoadingData  || !hasHydrated;
-
-
+    // Only show initial loading state when hydration is happening
+    const isInitialLoading = isLoadingData && !hasHydrated;
 
     // Initial data load based on Firebase auth state
     useEffect(() => {
-        if (  hasHydrated) {
+        if (hasHydrated) {
             fetchScreens().catch((error) => {
                 console.error('Error fetching shop stock:', error);
                 toast({
@@ -181,29 +179,30 @@ export default function Shopstock() {
                 });
             });
         }
-    }, [ hasHydrated, fetchScreens, toast]);
+    }, [hasHydrated, fetchScreens, toast]);
 
     return (
-        <Box bg={useColorModeValue("gray.50", "gray.900")}  ml={{ base: 0, md: "250px" }}  minH="100vh" >
+        <Box bg={useColorModeValue("gray.50", "gray.900")} ml={{ base: 0, md: "250px" }} minH="100vh">
             <Navbar />
-            {isLoading ? (
-                <ShopStockSkeleton />
-            ) : (
-                <LcdBody
-                    searchParam={searchParam}
-                    setSearchParam={setSearchParam}
-                    loading={false}
-                    shopData={shopData}
-                    handleSellClick={handleSellClick}
-                    handleUpdateClick={handleUpdateClick}
-                    handleCompleteClick={handleCompleteClick}
-                    setDeleteItemId={setDeleteItemId}
-                    setIsDeleteDialogOpen={setIsDeleteDialogOpen}
-                    currentPage={currentPage}
-                    setCurrentPage={setCurrentPage}
-                    onLoadMore={handleLoadMore}
-                />
-            )}
+
+            {/* Always render LcdBody, but pass proper loading states */}
+            <LcdBody
+                searchParam={searchParam}
+                setSearchParam={setSearchParam}
+                loading={isInitialLoading}
+                shopData={shopData}
+                handleSellClick={handleSellClick}
+                handleUpdateClick={handleUpdateClick}
+                handleCompleteClick={handleCompleteClick}
+                setDeleteItemId={setDeleteItemId}
+                setIsDeleteDialogOpen={setIsDeleteDialogOpen}
+                currentPage={currentPage}
+                setCurrentPage={setCurrentPage}
+                onLoadMore={handleLoadMore}
+                isItemsLoading={isLoadingData && !isInitialLoading}
+                isLoadingMore={isLoadingData && currentPage > 1}
+                hasMore={shopData && shopData.length >= 20}
+            />
 
             <ChatbotWidget />
             <DeleteAlertDialog

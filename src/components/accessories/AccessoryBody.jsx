@@ -8,8 +8,6 @@ import {
     Input,
     InputRightElement,
     Icon,
-    SimpleGrid,
-    Skeleton,
     Text,
     HStack,
     Button,
@@ -22,7 +20,6 @@ import {
 } from '@chakra-ui/react';
 import { SearchIcon, ChevronRightIcon, RepeatIcon } from '@chakra-ui/icons';
 import Navbar from '../general/Navbar.jsx';
-import AccessoriesSkeleton from "components/accessories/AccessoriesSkeleton.jsx";
 
 const AccessoryBody = ({
                            pageBgColor,
@@ -34,10 +31,44 @@ const AccessoryBody = ({
                            renderItems,
                            currentPage,
                            setCurrentPage,
+                           hasData
                        }) => {
     const headerBg = useColorModeValue('white', 'gray.800');
     const borderColor = useColorModeValue('gray.200', 'gray.700');
     const searchBg = useColorModeValue('gray.50', 'gray.700');
+
+    // Determine what to render in the content area
+    const renderContent = () => {
+        if (!hasData && !loading && searchResults.length === 0) {
+            // No data case
+            return (
+                <Card bg={headerBg} shadow="sm">
+                    <CardBody>
+                        <VStack py={10} spacing={4}>
+                            <Text
+                                fontSize={{ base: 'lg', md: 'xl' }}
+                                color="gray.500"
+                                textAlign="center"
+                            >
+                                No accessories found matching your search.
+                            </Text>
+                            <Button
+                                leftIcon={<RepeatIcon />}
+                                colorScheme="blue"
+                                variant="outline"
+                                onClick={() => setSearchParam('')}
+                            >
+                                Clear Search
+                            </Button>
+                        </VStack>
+                    </CardBody>
+                </Card>
+            );
+        }
+
+        // Data case - the renderItems function will handle showing skeletons for individual items
+        return renderItems(searchResults.length > 0 ? searchResults : (shopData || []));
+    };
 
     return (
         <Flex direction="column" minH="100vh">
@@ -46,11 +77,10 @@ const AccessoryBody = ({
                 bg={pageBgColor}
                 flex={1}
                 ml={{ base: 0, md: '250px' }}
-                transition="margin-left 0.3s"
             >
                 <Container maxW="container.xl" py={6}>
                     <VStack spacing={6} align="stretch">
-                        {/* Header Section */}
+                        {/* Header Section - Always render */}
                         <Card
                             bg={headerBg}
                             borderBottom="1px"
@@ -109,37 +139,11 @@ const AccessoryBody = ({
 
                         {/* Content Section */}
                         <Box>
-                            {loading ? (
-                               <AccessoriesSkeleton />
-                            ) : searchResults.length > 0 || shopData ? (
-                                renderItems(searchResults.length > 0 ? searchResults : shopData)
-                            ) : (
-                                <Card bg={headerBg} shadow="sm">
-                                    <CardBody>
-                                        <VStack py={10} spacing={4}>
-                                            <Text
-                                                fontSize={{ base: 'lg', md: 'xl' }}
-                                                color="gray.500"
-                                                textAlign="center"
-                                            >
-                                                No accessories found matching your search.
-                                            </Text>
-                                            <Button
-                                                leftIcon={<RepeatIcon />}
-                                                colorScheme="blue"
-                                                variant="outline"
-                                                onClick={() => setSearchParam('')}
-                                            >
-                                                Clear Search
-                                            </Button>
-                                        </VStack>
-                                    </CardBody>
-                                </Card>
-                            )}
+                            {renderContent()}
                         </Box>
 
-                        {/* Pagination */}
-                        {searchResults.length === 0 && !loading && (
+                        {/* Pagination - Only render when not searching */}
+                        {searchResults.length === 0 && (
                             <Card bg={headerBg} shadow="sm">
                                 <CardBody>
                                     <HStack justify="center" spacing={4}>

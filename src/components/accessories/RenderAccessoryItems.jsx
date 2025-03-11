@@ -14,7 +14,9 @@ import {
     CardBody,
     Flex,
     Progress,
-    Stack
+    Stack,
+    Skeleton,
+    SkeletonText
 } from '@chakra-ui/react';
 import { DeleteIcon, EditIcon, ArrowForwardIcon } from '@chakra-ui/icons';
 
@@ -23,7 +25,8 @@ const RenderAccessoryItems = ({
                                   index,
                                   openDrawer,
                                   setDeleteItemId,
-                                  setIsDeleteDialogOpen
+                                  setIsDeleteDialogOpen,
+                                  isLoading
                               }) => {
     const bgColor = useColorModeValue('white', 'gray.800');
     const textColor = useColorModeValue('gray.600', 'gray.300');
@@ -38,7 +41,7 @@ const RenderAccessoryItems = ({
         return { color: 'green', status: 'Optimal', progress: 100 };
     };
 
-    const stockStatus = getStockStatus(item.quantity);
+    const stockStatus = isLoading ? { color: 'gray', status: 'Loading', progress: 50 } : getStockStatus(item.quantity);
 
     return (
         <Box>
@@ -59,31 +62,34 @@ const RenderAccessoryItems = ({
                     <VStack spacing={4} align="stretch">
                         {/* Header with Stock Badge */}
                         <Flex justify="space-between" align="start" gap={2}>
-                            <Heading
-                                size="md"
-                                noOfLines={2}
-                                flex="1"
-                            >
-                                {item.product_name}
-                            </Heading>
-                            <Tooltip
-                                label={`${item.quantity} units remaining`}
-                                placement="top"
-                                hasArrow
-                            >
-                                <Badge
-                                    colorScheme={stockStatus.color}
-                                    px={3}
-                                    py={1}
-                                    borderRadius="full"
-                                    textTransform="none"
-                                    display="flex"
-                                    alignItems="center"
-                                    gap={2}
+                            <Skeleton isLoaded={!isLoading} flex="1">
+                                <Heading
+                                    size="md"
+                                    noOfLines={2}
                                 >
-                                    {stockStatus.status}
-                                </Badge>
-                            </Tooltip>
+                                    {item?.product_name || "Product Name"}
+                                </Heading>
+                            </Skeleton>
+                            <Skeleton isLoaded={!isLoading} borderRadius="full">
+                                <Tooltip
+                                    label={`${isLoading ? '0' : item.quantity} units remaining`}
+                                    placement="top"
+                                    hasArrow
+                                >
+                                    <Badge
+                                        colorScheme={stockStatus.color}
+                                        px={3}
+                                        py={1}
+                                        borderRadius="full"
+                                        textTransform="none"
+                                        display="flex"
+                                        alignItems="center"
+                                        gap={2}
+                                    >
+                                        {stockStatus.status}
+                                    </Badge>
+                                </Tooltip>
+                            </Skeleton>
                         </Flex>
 
                         {/* Stock Level Indicator */}
@@ -91,22 +97,25 @@ const RenderAccessoryItems = ({
                             <Text fontSize="sm" mb={1} color={textColor}>
                                 Stock Level
                             </Text>
-                            <Progress
-                                value={stockStatus.progress}
-                                colorScheme={stockStatus.color}
-                                borderRadius="full"
-                                size="sm"
-                                hasStripe={item.quantity > 0}
-                                isAnimated={item.quantity > 0}
-                            />
-                            <Text
-                                fontSize="sm"
-                                color={textColor}
-                                mt={1}
-                                textAlign="right"
-                            >
-                                {item.quantity} units
-                            </Text>
+                            <Skeleton isLoaded={!isLoading} height="8px" borderRadius="full">
+                                <Progress
+                                    value={stockStatus.progress}
+                                    colorScheme={stockStatus.color}
+                                    borderRadius="full"
+                                    size="sm"
+                                    hasStripe={!isLoading && item.quantity > 0}
+                                    isAnimated={!isLoading && item.quantity > 0}
+                                />
+                            </Skeleton>
+                            <Skeleton isLoaded={!isLoading} mt={1} width="60px" float="right">
+                                <Text
+                                    fontSize="sm"
+                                    color={textColor}
+                                    textAlign="right"
+                                >
+                                    {isLoading ? '0' : item.quantity} units
+                                </Text>
+                            </Skeleton>
                         </Box>
 
                         <Divider />
@@ -116,9 +125,11 @@ const RenderAccessoryItems = ({
                             <Text fontSize="sm" color={textColor}>
                                 Unit Price
                             </Text>
-                            <Heading size="lg" color={useColorModeValue('blue.600', 'blue.300')}>
-                                {parseFloat(item.price).toFixed(2)}
-                            </Heading>
+                            <Skeleton isLoaded={!isLoading} height="36px" width="100px">
+                                <Heading size="lg" color={useColorModeValue('blue.600', 'blue.300')}>
+                                    {isLoading ? '0.00' : item.price}
+                                </Heading>
+                            </Skeleton>
                         </Stack>
 
                         {/* Action Buttons */}
@@ -127,7 +138,7 @@ const RenderAccessoryItems = ({
                                 colorScheme="blue"
                                 width="full"
                                 size="lg"
-                                isDisabled={item.quantity < 1}
+                                isDisabled={isLoading || (item && item.quantity < 1)}
                                 onClick={() => openDrawer("sell", item)}
                                 rightIcon={<ArrowForwardIcon />}
                                 _hover={{ transform: 'translateY(-1px)' }}
@@ -145,6 +156,7 @@ const RenderAccessoryItems = ({
                                         onClick={() => openDrawer("update", item)}
                                         size="lg"
                                         aria-label="Update item"
+                                        isDisabled={isLoading}
                                     />
                                 </Tooltip>
                                 <Tooltip label="Delete Item" hasArrow>
@@ -159,6 +171,7 @@ const RenderAccessoryItems = ({
                                         }}
                                         size="lg"
                                         aria-label="Delete item"
+                                        isDisabled={isLoading}
                                     />
                                 </Tooltip>
                             </HStack>

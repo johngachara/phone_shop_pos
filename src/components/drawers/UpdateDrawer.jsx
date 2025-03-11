@@ -123,7 +123,7 @@ export function UpdateDrawer({
                         <FormControl isInvalid={!!errors.price}>
                             <FormLabel>Price</FormLabel>
                             <Input
-                                value={formValues.price}
+                                value={parseFloat(formValues.price).toFixed(0)}
                                 type="number"
                                 onChange={(e) => handleChange('price', e.target.value)}
                                 aria-label="Price"

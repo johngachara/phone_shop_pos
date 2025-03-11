@@ -11,10 +11,12 @@ import {
     Icon,
     Button,
     useColorModeValue,
-    Fade
+    Fade,
+    Skeleton
 } from "@chakra-ui/react";
 import { SearchIcon } from "@chakra-ui/icons";
 import RenderLcdItems from "./RenderLcdItems";
+import ItemSkeleton from "./ItemSkeleton";
 import useSearchScreens from "../hooks/useSearchScreens";
 
 export default function LcdBody({
@@ -31,11 +33,18 @@ export default function LcdBody({
                                     setCurrentPage,
                                     onLoadMore,
                                     disableUpdateButton,
-                                    hasMore
+                                    hasMore,
+                                    isItemsLoading,
+                                    isLoadingMore
                                 }) {
     const { searchResults, loading: searchLoading } = useSearchScreens(searchParam);
     const bgColor = useColorModeValue("white", "gray.800");
     const textColor = useColorModeValue("gray.800", "white");
+
+    // Calculate what data to display
+    const displayData = searchResults?.length > 0 ? searchResults : shopData;
+    const showLoadingSkeleton = loading && !displayData;
+    const showEmptyState = !showLoadingSkeleton && !displayData?.length && !searchLoading;
 
     return (
         <Box bg={useColorModeValue("gray.50", "gray.900")} minH="100vh">
@@ -84,73 +93,59 @@ export default function LcdBody({
                     </Box>
 
                     {/* Content Section */}
-                    <Fade in={!loading && !searchLoading}>
-                        {loading || searchLoading ? (
-                            <SimpleGrid
-                                columns={{ base: 1, sm: 2, md: 3, lg: 4 }}
-                                spacing={6}
-                                w="full"
+                    {showLoadingSkeleton ? (
+                        // Initial loading state - show full skeletons
+                        <SimpleGrid
+                            columns={{ base: 1, sm: 2, md: 3, lg: 4 }}
+                            spacing={6}
+                            w="full"
+                        >
+                            {[...Array(8)].map((_, index) => (
+                                <Box key={index}>
+                                    <ItemSkeleton />
+                                </Box>
+                            ))}
+                        </SimpleGrid>
+                    ) : displayData?.length > 0 ? (
+                        // Show actual data with item-level loading if needed
+                        <RenderLcdItems
+                            items={displayData}
+                            handleSellClick={handleSellClick}
+                            handleUpdateClick={handleUpdateClick}
+                            handleCompleteClick={handleCompleteClick}
+                            setDeleteItemId={setDeleteItemId}
+                            setIsDeleteDialogOpen={setIsDeleteDialogOpen}
+                            disableUpdateButton={disableUpdateButton}
+                            isItemsLoading={isItemsLoading}
+                        />
+                    ) : showEmptyState ? (
+                        // Empty state
+                        <Box
+                            textAlign="center"
+                            py={20}
+                            bg={bgColor}
+                            borderRadius="xl"
+                            boxShadow="sm"
+                        >
+                            <Text
+                                fontSize="xl"
+                                color={textColor}
+                                fontWeight="medium"
                             >
-                                {[...Array(8)].map((_, index) => (
-                                    <Box
-                                        key={index}
-                                        bg={bgColor}
-                                        height="300px"
-                                        borderRadius="xl"
-                                        boxShadow="sm"
-                                        position="relative"
-                                        overflow="hidden"
-                                    >
-                                        <Box
-                                            position="absolute"
-                                            top="0"
-                                            left="0"
-                                            right="0"
-                                            bottom="0"
-                                            bg="gray.100"
-                                            animation="pulse 2s infinite"
-                                        />
-                                    </Box>
-                                ))}
-                            </SimpleGrid>
-                        ) : searchResults?.length > 0 || shopData ? (
-                            <RenderLcdItems
-                                items={searchResults?.length > 0 ? searchResults : shopData}
-                                handleSellClick={handleSellClick}
-                                handleUpdateClick={handleUpdateClick}
-                                handleCompleteClick={handleCompleteClick}
-                                setDeleteItemId={setDeleteItemId}
-                                setIsDeleteDialogOpen={setIsDeleteDialogOpen}
-                                disableUpdateButton={disableUpdateButton}
-                            />
-                        ) : (
-                            <Box
-                                textAlign="center"
-                                py={20}
-                                bg={bgColor}
-                                borderRadius="xl"
-                                boxShadow="sm"
-                            >
-                                <Text
-                                    fontSize="xl"
-                                    color={textColor}
-                                    fontWeight="medium"
-                                >
-                                    No items found
-                                </Text>
-                                <Text color="gray.500" mt={2}>
-                                    Try adjusting your search terms
-                                </Text>
-                            </Box>
-                        )}
-                    </Fade>
+                                No items found
+                            </Text>
+                            <Text color="gray.500" mt={2}>
+                                Try adjusting your search terms
+                            </Text>
+                        </Box>
+                    ) : null}
 
-                    {/* Load More Section */}
-                    {searchResults?.length === 0 && !loading && shopData && !searchLoading && hasMore && (
+                    {/* Load More Section with loading state */}
+                    {!showLoadingSkeleton && !searchLoading && hasMore && (
                         <Box textAlign="center" mt={8}>
                             <Button
                                 onClick={onLoadMore}
-                                isLoading={loading}
+                                isLoading={isLoadingMore}
                                 size="lg"
                                 colorScheme="blue"
                                 borderRadius="full"
