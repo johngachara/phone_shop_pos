@@ -164,11 +164,18 @@ class SequalizerAuth {
 
     async refreshAuth() {
         try {
+            await new Promise(resolve => {
+                const unsubscribe = auth.onAuthStateChanged(user => {
+                    unsubscribe();
+                    resolve(user);
+                });
+            });
+
             const currentUser = auth.currentUser;
             if (!currentUser) {
+                await this.clearStoredTokens();
                 throw new Error('No Firebase user found');
             }
-
             const userDocRef = doc(firestore, "users", currentUser.uid);
             const userDocSnap = await getDoc(userDocRef);
 

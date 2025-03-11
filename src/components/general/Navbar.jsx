@@ -1,4 +1,4 @@
-import { useEffect, useState, memo, useMemo } from "react";
+import { useEffect, useState, memo, useMemo, useCallback } from "react";
 import {
     Box,
     Flex,
@@ -35,13 +35,12 @@ import {
     DragHandleIcon
 } from "@chakra-ui/icons";
 import { Link, useLocation } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
 import AddScreenModal from "../screens/AddScreenModal.jsx";
 import AddAccessoryModal from "../accessories/AddAccesoryModal.jsx";
 import SequelizerAuth from "../axios/sequalizerAuth.js";
-const MotionText = motion(Text);
 
-export default function Navbar() {
+
+const Navbar = () => {
     const location = useLocation();
     const [isCollapsed, setIsCollapsed] = useState(false);
     const { colorMode, toggleColorMode } = useColorMode();
@@ -65,65 +64,81 @@ export default function Navbar() {
         onClose: closeAccessoryModal
     } = useDisclosure();
 
-    const [isLoading, setIsLoading] = useState(false);
-
     // Only check breakpoint value when component mounts or window resizes
     const isMobile = useBreakpointValue({ base: true, md: false });
 
-    // Memoize theme colors to prevent recalculations on every render
-    const themeColors = useMemo(() => ({
-        bgColor: useColorModeValue("white", "gray.900"),
-        textColor: useColorModeValue("gray.700", "gray.100"),
-        activeColor: useColorModeValue("blue.500", "blue.400"),
-        hoverBgColor: useColorModeValue("gray.50", "gray.800"),
-        borderColor: useColorModeValue("gray.200", "gray.700"),
-        shadowColor: useColorModeValue(
-            "0 4px 6px rgba(160, 174, 192, 0.1)",
-            "0 4px 6px rgba(9, 17, 28, 0.4)"
-        )
-    }), [colorMode]);
-
-    const { bgColor, textColor, activeColor, hoverBgColor, borderColor, shadowColor } = themeColors;
+    // Memoize color values to prevent recalculations
+    const bgColor = useColorModeValue("white", "gray.900");
+    const textColor = useColorModeValue("gray.700", "gray.100");
+    const activeColor = useColorModeValue("blue.500", "blue.400");
+    const hoverBgColor = useColorModeValue("gray.50", "gray.800");
+    const borderColor = useColorModeValue("gray.200", "gray.700");
+    const shadowColor = useColorModeValue(
+        "0 4px 6px rgba(160, 174, 192, 0.1)",
+        "0 4px 6px rgba(9, 17, 28, 0.4)"
+    );
 
     // Auth handlers
-    const handleLogout = useMemo(() => () => {
+    const handleLogout = useCallback(() => {
         SequelizerAuth.logout();
     }, []);
 
-    // Modal handlers - memoized to prevent recreating functions on every render
-    const handleScreenModalOpen = useMemo(() => () => {
+    // Modal handlers with useCallback
+    const handleScreenModalOpen = useCallback(() => {
         openScreenModal();
         if (isMobile) closeMobileDrawer();
     }, [isMobile, openScreenModal, closeMobileDrawer]);
 
-    const handleAccessoryModalOpen = useMemo(() => () => {
+    const handleAccessoryModalOpen = useCallback(() => {
         openAccessoryModal();
         if (isMobile) closeMobileDrawer();
     }, [isMobile, openAccessoryModal, closeMobileDrawer]);
 
-    // Optimize resize handling with proper dependency array
+    const handleRefresh = useCallback(() => {
+        window.location.reload();
+        if (isMobile) closeMobileDrawer();
+    }, [isMobile, closeMobileDrawer]);
+
+    const handleCollapseToggle = useCallback(() => {
+        setIsCollapsed(prev => !prev);
+    }, []);
+
+    // Optimize resize handling with debounce
     useEffect(() => {
+        let resizeTimer;
+
         const handleResize = () => {
-            const shouldCollapse = window.innerWidth < 768 && window.innerWidth > 480;
-            if (isCollapsed !== shouldCollapse) {
-                setIsCollapsed(shouldCollapse);
-            }
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(() => {
+                const shouldCollapse = window.innerWidth < 768 && window.innerWidth > 480;
+                if (isCollapsed !== shouldCollapse) {
+                    setIsCollapsed(shouldCollapse);
+                }
+            }, 100); // 100ms debounce
         };
 
         window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
+        // Call once to set initial state
+        handleResize();
+
+        return () => {
+            window.removeEventListener('resize', handleResize);
+            clearTimeout(resizeTimer);
+        };
     }, [isCollapsed]);
 
-    // Navigation item component - memoized to prevent unnecessary re-renders
-    const NavItem = memo(({ to, icon, label, onClick, badgeCount }) => {
+    // Navigation item component - fixed to properly handle mobile view
+    const NavItem = memo(({ to, icon, label, onClick, badgeCount, isMobileView = false }) => {
         const isCurrentPath = location.pathname === to;
+        // Show text if either we're in mobile view OR sidebar is not collapsed
+        const showText = isMobileView || !isCollapsed;
 
         return (
             <Box position="relative">
                 <Tooltip
-                    label={isCollapsed ? label : ""}
+                    label={isCollapsed && !isMobileView ? label : ""}
                     placement="right"
-                    isDisabled={!isCollapsed}
+                    isDisabled={showText}
                     hasArrow
                 >
                     <Button
@@ -131,7 +146,7 @@ export default function Navbar() {
                         to={to}
                         w="full"
                         variant="ghost"
-                        justifyContent={isCollapsed ? "center" : "flex-start"}
+                        justifyContent={showText ? "flex-start" : "center"}
                         h="40px"
                         mb={1}
                         color={isCurrentPath ? activeColor : textColor}
@@ -144,24 +159,16 @@ export default function Navbar() {
                         position="relative"
                     >
                         {icon}
-                        <AnimatePresence>
-                            {!isCollapsed && (
-                                <MotionText
-                                    initial={{ opacity: 0, width: 0 }}
-                                    animate={{ opacity: 1, width: "auto" }}
-                                    exit={{ opacity: 0, width: 0 }}
-                                    ml={3}
-                                    overflow="hidden"
-                                    whiteSpace="nowrap"
-                                >
-                                    {label}
-                                </MotionText>
-                            )}
-                        </AnimatePresence>
-                        {badgeCount && !isCollapsed && (
+                        {showText && (
+                            <Text ml={3} overflow="hidden" whiteSpace="nowrap">
+                                {label}
+                            </Text>
+                        )}
+                        {badgeCount > 0 && (
                             <Badge
                                 position="absolute"
-                                right={2}
+                                right={showText ? 2 : "-6px"}
+                                top={showText ? "auto" : "-6px"}
                                 colorScheme="red"
                                 borderRadius="full"
                             >
@@ -185,14 +192,44 @@ export default function Navbar() {
         );
     });
 
-    // Memoize the SidebarContent component
+    // Explicitly define name for React DevTools
+    NavItem.displayName = 'NavItem';
+
+    // Action button component - consistent handling of text display
+    const ActionButton = memo(({ icon, label, onClick, isMobileView = false, colorScheme = "gray" }) => {
+        // Show text if either we're in mobile view OR sidebar is not collapsed
+        const showText = isMobileView || !isCollapsed;
+
+        return (
+            <Button
+                onClick={onClick}
+                variant="ghost"
+                justifyContent={showText ? "flex-start" : "center"}
+                leftIcon={icon}
+                w="full"
+                h="40px"
+                mb={1}
+                color={colorScheme === "gray" ? textColor : `${colorScheme}.400`}
+                _hover={{
+                    bg: colorScheme === "gray" ? hoverBgColor : `${colorScheme}.50`,
+                    color: colorScheme === "gray" ? activeColor : `${colorScheme}.500`
+                }}
+            >
+                {showText && label}
+            </Button>
+        );
+    });
+
+    ActionButton.displayName = 'ActionButton';
+
+    // SidebarContent component with proper handling of mobile view
     const SidebarContent = memo(({ isMobileView = false }) => (
         <Flex direction="column" h="full" py={6} px={4} position="relative">
             {/* Desktop Collapse Toggle */}
             {!isMobileView && (
                 <IconButton
                     icon={isCollapsed ? <ChevronRightIcon /> : <ChevronLeftIcon />}
-                    onClick={() => setIsCollapsed(!isCollapsed)}
+                    onClick={handleCollapseToggle}
                     position="absolute"
                     right={-4}
                     top={2}
@@ -208,6 +245,7 @@ export default function Navbar() {
                     zIndex={100}
                     boxShadow={shadowColor}
                     _hover={{ bg: hoverBgColor }}
+                    aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
                 />
             )}
 
@@ -230,65 +268,57 @@ export default function Navbar() {
                     icon={<StarIcon />}
                     label="Screens"
                     onClick={isMobileView ? closeMobileDrawer : undefined}
+                    isMobileView={isMobileView}
+                    badgeCount={0}
                 />
+
                 <NavItem
                     to="/Accessories"
                     icon={<SettingsIcon />}
                     label="Accessories"
                     onClick={isMobileView ? closeMobileDrawer : undefined}
+                    isMobileView={isMobileView}
+                    badgeCount={0}
                 />
 
-                <Button
+                <ActionButton
                     onClick={handleScreenModalOpen}
-                    variant="ghost"
-                    justifyContent={isCollapsed && !isMobileView ? "center" : "flex-start"}
-                    leftIcon={<AddIcon />}
-                    w="full"
-                    h="40px"
-                    mb={1}
-                >
-                    {(!isCollapsed || isMobileView) && "Add Screen"}
-                </Button>
+                    icon={<AddIcon />}
+                    label="Add Screen"
+                    isMobileView={isMobileView}
+                />
 
-                <Button
+                <ActionButton
                     onClick={handleAccessoryModalOpen}
-                    variant="ghost"
-                    justifyContent={isCollapsed && !isMobileView ? "center" : "flex-start"}
-                    leftIcon={<AddIcon />}
-                    w="full"
-                    h="40px"
-                    mb={1}
-                >
-                    {(!isCollapsed || isMobileView) && "Add Accessory"}
-                </Button>
+                    icon={<AddIcon />}
+                    label="Add Accessory"
+                    isMobileView={isMobileView}
+                />
 
                 <NavItem
                     to="/SavedOrders"
                     icon={<TimeIcon />}
                     label="Unpaid Orders"
                     onClick={isMobileView ? closeMobileDrawer : undefined}
+                    isMobileView={isMobileView}
                     badgeCount={3}
                 />
+
                 <NavItem
                     to="/LowStock"
                     icon={<WarningIcon />}
                     label="Low Stock"
                     onClick={isMobileView ? closeMobileDrawer : undefined}
+                    isMobileView={isMobileView}
+                    badgeCount={0}
                 />
-                <Button
-                    onClick={() => {
-                        window.location.reload();
-                        if (isMobileView) closeMobileDrawer();
-                    }}
-                    variant="ghost"
-                    justifyContent={isCollapsed && !isMobileView ? "center" : "flex-start"}
-                    leftIcon={<RepeatIcon />}
-                    w="full"
-                    h="40px"
-                    mb={1}
-                >
-                    {(!isCollapsed || isMobileView) && "Refresh"}
-                </Button>
+
+                <ActionButton
+                    onClick={handleRefresh}
+                    icon={<RepeatIcon />}
+                    label="Refresh"
+                    isMobileView={isMobileView}
+                />
             </VStack>
 
             {/* User Section*/}
@@ -300,7 +330,7 @@ export default function Navbar() {
                         name="AT"
                         bg={activeColor}
                     />
-                    {(!isCollapsed || isMobileView) && (
+                    {(isMobileView || !isCollapsed) && (
                         <Box ml={3}>
                             <Text fontSize="sm" fontWeight="medium" noOfLines={1}>
                                 ALLTECH System
@@ -313,40 +343,31 @@ export default function Navbar() {
                 </Flex>
 
                 {/* Dark Mode Toggle */}
-                <Button
+                <ActionButton
                     onClick={toggleColorMode}
-                    variant="ghost"
-                    justifyContent={isCollapsed && !isMobileView ? "center" : "flex-start"}
-                    leftIcon={colorMode === "light" ? <MoonIcon /> : <SunIcon />}
-                    w="full"
-                    h="40px"
-                    mb={2}
-                >
-                    {(!isCollapsed || isMobileView) && (colorMode === "light" ? "Dark Mode" : "Light Mode")}
-                </Button>
+                    icon={colorMode === "light" ? <MoonIcon /> : <SunIcon />}
+                    label={colorMode === "light" ? "Dark Mode" : "Light Mode"}
+                    isMobileView={isMobileView}
+                />
 
                 {/* Logout Button */}
-                <Button
+                <ActionButton
                     onClick={handleLogout}
-                    variant="ghost"
-                    justifyContent={isCollapsed && !isMobileView ? "center" : "flex-start"}
-                    leftIcon={<DragHandleIcon />}
-                    w="full"
-                    h="40px"
-                    color="red.400"
-                    _hover={{
-                        bg: "red.50",
-                        color: "red.500"
-                    }}
-                >
-                    {(!isCollapsed || isMobileView) && "Logout"}
-                </Button>
+                    icon={<DragHandleIcon />}
+                    label="Logout"
+                    isMobileView={isMobileView}
+                    colorScheme="red"
+                />
             </Box>
         </Flex>
     ));
 
-    // Mobile View
-    if (isMobile) {
+    SidebarContent.displayName = 'SidebarContent';
+
+    // Memoize the rendered components to prevent unnecessary re-renders
+    const mobileView = useMemo(() => {
+        if (!isMobile) return null;
+
         return (
             <>
                 {/* Mobile Header */}
@@ -401,69 +422,68 @@ export default function Navbar() {
                 <Box pt="60px">
                     {/* Content goes here */}
                 </Box>
-
-                {/* Modals */}
-                <AddScreenModal
-                    isOpen={isScreenModalOpen}
-                    onClose={closeScreenModal}
-                    isLoading={isLoading}
-                />
-
-                <AddAccessoryModal
-                    isOpen={isAccessoryModalOpen}
-                    onClose={closeAccessoryModal}
-                />
             </>
         );
-    }
+    }, [isMobile, bgColor, borderColor, shadowColor, activeColor, openMobileDrawer, isMobileDrawerOpen, closeMobileDrawer]);
 
+    const desktopView = useMemo(() => {
+        if (isMobile) return null;
+
+        return (
+            <>
+                <Box
+                    bg={bgColor}
+                    h="100vh"
+                    position="fixed"
+                    left={0}
+                    top={0}
+                    borderRight="1px"
+                    borderColor={borderColor}
+                    width={isCollapsed ? "80px" : "250px"}
+                    transition="width 0.2s"
+                    zIndex={99}
+                    overflowY="auto"
+                    overflowX="hidden"
+                    css={{
+                        '&::-webkit-scrollbar': {
+                            width: '4px',
+                        },
+                        '&::-webkit-scrollbar-track': {
+                            width: '6px',
+                        },
+                        '&::-webkit-scrollbar-thumb': {
+                            background: borderColor,
+                            borderRadius: '24px',
+                        },
+                    }}
+                    boxShadow={shadowColor}
+                >
+                    <SidebarContent isMobileView={false} />
+                </Box>
+
+                {/* Main Content Area - Adjusts based on sidebar state */}
+                <Box
+                    ml={isCollapsed ? "80px" : "250px"}
+                    transition="margin 0.2s"
+                    p={4}
+                >
+                    {/* Content goes here */}
+                </Box>
+            </>
+        );
+    }, [isMobile, bgColor, borderColor, isCollapsed, shadowColor]);
+
+    // Modals are rendered conditionally but kept out of memoized views
+    // to ensure they update properly when isOpen changes
     return (
         <>
-            {/* Use regular Box instead of MotionBox for the sidebar container */}
-            <Box
-                bg={bgColor}
-                h="100vh"
-                position="fixed"
-                left={0}
-                top={0}
-                borderRight="1px"
-                borderColor={borderColor}
-                width={isCollapsed ? "80px" : "250px"}
-                style={{ transition: "width 0.2s" }}
-                zIndex={99}
-                overflowY="auto"
-                overflowX="hidden"
-                css={{
-                    '&::-webkit-scrollbar': {
-                        width: '4px',
-                    },
-                    '&::-webkit-scrollbar-track': {
-                        width: '6px',
-                    },
-                    '&::-webkit-scrollbar-thumb': {
-                        background: borderColor,
-                        borderRadius: '24px',
-                    },
-                }}
-                boxShadow={shadowColor}
-            >
-                <SidebarContent isMobileView={false} />
-            </Box>
-
-            {/* Main Content Area - Adjusts based on sidebar state */}
-            <Box
-                ml={{ base: 0, md: isCollapsed ? "80px" : "250px" }}
-                transition="margin 0.2s"
-                p={4}
-            >
-                {/* Content goes here */}
-            </Box>
+            {mobileView}
+            {desktopView}
 
             {/* Modals */}
             <AddScreenModal
                 isOpen={isScreenModalOpen}
                 onClose={closeScreenModal}
-                isLoading={isLoading}
             />
 
             <AddAccessoryModal
@@ -472,4 +492,6 @@ export default function Navbar() {
             />
         </>
     );
-}
+};
+
+export default memo(Navbar);

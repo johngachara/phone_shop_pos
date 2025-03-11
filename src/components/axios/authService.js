@@ -109,6 +109,13 @@ class AuthService {
 
     async refreshAuth() {
         try {
+            await new Promise(resolve => {
+                const unsubscribe = auth.onAuthStateChanged(user => {
+                    unsubscribe();
+                    resolve(user);
+                });
+            });
+
             const currentUser = auth.currentUser;
             if (!currentUser) {
                 this.clearTokens();

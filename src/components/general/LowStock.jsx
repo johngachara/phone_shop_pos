@@ -49,16 +49,8 @@ const LowStock = () => {
         setIsLoading(true);
         try {
             const result = await apiService.dashboardData("low_stock", localStorage.getItem("access"));
-
-            if (result.status === 401) {
-                navigate('/Login');
-                return;
-            }
-
-            if (result.status !== 'error') {
                 setData(prevData => [...prevData, ...result.data]);
                 setNextPage(result.nextPage);
-            }
         } catch (error) {
             console.error('Error fetching data:', error);
             toast({
@@ -121,6 +113,7 @@ const LowStock = () => {
                                         />
                                     </InputGroup>
                                     <Select
+                                        isReadOnly={true}
                                         value="low_stock"
                                         maxW="200px"
                                         borderRadius="md"
