@@ -19,7 +19,6 @@ import {
     ListItem,
     useToast,
     useColorModeValue,
-    Select
 } from "@chakra-ui/react";
 import { useEffect, useState, useCallback, useRef } from "react";
 import debounce from "lodash.debounce";

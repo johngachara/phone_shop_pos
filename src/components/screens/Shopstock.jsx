@@ -196,8 +196,6 @@ export default function Shopstock() {
                 handleCompleteClick={handleCompleteClick}
                 setDeleteItemId={setDeleteItemId}
                 setIsDeleteDialogOpen={setIsDeleteDialogOpen}
-                currentPage={currentPage}
-                setCurrentPage={setCurrentPage}
                 onLoadMore={handleLoadMore}
                 isItemsLoading={isLoadingData && !isInitialLoading}
                 isLoadingMore={isLoadingData && currentPage > 1}

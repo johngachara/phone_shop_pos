@@ -1,7 +1,6 @@
 import {
     Box,
     Skeleton,
-    SkeletonText,
     VStack,
     HStack,
     useColorModeValue,

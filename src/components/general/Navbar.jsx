@@ -34,7 +34,7 @@ import {
     ChevronRightIcon,
     DragHandleIcon
 } from "@chakra-ui/icons";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import AddScreenModal from "../screens/AddScreenModal.jsx";
 import AddAccessoryModal from "../accessories/AddAccesoryModal.jsx";
@@ -42,7 +42,6 @@ import SequelizerAuth from "../axios/sequalizerAuth.js";
 const MotionText = motion(Text);
 
 export default function Navbar() {
-    const navigate = useNavigate();
     const location = useLocation();
     const [isCollapsed, setIsCollapsed] = useState(false);
     const { colorMode, toggleColorMode } = useColorMode();

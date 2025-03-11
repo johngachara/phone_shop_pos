@@ -11,8 +11,6 @@ import {
     Icon,
     Button,
     useColorModeValue,
-    Fade,
-    Skeleton
 } from "@chakra-ui/react";
 import { SearchIcon } from "@chakra-ui/icons";
 import RenderLcdItems from "./RenderLcdItems";
@@ -29,8 +27,6 @@ export default function LcdBody({
                                     handleCompleteClick,
                                     setDeleteItemId,
                                     setIsDeleteDialogOpen,
-                                    currentPage,
-                                    setCurrentPage,
                                     onLoadMore,
                                     disableUpdateButton,
                                     hasMore,
@@ -115,7 +111,7 @@ export default function LcdBody({
                             handleCompleteClick={handleCompleteClick}
                             setDeleteItemId={setDeleteItemId}
                             setIsDeleteDialogOpen={setIsDeleteDialogOpen}
-                            disableUpdateButton={disableUpdateButton}
+                          //  disableUpdateButton={disableUpdateButton}
                             isItemsLoading={isItemsLoading}
                         />
                     ) : showEmptyState ? (

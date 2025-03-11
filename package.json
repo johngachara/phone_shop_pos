@@ -28,6 +28,7 @@
     "framer-motion": "^11.11.17",
     "js-yaml": "^4.1.0",
     "lodash": "^4.17.21",
+    "lodash.debounce": "^4.0.8",
     "lucide-react": "^0.460.0",
     "meilisearch": "^0.45.0",
     "openai": "^4.72.0",

@@ -16,7 +16,6 @@ import {
     Progress,
     Stack,
     Skeleton,
-    SkeletonText
 } from '@chakra-ui/react';
 import { DeleteIcon, EditIcon, ArrowForwardIcon } from '@chakra-ui/icons';
 
@@ -47,6 +46,7 @@ const RenderAccessoryItems = ({
         <Box>
             <Card
                 bg={bgColor}
+                id={index}
                 height="100%"
                 borderRadius="xl"
                 overflow="hidden"

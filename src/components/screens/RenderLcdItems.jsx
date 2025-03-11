@@ -16,7 +16,6 @@ import {
     Flex,
     Divider,
     Stack,
-    Skeleton
 } from "@chakra-ui/react";
 import { DeleteIcon, EditIcon, ArrowForwardIcon } from "@chakra-ui/icons";
 import ItemSkeleton from "./ItemSkeleton";
@@ -27,7 +26,7 @@ export default function RenderLcdItems({
                                            handleUpdateClick,
                                            setDeleteItemId,
                                            setIsDeleteDialogOpen,
-                                           disableUpdateButton,
+                                           //disableUpdateButton,
                                            isItemsLoading
                                        }) {
     const bgColor = useColorModeValue("white", "gray.800");
