@@ -20,7 +20,6 @@ import {
 } from "@chakra-ui/react";
 import { FcGoogle } from "react-icons/fc";
 import SequelizerAuth from "../axios/sequalizerAuth.js"
-import { motion } from "framer-motion";
 import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import authService from "components/axios/authService.js";
 import { auth, firestore } from "../firebase/firebase.js";
@@ -33,8 +32,6 @@ import {
 } from "@simplewebauthn/browser";
 import axios from "axios";
 import {doc, getDoc} from "firebase/firestore";
-
-const MotionBox = motion.create(Box);
 const axiosInstance = axios.create({
     baseURL: import.meta.env.VITE_ALLTECH_URL,
     headers: {
@@ -113,6 +110,7 @@ const SignIn = () => {
             }
         } catch (error) {
             console.error('Passkey verification failed:', error);
+            await auth.signOut()
             toast({
                 status: "error",
                 description: error.message || "Passkey verification failed",
@@ -152,6 +150,7 @@ const SignIn = () => {
             }
 
             }catch(error){
+            await auth.signOut()
             // Some basic error handling
             if (error.name === 'InvalidStateError') {
                 toast({
@@ -201,6 +200,7 @@ const SignIn = () => {
             }
         } catch (error) {
             console.error("Google sign-in failed:", error);
+            await auth.signOut()
             setError('Unable to login');
         } finally {
             setIsLoading(false);
@@ -218,10 +218,7 @@ const SignIn = () => {
             )}
             p={4}
         >
-            <MotionBox
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
+            <Box
                 w="full"
                 maxW="400px"
             >
@@ -334,7 +331,7 @@ const SignIn = () => {
                         </VStack>
                     </CardBody>
                 </Card>
-            </MotionBox>
+            </Box>
         </Flex>
     );
 };
