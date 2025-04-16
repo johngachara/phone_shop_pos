@@ -51,37 +51,14 @@ const useUnpaidStore = create(
                 set({ isLoading: true, error: null });
                 try {
                     const response = await authService.axiosInstance.get('/api/saved2');
-                    const currentProcessedRefunds = get().processedRefunds;
-                    const currentProcessedCompletions = get().processedCompletions;
-                    const currentOrders = get().unpaidOrders;
-
-                    // Get the IDs of orders from the API response
-                    const apiOrderIds = new Set(response.data.data.map(order => order.id));
-                    // Keep locally added orders that haven't appeared in the API yet
-                    const recentLocalOrders = currentOrders.filter(order =>
-                        !apiOrderIds.has(order.id) &&
-                        !currentProcessedRefunds.has(order.id) &&
-                        !currentProcessedCompletions.has(order.id) &&
-                        // Only keep orders added in the last 5 minutes
-                        new Date().getTime() - new Date(order.addedAt || 0).getTime() < 5 * 60 * 1000
-                    );
-
-                    // Filter API orders
-                    const filteredApiOrders = response.data.data.filter(
-                        order => !currentProcessedRefunds.has(order.id) &&
-                            !currentProcessedCompletions.has(order.id)
-                    );
-
-                    // Combine API orders with recent local orders
-                    const combinedOrders = [...filteredApiOrders, ...recentLocalOrders];
 
                     set({
-                        unpaidOrders: combinedOrders,
+                        unpaidOrders: response.data.data,
                         isLoading: false,
                         lastUpdated: new Date().toISOString()
                     });
 
-                    return { success: true, data: combinedOrders };
+                    return { success: true, data: response.data.data };
                 } catch (error) {
                     set({
                         isLoading: false,
@@ -117,7 +94,6 @@ const useUnpaidStore = create(
                         // Immediately remove from unpaid orders and add to processed
                         set(state => ({
                             unpaidOrders: state.unpaidOrders.filter(item => item.id !== id),
-                            processedRefunds: new Set([...state.processedRefunds, id]),
                             isRefunding: { ...state.isRefunding, [id]: false },
                             lastUpdated: new Date().toISOString()
                         }));
@@ -148,7 +124,6 @@ const useUnpaidStore = create(
                         // Immediately remove from unpaid orders and add to processed
                         set(state => ({
                             unpaidOrders: state.unpaidOrders.filter(item => item.id !== id),
-                            processedCompletions: new Set([...state.processedCompletions, id]),
                             isCompleting: { ...state.isCompleting, [id]: false },
                             lastUpdated: new Date().toISOString()
                         }));
@@ -199,17 +174,12 @@ const useUnpaidStore = create(
             storage: createJSONStorage(() => localStorage),
             partialize: (state) => ({
                 unpaidOrders: state.unpaidOrders,
-                processedRefunds: Array.from(state.processedRefunds),
-                processedCompletions: Array.from(state.processedCompletions),
                 lastUpdated: state.lastUpdated,
                 hasHydrated: state.hasHydrated
             }),
             onRehydrateStorage: (state) => {
                 return (state) => {
                     if (state) {
-                        // Convert Arrays back to Sets after rehydration
-                        state.processedRefunds = new Set(state.processedRefunds);
-                        state.processedCompletions = new Set(state.processedCompletions);
                         state.setHasHydrated(true);
                     }
                 };

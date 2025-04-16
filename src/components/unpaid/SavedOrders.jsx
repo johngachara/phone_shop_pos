@@ -40,7 +40,7 @@ export default function SavedOrders() {
                 });
             });
         }
-    }, [hasHydrated, fetchUnpaidOrders, toast]);
+    }, [hasHydrated, fetchUnpaidOrders]);
 
     const complete = async (id) => {
         try {

@@ -199,7 +199,7 @@ export default function Shopstock() {
                 onLoadMore={handleLoadMore}
                 isItemsLoading={isLoadingData && !isInitialLoading}
                 isLoadingMore={isLoadingData && currentPage > 1}
-                hasMore={shopData && shopData.length >= 20}
+
             />
 
             <ChatbotWidget />

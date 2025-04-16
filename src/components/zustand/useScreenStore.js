@@ -41,27 +41,6 @@ const useScreenStore = create(
                     return false;
                 }
             },
-            _resetStore: async () => {
-                try {
-                    // First reset the store state
-                    await set({
-                        data: [],
-                        isLoading: false,
-                        page: 1,
-                        isAddLoading: false,
-                        isUpdateLoading: false,
-                        isDeletingLoading: false,
-                        isSellingLoading: false,
-                        isCompleting: false,
-                        hasHydrated: false,
-                    });
-                    return true;
-                } catch (error) {
-                    console.error('Reset store failed:', error);
-                    return false;
-                }
-            },
-
             fetchNextPage: async () => {
                 const nextPage = get().page + 1;
                 set({ page: nextPage });
@@ -150,20 +129,6 @@ const useScreenStore = create(
 
                         setSearchParam('');
                         closeDrawer();
-
-                        // Important: Get fresh unpaid store instance and add the new order immediately
-                        const unpaidStore = useUnpaidStore.getState();
-                        const newOrder = {
-                            id: response.data.transaction_id, // Assuming API returns this
-                            price: sellData.price,
-                            quantity : sellData.quantity,
-                            customer_name : sellData.customer_name,
-                            product_name : sellData.product_name,
-                            status: 'unpaid'
-                        };
-                        // Update unpaid orders immediately
-                        unpaidStore.addNewOrder(newOrder);
-
                         return { status: response.status, data: response.data };
                     }
                     throw new Error('Sale failed');
@@ -176,7 +141,6 @@ const useScreenStore = create(
                 set({ isCompleting: true });
                 try {
                     const response = await authService.axiosInstance.post(`/api/sell2/${id}`, sellData);
-                    console.log(response)
                     const transaction_id = response.data.transaction_id;
                     const finalResponse = await authService.axiosInstance.post(`/api/complete2/${transaction_id}`, {});
 

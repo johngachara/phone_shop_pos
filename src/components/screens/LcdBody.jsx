@@ -10,12 +10,14 @@ import {
     SimpleGrid,
     Icon,
     Button,
-    useColorModeValue,
+    useColorModeValue, useToast,
 } from "@chakra-ui/react";
 import { SearchIcon } from "@chakra-ui/icons";
 import RenderLcdItems from "./RenderLcdItems";
 import ItemSkeleton from "./ItemSkeleton";
-import useSearchScreens from "../hooks/useSearchScreens";
+import useSearchStore from "components/zustand/useScreenSearch.js";
+import { useEffect} from "react";
+import {Meilisearch} from "meilisearch";
 
 export default function LcdBody({
                                     searchParam,
@@ -29,19 +31,61 @@ export default function LcdBody({
                                     setIsDeleteDialogOpen,
                                     onLoadMore,
                                     disableUpdateButton,
-                                    hasMore,
                                     isItemsLoading,
                                     isLoadingMore
                                 }) {
-    const { searchResults, loading: searchLoading } = useSearchScreens(searchParam);
+    const { searchResults, loading:searchLoading, setSearchResults, setLoading } = useSearchStore();
     const bgColor = useColorModeValue("white", "gray.800");
     const textColor = useColorModeValue("gray.800", "white");
-
+    const toast = useToast();
+    const client = new Meilisearch({
+        host:  import.meta.env.VITE_MEILISEARCH_URL,
+        apiKey: import.meta.env.VITE_MEILISEARCH_KEY
+    });
     // Calculate what data to display
     const displayData = searchResults?.length > 0 ? searchResults : shopData;
-    const showLoadingSkeleton = loading && !displayData;
+    const showLoadingSkeleton = loading && !displayData || searchLoading;
     const showEmptyState = !showLoadingSkeleton && !displayData?.length && !searchLoading;
 
+    useEffect(() => {
+        const handleSearch = async () => {
+            if (!searchParam) {
+                setSearchResults([]);
+                return;
+            }
+            if(searchParam.length > 0) {
+                setLoading(true)
+            }
+            try {
+                const response = await client.index('Shop2Stock').search(searchParam);
+                const info = response.hits;
+                if (info.length === 0) {
+                    toast({
+                        title: "No results",
+                        position: "top",
+                        description: "No item with given name found",
+                        status: "warning",
+                        duration: 3000,
+                        isClosable: true,
+                    });
+                }
+                setSearchResults(info);
+            } catch (err) {
+                toast({
+                    title: "Error",
+                    position: "top",
+                    description: err.message,
+                    status: "error",
+                    duration: 3000,
+                    isClosable: true,
+                });
+            } finally {
+                setLoading(false);
+            }
+        };
+        const debounceSearch = setTimeout(handleSearch, 200);
+        return () => clearTimeout(debounceSearch);
+    }, [searchParam, toast]);
     return (
         <Box bg={useColorModeValue("gray.50", "gray.900")} minH="100vh">
             <Container maxW="8xl" py={8}>
@@ -137,7 +181,7 @@ export default function LcdBody({
                     ) : null}
 
                     {/* Load More Section with loading state */}
-                    {!showLoadingSkeleton && !searchLoading && hasMore && (
+                    {!showLoadingSkeleton && !searchLoading && displayData.length > 11 && (
                         <Box textAlign="center" mt={8}>
                             <Button
                                 onClick={onLoadMore}

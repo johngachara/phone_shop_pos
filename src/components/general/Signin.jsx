@@ -182,6 +182,11 @@ const SignIn = () => {
             const { data: sequelData, status: sequelStatus } = await apiService.sequelizer_login(idToken);
             await SequelizerAuth.storeAccessToken(sequelData.token);
             await authService.storeTokens(authData);
+            // To be used in dev only
+            // if (import.meta.env.MODE === 'development' && authStatus === 200 && sequelStatus === 200){
+            //     navigate('/')
+            //     return;
+            // }
 
             // Check for existing passkey
             const currentUser = auth.currentUser;
