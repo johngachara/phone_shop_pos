@@ -41,7 +41,6 @@ const axiosInstance = axios.create({
 
 const SignIn = () => {
     const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState(null);
     const navigate = useNavigate();
     const toast = useToast();
     const provider = new GoogleAuthProvider();
@@ -171,7 +170,7 @@ const SignIn = () => {
     const handleGoogleSignIn = async () => {
         try {
             setIsLoading(true);
-            setError(null);
+
 
             const result = await signInWithPopup(auth, provider);
             const user = result.user;
@@ -183,10 +182,10 @@ const SignIn = () => {
             await SequelizerAuth.storeAccessToken(sequelData.token);
             await authService.storeTokens(authData);
             // To be used in dev only
-            // if (import.meta.env.MODE === 'development' && authStatus === 200 && sequelStatus === 200){
-            //     navigate('/')
-            //     return;
-            // }
+            //  if (import.meta.env.MODE === 'development' && authStatus === 200 && sequelStatus === 200){
+            //      navigate('/')
+            //      return;
+            //  }
 
             // Check for existing passkey
             const currentUser = auth.currentUser;
@@ -206,7 +205,10 @@ const SignIn = () => {
         } catch (error) {
             console.error("Google sign-in failed:", error);
             await auth.signOut()
-            setError('Unable to login');
+            toast({
+                status: "error",
+                description: 'Unable to login',
+            })
         } finally {
             setIsLoading(false);
         }
@@ -255,23 +257,7 @@ const SignIn = () => {
                                     Sign in to access the system
                                 </Text>
                             </VStack>
-
                             <Divider />
-
-                            {/* Error Alert */}
-                            {error && (
-                                <Alert
-                                    status="error"
-                                    borderRadius="xl"
-                                    bg={useColorModeValue('red.50', 'red.900')}
-                                >
-                                    <AlertIcon />
-                                    <AlertDescription fontSize="sm">
-                                        {error}
-                                    </AlertDescription>
-                                </Alert>
-                            )}
-
                             {/* Loading State */}
                             {isLoading ? (
                                 <VStack py={4} spacing={4}>

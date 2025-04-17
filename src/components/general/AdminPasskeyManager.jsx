@@ -46,8 +46,8 @@ const AdminPasskeyManager = () => {
         try {
             setIsLoading(true);
 
-            // Check if current user is admin
-            const currentUser = auth.currentUser;
+      //      Check if current user is admin
+            const currentUser = await auth.currentUser;
             if (!currentUser) {
                 throw new Error('Not authenticated');
             }

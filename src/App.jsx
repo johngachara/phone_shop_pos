@@ -48,19 +48,7 @@ function App() {
                     </PrivateRoute>
                 } />
                 <Route path="*" element={<NotFound />} />
-
-                {
-                    /*
-                    * mount only when users need help registering new passkeys
-                    * <Route
-                    path="/passkeys"
-                    element={
-                            <AdminPasskeyManager />
-                    }
-                />
-                    *
-                    * */
-                }
+                {/*<Route path="/passkeys" element={<AdminPasskeyManager />} />*/}
             </Routes>
         </Router>
     );

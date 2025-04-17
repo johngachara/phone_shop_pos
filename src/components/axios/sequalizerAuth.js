@@ -18,8 +18,20 @@ class SequalizerAuth {
     }
 
     async init() {
+        await this.cleanupOrphanedCookies()
         await this.restoreTokens();
         this.setupAxiosInstance();
+    }
+    cleanupOrphanedCookies() {
+        const sessionId = Cookies.get('sequel_session');
+        if (sessionId) {
+            // Check if the corresponding token exists in localStorage
+            const storedTokens = localStorage.getItem(`sequel_tokens_${sessionId}`);
+            if (!storedTokens) {
+                // Cookie exists but no tokens - remove the orphaned cookie
+                Cookies.remove('sequel_session');
+            }
+        }
     }
 
     setupAxiosInstance() {
@@ -74,7 +86,6 @@ class SequalizerAuth {
             } catch (error) {
                 console.error('Error clearing localStorage:', error);
             }
-            tokenCleanup.clearExpiredTokens('sequal_tokens_');
             Cookies.remove('sequal_session');
         }
     }
@@ -198,11 +209,18 @@ class SequalizerAuth {
         }
     }
 
+    // This is the main logout function for the app
+
     async logout() {
         try {
-            await this.clearStoredTokens();
-            authService.clearTokens()
+            // This clears cookies
+             await this.clearStoredTokens();
+            await authService.clearTokens()
             await auth.signOut();
+            //This clears local storage
+            await tokenCleanup.clearAllServiceTokens('sequal_tokens_');
+            await tokenCleanup.clearAllServiceTokens('auth_tokens_');
+
         } catch (error) {
             console.error('Logout error:', error);
         } finally {

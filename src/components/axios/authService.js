@@ -10,7 +10,41 @@ const API_URL = import.meta.env.VITE_ALLTECH_URL;
 class AuthService {
     constructor() {
         this.memoryTokens = new Map();
+        // Clean up expired tokens in localStorage
+        tokenCleanup.clearExpiredTokens('auth_tokens_');
+        tokenCleanup.clearExpiredTokens('sequel_tokens_');
+
+        // Check if current cookie is valid
+        this.cleanupOrphanedCookies();
+
+        // Restore valid tokens to memory
+        this.restoreTokens();
+
         this.axiosInstance = this.setupAxiosInstance();
+    }
+
+    cleanupOrphanedCookies() {
+        const sessionId = Cookies.get('auth_session');
+        if (sessionId) {
+            // Check if the corresponding token exists in localStorage
+            const storedTokens = localStorage.getItem(`auth_tokens_${sessionId}`);
+            if (!storedTokens) {
+                // Cookie exists but no tokens - remove the orphaned cookie
+                Cookies.remove('auth_session');
+            }
+        }
+    }
+
+    clearTokens() {
+        const sessionId = Cookies.get('auth_session');
+        if (sessionId) {
+            this.memoryTokens.delete(sessionId);
+            localStorage.removeItem(`auth_tokens_${sessionId}`);
+            Cookies.remove('auth_session');
+        }
+        // Also clean up any other expired tokens
+        tokenCleanup.clearExpiredTokens('auth_tokens_');
+        tokenCleanup.clearExpiredTokens('sequel_tokens_');
     }
 
     setupAxiosInstance() {
@@ -169,15 +203,6 @@ class AuthService {
         }
     }
 
-    clearTokens() {
-        const sessionId = Cookies.get('auth_session');
-        if (sessionId) {
-            this.memoryTokens.delete(sessionId);
-            localStorage.removeItem(`auth_tokens_${sessionId}`);
-            Cookies.remove('auth_session');
-        }
-        tokenCleanup.clearExpiredTokens('auth_tokens_');
-    }
     getTokens() {
         return {
             access: this.getAccessToken(),
