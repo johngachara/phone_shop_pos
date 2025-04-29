@@ -8,9 +8,6 @@ import {
     useColorModeValue,
     VStack,
     Text,
-    Alert,
-    AlertIcon,
-    AlertDescription,
     useToast,
     Spinner,
     Icon,
@@ -19,8 +16,9 @@ import {
     Divider, Stack
 } from "@chakra-ui/react";
 import { FcGoogle } from "react-icons/fc";
-import SequelizerAuth from "../axios/sequalizerAuth.js"
-import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import { FiKey } from "react-icons/fi";
+import SequelizerAuth from "../axios/sequalizerAuth.js";
+import { GoogleAuthProvider, signInWithPopup, getAuth, onAuthStateChanged } from "firebase/auth";
 import authService from "components/axios/authService.js";
 import { auth, firestore } from "../firebase/firebase.js";
 import {apiService} from "../../apiService.js";
@@ -32,6 +30,7 @@ import {
 } from "@simplewebauthn/browser";
 import axios from "axios";
 import {doc, getDoc} from "firebase/firestore";
+
 const axiosInstance = axios.create({
     baseURL: import.meta.env.VITE_ALLTECH_URL,
     headers: {
@@ -40,28 +39,76 @@ const axiosInstance = axios.create({
 });
 
 const SignIn = () => {
-    const [isLoading, setIsLoading] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
+    const [isAuthenticating, setIsAuthenticating] = useState(false);
     const navigate = useNavigate();
     const toast = useToast();
     const provider = new GoogleAuthProvider();
-    const [isCheckingPasskey, setIsCheckingPasskey] = useState(true);
     const [hasPasskey, setHasPasskey] = useState(false);
     const [webAuthnSupported, setWebAuthnSupported] = useState(false);
+    const [showSignInOptions, setShowSignInOptions] = useState(false);
+    const [checkingAuth, setCheckingAuth] = useState(true);
 
+    // Check WebAuthn support and existing user session on component mount
     useEffect(() => {
-        checkWebAuthnSupport();
+        const checkWebAuthnSupport = async () => {
+            try {
+                const supported = browserSupportsWebAuthn();
+                const platformAuthAvailable = await platformAuthenticatorIsAvailable();
+                setWebAuthnSupported(supported && platformAuthAvailable);
+            } catch (error) {
+                console.error("Error checking WebAuthn support:", error);
+                setWebAuthnSupported(false);
+            }
+        };
+
+        const checkExistingSession = async () => {
+            setCheckingAuth(true);
+            const unsubscribe = onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    try {
+                        // User is already signed in, check for passkey
+                        const userDoc = await getDoc(doc(firestore, 'users', user.uid));
+                        const userHasPasskey = userDoc.exists() &&
+                            userDoc.data().credentials &&
+                            userDoc.data().credentials.length > 0;
+
+                        setHasPasskey(userHasPasskey);
+                        setShowSignInOptions(true);
+                    } catch (error) {
+                        console.error("Error checking user session:", error);
+                        setShowSignInOptions(true);
+                    }
+                } else {
+                    // No existing session
+                    setShowSignInOptions(true);
+                }
+                setCheckingAuth(false);
+                setIsLoading(false);
+            });
+
+            return unsubscribe;
+        };
+
+        const init = async () => {
+            await checkWebAuthnSupport();
+            const unsubscribe = await checkExistingSession();
+            return unsubscribe;
+        };
+
+        const unsubscribe = init();
+
+        // Cleanup subscription on unmount
+        return () => {
+            if (typeof unsubscribe === 'function') {
+                unsubscribe();
+            }
+        };
     }, []);
 
-    const checkWebAuthnSupport = async () => {
-        // Check if browser supports WebAuthn
-        const supported = browserSupportsWebAuthn();
-        // Check if platform authenticator is available
-        const platformAuthAvailable = await platformAuthenticatorIsAvailable();
-        setWebAuthnSupported(supported && platformAuthAvailable);
-    };
     const handlePasskeyVerification = async () => {
         try {
-            setIsLoading(true);
+            setIsAuthenticating(true);
 
             // Get current user and their ID token
             const currentUser = auth.currentUser;
@@ -70,27 +117,34 @@ const SignIn = () => {
             }
             const idToken = await currentUser.getIdToken();
 
-            // Get authentication options
-            const optionsResponse = await axiosInstance.post('/sequel/api/generate-auth-options',
-                { idToken }
-            );
 
+            // We need to make sure the token is saved in both services
+            const { data: authData, status: authStatus } = await authService.mainLogin(idToken);
+            const { data: sequelData, status: sequelStatus } = await apiService.sequelizer_login(idToken);
+
+            if (authStatus === 200 && sequelStatus === 200) {
+                await SequelizerAuth.storeAccessToken(sequelData.token);
+                await authService.storeTokens(authData);
+            } else {
+                throw new Error('Failed to authenticate with backend services');
+            }
+
+            // Get authentication options
+            const optionsResponse = await axiosInstance.post('/sequel/api/generate-auth-options', { idToken });
             const options = optionsResponse.data;
 
             // Start the authentication process
-            const authResp = await startAuthentication({optionsJSON : options });
+            const authResp = await startAuthentication({optionsJSON: options});
 
             // Send verification request
-            const verificationResp = await axiosInstance.post('/sequel/api/verify-authentication',
-                {
-                    idToken,
-                    id: authResp.id,
-                    rawId: authResp.rawId,
-                    response: authResp.response,
-                    type: authResp.type,
-                    clientExtensionResults: authResp.clientExtensionResults
-                }
-            );
+            const verificationResp = await axiosInstance.post('/sequel/api/verify-authentication', {
+                idToken,
+                id: authResp.id,
+                rawId: authResp.rawId,
+                response: authResp.response,
+                type: authResp.type,
+                clientExtensionResults: authResp.clientExtensionResults
+            });
 
             if (verificationResp.data.success) {
                 toast({
@@ -98,24 +152,27 @@ const SignIn = () => {
                     description: "Successfully signed in with passkey",
                 });
 
-                navigate("/",{
-                    replace : true
+                navigate("/", {
+                    replace: true
                 });
             } else {
                 toast({
                     status: "error",
                     description: "Unable to verify your identity",
-                })
+                });
+                // Show Google button instead after passkey failure
+                setHasPasskey(false);
             }
         } catch (error) {
             console.error('Passkey verification failed:', error);
-            await auth.signOut()
             toast({
                 status: "error",
                 description: error.message || "Passkey verification failed",
             });
+            // Show Google button instead after passkey failure
+            setHasPasskey(false);
         } finally {
-            setIsLoading(false);
+            setIsAuthenticating(false);
         }
     };
 
@@ -128,49 +185,53 @@ const SignIn = () => {
             });
             return;
         }
-        try{
-            const response = await axiosInstance.post('/sequel/api/generate-registration-options', {idToken})
-            const options = response.data
-            let attResp;
+
+        try {
+            const response = await axiosInstance.post('/sequel/api/generate-registration-options', {idToken});
+            const options = response.data;
+
             // Pass the options to the authenticator and wait for a response
-            attResp = await startRegistration({optionsJSON : options ,useAutoRegister : true});
-            const verificationResp = await axiosInstance.post('/sequel/api/verify-registration',{ idToken , response : attResp });
+            const attResp = await startRegistration({optionsJSON: options, useAutoRegister: true});
+            const verificationResp = await axiosInstance.post('/sequel/api/verify-registration', {
+                idToken,
+                response: attResp
+            });
 
             if (verificationResp && verificationResp.data.success) {
+                setHasPasskey(true);
                 toast({
                     status: "success",
                     description: verificationResp.data.message,
-                })
+                });
+                // Now that we've registered a passkey, verify with it
+                await handlePasskeyVerification();
             } else {
-               toast({
-                   status: "error",
-                   description: "An error occured",
-               })
+                toast({
+                    status: "error",
+                    description: "An error occurred registering your passkey",
+                });
             }
-
-            }catch(error){
-            await auth.signOut()
+        } catch (error) {
             // Some basic error handling
             if (error.name === 'InvalidStateError') {
                 toast({
                     status: "error",
                     description: 'Error: Authenticator was probably already registered by user'
-                })
+                });
             } else {
                 toast({
                     status: "error",
-                    description: error.message,
-                })
+                    description: error.message || "Failed to register passkey",
+                });
             }
-
             throw error;
         }
-        }
+    };
+
     // Handle Google Sign-in
     const handleGoogleSignIn = async () => {
         try {
             setIsLoading(true);
-
 
             const result = await signInWithPopup(auth, provider);
             const user = result.user;
@@ -179,39 +240,43 @@ const SignIn = () => {
             // Authenticate with backend
             const { data: authData, status: authStatus } = await authService.mainLogin(idToken);
             const { data: sequelData, status: sequelStatus } = await apiService.sequelizer_login(idToken);
-            await SequelizerAuth.storeAccessToken(sequelData.token);
-            await authService.storeTokens(authData);
-            // To be used in dev only
-            //  if (import.meta.env.MODE === 'development' && authStatus === 200 && sequelStatus === 200){
-            //      navigate('/')
-            //      return;
-            //  }
+
+            if (authStatus === 200 && sequelStatus === 200) {
+                await SequelizerAuth.storeAccessToken(sequelData.token);
+                await authService.storeTokens(authData);
+            } else {
+                throw new Error('Failed to authenticate with backend services');
+            }
 
             // Check for existing passkey
-            const currentUser = auth.currentUser;
-            const userDoc = await getDoc(doc(firestore, 'users', currentUser.uid));
+            const userDoc = await getDoc(doc(firestore, 'users', user.uid));
             const hasExistingPasskey = userDoc.exists() &&
                 userDoc.data().credentials &&
                 userDoc.data().credentials.length > 0;
 
-            // Only register if no passkey exists
-            if (!hasExistingPasskey) {
-                await handleWebauthnRegistration(idToken);
-            }
+            setHasPasskey(hasExistingPasskey);
 
-            if(authStatus === 200 && sequelStatus === 200){
-                await handlePasskeyVerification()
+            // Register passkey if supported and none exists
+            if (webAuthnSupported && !hasExistingPasskey) {
+                await handleWebauthnRegistration(idToken);
+            } else if (hasExistingPasskey) {
+                // If they already have a passkey, verify with it
+                await handlePasskeyVerification();
             }
         } catch (error) {
             console.error("Google sign-in failed:", error);
-            await auth.signOut()
+            await auth.signOut();
             toast({
                 status: "error",
-                description: 'Unable to login',
-            })
+                description: error.message || 'Unable to login',
+            });
         } finally {
             setIsLoading(false);
         }
+    };
+
+    const handlePasskeyButtonClick = () => {
+        handlePasskeyVerification();
     };
 
     return (
@@ -258,8 +323,9 @@ const SignIn = () => {
                                 </Text>
                             </VStack>
                             <Divider />
+
                             {/* Loading State */}
-                            {isLoading ? (
+                            {isLoading || isAuthenticating || checkingAuth ? (
                                 <VStack py={4} spacing={4}>
                                     <Spinner
                                         size="xl"
@@ -268,19 +334,21 @@ const SignIn = () => {
                                         color={useColorModeValue('blue.500', 'blue.300')}
                                     />
                                     <Text color={useColorModeValue('gray.600', 'gray.400')} fontSize="sm">
-                                        {isCheckingPasskey ? 'Checking for passkeys...' : 'Signing you in...'}
+                                        {checkingAuth ? 'Checking your account...' :
+                                            isAuthenticating ? 'Verifying your passkey...' :
+                                                'Loading sign-in options...'}
                                     </Text>
                                 </VStack>
-                            ) : (
+                            ) : showSignInOptions && (
                                 <Stack spacing={4} w="full">
-                                    {hasPasskey && (
+                                    {hasPasskey && webAuthnSupported ? (
                                         <Button
                                             leftIcon={<Icon as={FiKey} boxSize={5} />}
                                             size="lg"
                                             w="full"
                                             h="50px"
                                             colorScheme="teal"
-                                            onClick={handlePasskeyVerification}
+                                            onClick={handlePasskeyButtonClick}
                                             _hover={{
                                                 transform: 'translateY(-2px)',
                                                 shadow: 'lg',
@@ -289,28 +357,29 @@ const SignIn = () => {
                                         >
                                             Sign in with Passkey
                                         </Button>
+                                    ) : (
+                                        <Button
+                                            leftIcon={<Icon as={FcGoogle} boxSize={5} />}
+                                            size="lg"
+                                            w="full"
+                                            h="50px"
+                                            onClick={handleGoogleSignIn}
+                                            _hover={{
+                                                transform: 'translateY(-2px)',
+                                                shadow: 'lg',
+                                            }}
+                                            transition="all 0.2s"
+                                            bg={useColorModeValue('white', 'gray.700')}
+                                            color={useColorModeValue('gray.800', 'white')}
+                                            border="1px solid"
+                                            borderColor={useColorModeValue('gray.200', 'gray.600')}
+                                        >
+                                            Continue with Google
+                                        </Button>
                                     )}
-
-                                    <Button
-                                        leftIcon={<Icon as={FcGoogle} boxSize={5} />}
-                                        size="lg"
-                                        w="full"
-                                        h="50px"
-                                        onClick={handleGoogleSignIn}
-                                        _hover={{
-                                            transform: 'translateY(-2px)',
-                                            shadow: 'lg',
-                                        }}
-                                        transition="all 0.2s"
-                                        bg={useColorModeValue('white', 'gray.700')}
-                                        color={useColorModeValue('gray.800', 'white')}
-                                        border="1px solid"
-                                        borderColor={useColorModeValue('gray.200', 'gray.600')}
-                                    >
-                                        Continue with Google
-                                    </Button>
                                 </Stack>
                             )}
+
                             {/* Footer Text */}
                             <Text
                                 fontSize="xs"
