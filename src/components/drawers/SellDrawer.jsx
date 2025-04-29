@@ -18,13 +18,13 @@ import {
     List,
     ListItem,
     useToast,
-    useColorModeValue,
+    useColorModeValue, Icon, Tooltip, HStack, useBreakpointValue
 } from "@chakra-ui/react";
 import { useEffect, useState, useCallback, useRef } from "react";
 import debounce from "lodash.debounce";
 import authService from "components/axios/authService.js";
 import { Search2Icon, CheckIcon } from "@chakra-ui/icons";
-
+import { FaMoneyBillWave, FaSave } from "react-icons/fa";
 export function SellDrawer({
                                isOpen,
                                onClose,
@@ -372,25 +372,64 @@ export function SellDrawer({
                     </VStack>
                 </DrawerBody>
 
-                <DrawerFooter>
-                    <Button variant="outline" mr={3} onClick={handleClose}>
-                        Cancel
-                    </Button>
-                    <Button
-                        colorScheme="blue"
-                        mr={3}
-                        isLoading={buttonStates.sell}
-                        onClick={handleSellClick}
-                    >
-                        Save
-                    </Button>
-                    <Button
-                        colorScheme="green"
-                        isLoading={buttonStates.complete}
-                        onClick={handleCompleteClick}
-                    >
-                        Complete
-                    </Button>
+                <DrawerFooter flexDirection="column" p={4}>
+                    <VStack spacing={3} width="100%" align="stretch">
+                        {/* Buttons row - responsive layout */}
+                        <VStack spacing={3} width="100%" align="stretch">
+                            {/* This stack will be column on mobile and row on larger screens */}
+                            <HStack
+                                spacing={3}
+                                justifyContent="flex-end"
+                                flexDirection={useBreakpointValue({ base: "column", sm: "row" })}
+                                width="100%"
+                            >
+                                <Button
+                                    variant="outline"
+                                    onClick={handleClose}
+                                    isDisabled={buttonStates.sell || buttonStates.complete}
+                                    width={useBreakpointValue({ base: "100%", sm: "auto" })}
+                                >
+                                    Cancel
+                                </Button>
+
+                                <Tooltip label="Save order without payment" placement="top">
+                                    <Button
+                                        leftIcon={<Icon as={FaSave} />}
+                                        colorScheme="blue"
+                                        isLoading={buttonStates.sell}
+                                        onClick={handleSellClick}
+                                        variant="outline"
+                                        isDisabled={buttonStates.complete}
+                                        width={useBreakpointValue({ base: "100%", sm: "auto" })}
+                                    >
+                                        Save as Unpaid
+                                    </Button>
+                                </Tooltip>
+
+                                <Tooltip label="Complete with payment received" placement="top">
+                                    <Button
+                                        leftIcon={<Icon as={FaMoneyBillWave} />}
+                                        colorScheme="green"
+                                        isLoading={buttonStates.complete}
+                                        onClick={handleCompleteClick}
+                                        isDisabled={buttonStates.sell}
+                                        width={useBreakpointValue({ base: "100%", sm: "auto" })}
+                                    >
+                                        Complete & Paid
+                                    </Button>
+                                </Tooltip>
+                            </HStack>
+                        </VStack>
+
+                        {/* Help text - responsive text alignment */}
+                        <Text
+                            fontSize="sm"
+                            color="gray.500"
+                            textAlign={useBreakpointValue({ base: "center", sm: "right" })}
+                        >
+                            Use "Save as Unpaid" for orders that have not been paid. Use "Complete & Paid" when payment has been received.
+                        </Text>
+                    </VStack>
                 </DrawerFooter>
             </DrawerContent>
         </Drawer>
