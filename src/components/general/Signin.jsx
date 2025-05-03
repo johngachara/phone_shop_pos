@@ -65,14 +65,14 @@ const axiosInstance = axios.create({
 });
 
 const SignIn = () => {
-    const [isLoading, setIsLoading] = useState(true);
+    const [isLoading, setIsLoading] = useState(false);
     const [isAuthenticating, setIsAuthenticating] = useState(false);
     const navigate = useNavigate();
     const toast = useToast();
     const provider = new GoogleAuthProvider();
     const [hasPasskey, setHasPasskey] = useState(false);
     const [webAuthnSupported, setWebAuthnSupported] = useState(false);
-    const [checkingAuth, setCheckingAuth] = useState(true);
+    const [checkingAuth, setCheckingAuth] = useState(false);
 
     // Authentication flow state
     const [authStep, setAuthStep] = useState(0); // 0: Google Sign In, 1: 2FA
@@ -114,12 +114,7 @@ const SignIn = () => {
                             userDoc.exists() &&
                             userDoc.data().credentials &&
                             userDoc.data().credentials.length > 0;
-
                         setHasPasskey(userHasPasskey);
-
-                        // Complete sign-in flow
-                    //    const idToken = await user.getIdToken();
-                //        await completeAuthentication(user, idToken);
                     } catch (error) {
                         console.error("Error checking user session:", error);
                     }
