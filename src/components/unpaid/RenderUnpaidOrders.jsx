@@ -34,6 +34,26 @@ export default function RenderUnpaidOrders({
     const borderColor = useColorModeValue("gray.200", "gray.700");
     const highlightColor = useColorModeValue("blue.50", "blue.900");
     const priceColor = useColorModeValue("blue.600", "blue.300");
+    function formatPrettyDate(isoDateStr) {
+        const date = new Date(isoDateStr);
+
+        const day = date.getDate();
+        const month = date.toLocaleString('default', { month: 'long' }); // e.g. 'May'
+        const year = date.getFullYear();
+
+        // Add ordinal suffix to the day
+        const suffix = (n) => {
+            if (n >= 11 && n <= 13) return 'th';
+            switch (n % 10) {
+                case 1: return 'st';
+                case 2: return 'nd';
+                case 3: return 'rd';
+                default: return 'th';
+            }
+        };
+
+        return `${day}${suffix(day)} ${month} ${year}`;
+    }
 
     return (
         <MotionBox
@@ -127,14 +147,14 @@ export default function RenderUnpaidOrders({
 
                             <Flex justify="space-between">
                                 <Text color={textColor} fontSize="sm">
-                                    Quantity
+                                    Date
                                 </Text>
                                 <Badge
                                     colorScheme="purple"
                                     borderRadius="full"
                                     px={3}
                                 >
-                                    {item.quantity || ''} units
+                                    {formatPrettyDate(item.created_at) || ''}
                                 </Badge>
                             </Flex>
                         </VStack>
