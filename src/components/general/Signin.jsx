@@ -218,8 +218,10 @@ const SignIn = () => {
                     status: "error",
                     description: "Unable to verify your identity with passkey",
                 });
+                await auth.signOut()
             }
         } catch (error) {
+            await auth.signOut()
             console.error("Passkey verification failed:", error);
             toast({
                 status: "error",
@@ -266,8 +268,10 @@ const SignIn = () => {
                     status: "error",
                     description: "An error occurred registering your passkey",
                 });
+                await auth.signOut()
             }
         } catch (error) {
+            await auth.signOut()
             if (error.name === "InvalidStateError") {
                 toast({
                     status: "error",
@@ -363,6 +367,7 @@ const SignIn = () => {
                 description: "Sign-in link sent to your email!",
             });
         } catch (error) {
+            await auth.signOut()
             console.error("Email link sign-in failed:", error);
             toast({
                 status: "error",
