@@ -72,8 +72,6 @@ const SignIn = () => {
     const provider = new GoogleAuthProvider();
     const [hasPasskey, setHasPasskey] = useState(false);
     const [webAuthnSupported, setWebAuthnSupported] = useState(false);
-    const [checkingAuth, setCheckingAuth] = useState(false);
-
     // Authentication flow state
     const [authStep, setAuthStep] = useState(0); // 0: Google Sign In, 1: 2FA
     const [secondFactorMethod, setSecondFactorMethod] = useState("passkey"); // passkey, email, phone
@@ -101,29 +99,6 @@ const SignIn = () => {
                 console.error("Error checking WebAuthn support:", error);
                 setWebAuthnSupported(false);
             }
-        };
-
-        const checkExistingSession = async () => {
-            setCheckingAuth(true);
-            const unsubscribe = onAuthStateChanged(auth, async (user) => {
-                if (user) {
-                    try {
-                        // User is already signed in, check for passkey
-                        const userDoc = await getDoc(doc(firestore, "users", user.uid));
-                        const userHasPasskey =
-                            userDoc.exists() &&
-                            userDoc.data().credentials &&
-                            userDoc.data().credentials.length > 0;
-                        setHasPasskey(userHasPasskey);
-                    } catch (error) {
-                        console.error("Error checking user session:", error);
-                    }
-                }
-                setCheckingAuth(false);
-                setIsLoading(false);
-            });
-
-            return unsubscribe;
         };
 
         // Check if the current URL contains an email sign-in link
@@ -163,8 +138,7 @@ const SignIn = () => {
         const init = async () => {
             await checkWebAuthnSupport();
             await checkEmailSignInLink();
-            const unsubscribe = await checkExistingSession();
-            return unsubscribe;
+
         };
 
         const unsubscribe = init();
@@ -328,8 +302,9 @@ const SignIn = () => {
             if(!userDoc.exists()){
                toast({
                    status:'error',
-                   message : 'You are not allowed to sign in'
+                   description : 'You are not allowed to sign in'
                })
+                await auth.signOut()
                 return;
             }
             const hasExistingPasskey =
@@ -719,7 +694,7 @@ const SignIn = () => {
                             <Divider />
 
                             {/* Loading State */}
-                            {isLoading || checkingAuth ? (
+                            {isLoading ? (
                                 <VStack py={4} spacing={4}>
                                     <Spinner
                                         size="xl"
@@ -727,9 +702,6 @@ const SignIn = () => {
                                         speed="0.65s"
                                         color={useColorModeValue("blue.500", "blue.300")}
                                     />
-                                    <Text color={useColorModeValue("gray.600", "gray.400")} fontSize="sm">
-                                        {checkingAuth ? "Checking your account..." : "Loading sign-in options..."}
-                                    </Text>
                                 </VStack>
                             ) : isAuthenticating ? (
                                 <VStack py={4} spacing={4}>
