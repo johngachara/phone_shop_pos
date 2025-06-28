@@ -132,7 +132,7 @@ export default function RenderUnpaidOrders({
                                     fontWeight="bold"
                                     color={priceColor}
                                 >
-                                    ${typeof item.selling_price === 'number'
+                                    {typeof item.selling_price === 'number'
                                         ? item.selling_price.toFixed(2)
                                         : item.selling_price || '0.00'}
                                 </Text>

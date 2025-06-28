@@ -220,7 +220,7 @@ const AccessoryBody = ({
                                         <ModernButton
                                             onClick={() => setCurrentPage((prev) => prev - 1)}
                                             isDisabled={currentPage === 1}
-                                            variant="outline"
+                                            variant="elevated"
                                             leftIcon={<ChevronRightIcon size={16} style={{ transform: 'rotate(180deg)' }} />}
                                         >
                                             Previous
@@ -235,7 +235,7 @@ const AccessoryBody = ({
                                         </Text>
                                         <ModernButton
                                             onClick={() => setCurrentPage((prev) => prev + 1)}
-                                            variant="outline"
+                                            variant="elevated"
                                             rightIcon={<ChevronRightIcon size={16} />}
                                         >
                                             Next

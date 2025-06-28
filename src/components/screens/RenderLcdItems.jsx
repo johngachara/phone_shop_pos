@@ -15,8 +15,8 @@ import {
     TrashIcon, 
     PencilIcon, 
     ArrowRightIcon,
-    CurrencyDollarIcon 
-} from "@heroicons/react/24/outline";
+    DollarSign
+} from "lucide-react";
 import { motion } from "framer-motion";
 import ModernCard from "../ui/ModernCard";
 import ModernButton from "../ui/ModernButton";
@@ -85,7 +85,7 @@ export default function RenderLcdItems({
                                 {/* Stock Indicator */}
                                 <StockIndicator 
                                     quantity={item.quantity}
-                                    maxQuantity={100}
+                                    maxQuantity={30}
                                     size="md"
                                 />
 
@@ -98,7 +98,7 @@ export default function RenderLcdItems({
                                             Unit Price
                                         </Text>
                                         <HStack spacing={1}>
-                                            <CurrencyDollarIcon size={20} color={priceColor} />
+                                            <DollarSign size={20} color={priceColor} />
                                             <Heading size="lg" color={priceColor}>
                                                 {parseFloat(item.price).toFixed(0)}
                                             </Heading>

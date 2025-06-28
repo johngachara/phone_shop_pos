@@ -13,7 +13,7 @@ const MotionBox = motion(Box);
 
 const StockIndicator = ({ 
     quantity, 
-    maxQuantity = 100, 
+    maxQuantity = 30,
     showLabel = true,
     size = "md",
     ...props 
@@ -83,13 +83,13 @@ const StockIndicator = ({
                         bg={useColorModeValue("gray.200", "gray.700")}
                     />
                     <HStack justify="space-between" mt={1}>
-                        <Text fontSize="xs" color={textColor}>
+                        <Text fontSize="md" color={textColor}>
                             0
                         </Text>
-                        <Text fontSize="xs" color={textColor} fontWeight="medium">
+                        <Text fontSize="md" color={textColor} fontWeight="medium">
                             {quantity} units
                         </Text>
-                        <Text fontSize="xs" color={textColor}>
+                        <Text fontSize="md" color={textColor}>
                             {maxQuantity}+
                         </Text>
                     </HStack>

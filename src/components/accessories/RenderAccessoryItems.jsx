@@ -10,9 +10,8 @@ import {
     Flex,
     Divider,
 } from '@chakra-ui/react';
-import { 
-    TrashIcon, 
-    PencilIcon, 
+import {EditIcon,TrashIcon} from 'lucide-react'
+import {
     ArrowRightIcon,
     CurrencyDollarIcon 
 } from '@heroicons/react/24/outline';
@@ -62,8 +61,8 @@ const RenderAccessoryItems = ({
                     {/* Stock Indicator */}
                     <StockIndicator 
                         quantity={isLoading ? 0 : item.quantity}
-                        maxQuantity={100}
-                        size="md"
+                        maxQuantity={30}
+                        size="lg"
                     />
 
                     <Divider />
@@ -100,7 +99,7 @@ const RenderAccessoryItems = ({
                         <HStack width="full" spacing={2}>
                             <Tooltip label="Edit Product" hasArrow placement="top">
                                 <IconButton
-                                    icon={<PencilIcon size={18} />}
+                                    icon={<EditIcon size={18} />}
                                     variant="outline"
                                     colorScheme="gray"
                                     flex={1}

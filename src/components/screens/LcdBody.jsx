@@ -12,7 +12,7 @@ import {
     HStack,
     Breadcrumb,
     BreadcrumbItem,
-    BreadcrumbLink,
+    BreadcrumbLink, Flex, SimpleGrid,
 } from "@chakra-ui/react";
 import { 
     MagnifyingGlassIcon,
@@ -271,7 +271,7 @@ export default function LcdBody({
                                 loadingText="Loading more..."
                                 size="lg"
                                 variant="outline"
-                                colorScheme="primary"
+                                colorScheme="elevated"
                             >
                                 Load More Products
                             </ModernButton>

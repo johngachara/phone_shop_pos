@@ -1,4 +1,4 @@
-import { useEffect, useState, memo, useMemo, useCallback } from "react";
+import {  useState, memo, useMemo, useCallback } from "react";
 import {
     Box,
     Flex,
@@ -23,27 +23,27 @@ import {
     Divider,
 } from "@chakra-ui/react";
 import {
-    Bars3Icon,
-    MoonIcon,
-    SunIcon,
-    PlusIcon,
-    StarIcon,
-    ExclamationTriangleIcon,
-    ArrowPathIcon,
-    Cog6ToothIcon,
-    ClockIcon,
-    ChevronLeftIcon,
-    ChevronRightIcon,
-    ArrowRightOnRectangleIcon,
-} from "@heroicons/react/24/outline";
+    Menu,
+    Moon,
+    Sun,
+    Plus,
+    Star,
+    AlertTriangle,
+    RotateCcw,
+    Settings,
+    Clock,
+    ChevronLeft,
+    ChevronRight,
+    LogOut,
+} from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import AddScreenModal from "../screens/AddScreenModal.jsx";
 import AddAccessoryModal from "../accessories/AddAccesoryModal.jsx";
 import SequelizerAuth from "../axios/sequalizerAuth.js";
 
-const MotionBox = motion(Box);
-const MotionFlex = motion(Flex);
+const MotionBox = motion.create(Box);
+const MotionFlex = motion.create(Flex);
 
 const Navbar = () => {
     const location = useLocation();
@@ -111,25 +111,25 @@ const Navbar = () => {
     const navigationItems = [
         {
             to: "/",
-            icon: StarIcon,
+            icon: Star,
             label: "LCD Screens",
             badgeCount: 0,
         },
         {
             to: "/Accessories",
-            icon: Cog6ToothIcon,
+            icon: Settings,
             label: "Accessories",
             badgeCount: 0,
         },
         {
             to: "/SavedOrders",
-            icon: ClockIcon,
+            icon: Clock,
             label: "Unpaid Orders",
             badgeCount: 3,
         },
         {
             to: "/LowStock",
-            icon: ExclamationTriangleIcon,
+            icon: AlertTriangle,
             label: "Low Stock",
             badgeCount: 0,
         },
@@ -137,19 +137,19 @@ const Navbar = () => {
 
     const actionItems = [
         {
-            icon: PlusIcon,
+            icon: Plus,
             label: "Add Screen",
             onClick: handleScreenModalOpen,
             colorScheme: "primary",
         },
         {
-            icon: PlusIcon,
+            icon: Plus,
             label: "Add Accessory",
             onClick: handleAccessoryModalOpen,
             colorScheme: "primary",
         },
         {
-            icon: ArrowPathIcon,
+            icon: RotateCcw,
             label: "Refresh",
             onClick: handleRefresh,
             colorScheme: "gray",
@@ -160,6 +160,8 @@ const Navbar = () => {
     const NavItem = memo(({ to, icon: IconComponent, label, onClick, badgeCount, isMobileView = false }) => {
         const isCurrentPath = location.pathname === to;
         const showText = isMobileView || !isCollapsed;
+        const showIcon = isMobileView || isCollapsed;
+        const iconSize = isCollapsed && !isMobileView ? 24 : 20;
 
         return (
             <MotionBox
@@ -195,7 +197,7 @@ const Navbar = () => {
                         transition="all 0.2s cubic-bezier(0.4, 0, 0.2, 1)"
                     >
                         <HStack spacing={3} w="full">
-                            <IconComponent size={20} />
+                            {showIcon && <IconComponent size={iconSize} />}
                             {showText && (
                                 <Text fontSize="md" flex={1} textAlign="left">
                                     {label}
@@ -257,35 +259,44 @@ const Navbar = () => {
     // Action button component
     const ActionButton = memo(({ icon: IconComponent, label, onClick, isMobileView = false, colorScheme = "gray" }) => {
         const showText = isMobileView || !isCollapsed;
+        const showIcon = isMobileView || isCollapsed;
+        const iconSize = isCollapsed && !isMobileView ? 24 : 20;
 
         return (
             <MotionBox whileHover={{ x: 2 }} transition={{ duration: 0.2 }}>
-                <Button
-                    onClick={onClick}
-                    variant="ghost"
-                    justifyContent={showText ? "flex-start" : "center"}
-                    w="full"
-                    h="12"
-                    mb={2}
-                    color={textColor}
-                    borderRadius="xl"
-                    fontWeight="medium"
-                    _hover={{
-                        bg: hoverBgColor,
-                        color: activeColor,
-                        transform: "translateX(4px)",
-                    }}
-                    transition="all 0.2s cubic-bezier(0.4, 0, 0.2, 1)"
+                <Tooltip
+                    label={isCollapsed && !isMobileView ? label : ""}
+                    placement="right"
+                    isDisabled={showText}
+                    hasArrow
                 >
-                    <HStack spacing={3} w="full">
-                        <IconComponent size={20} />
-                        {showText && (
-                            <Text fontSize="md" flex={1} textAlign="left">
-                                {label}
-                            </Text>
-                        )}
-                    </HStack>
-                </Button>
+                    <Button
+                        onClick={onClick}
+                        variant="ghost"
+                        justifyContent={showText ? "flex-start" : "center"}
+                        w="full"
+                        h="12"
+                        mb={2}
+                        color={textColor}
+                        borderRadius="xl"
+                        fontWeight="medium"
+                        _hover={{
+                            bg: hoverBgColor,
+                            color: activeColor,
+                            transform: "translateX(4px)",
+                        }}
+                        transition="all 0.2s cubic-bezier(0.4, 0, 0.2, 1)"
+                    >
+                        <HStack spacing={3} w="full">
+                            {showIcon && <IconComponent size={iconSize} />}
+                            {showText && (
+                                <Text fontSize="md" flex={1} textAlign="left">
+                                    {label}
+                                </Text>
+                            )}
+                        </HStack>
+                    </Button>
+                </Tooltip>
             </MotionBox>
         );
     });
@@ -315,7 +326,7 @@ const Navbar = () => {
                     whileTap={{ scale: 0.95 }}
                 >
                     <IconButton
-                        icon={isCollapsed ? <ChevronRightIcon size={16} /> : <ChevronLeftIcon size={16} />}
+                        icon={isCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
                         onClick={handleCollapseToggle}
                         size="sm"
                         variant="outline"
@@ -323,7 +334,7 @@ const Navbar = () => {
                         borderColor={borderColor}
                         borderRadius="full"
                         boxShadow="md"
-                        _hover={{ 
+                        _hover={{
                             bg: hoverBgColor,
                             borderColor: activeColor,
                         }}
@@ -391,7 +402,7 @@ const Navbar = () => {
                 >
                     Inventory
                 </Text>
-                
+
                 {navigationItems.map((item) => (
                     <NavItem
                         key={item.to}
@@ -458,14 +469,14 @@ const Navbar = () => {
                 {/* Settings Actions */}
                 <VStack spacing={1}>
                     <ActionButton
-                        icon={colorMode === "light" ? MoonIcon : SunIcon}
+                        icon={colorMode === "light" ? Moon : Sun}
                         label={colorMode === "light" ? "Dark Mode" : "Light Mode"}
                         onClick={toggleColorMode}
                         isMobileView={isMobileView}
                     />
 
                     <ActionButton
-                        icon={ArrowRightOnRectangleIcon}
+                        icon={LogOut}
                         label="Sign Out"
                         onClick={handleLogout}
                         isMobileView={isMobileView}
@@ -527,7 +538,7 @@ const Navbar = () => {
                         </HStack>
                         <IconButton
                             aria-label="Menu"
-                            icon={<Bars3Icon size={24} />}
+                            icon={<Menu size={24} />}
                             onClick={openMobileDrawer}
                             variant="ghost"
                             size="lg"
@@ -584,11 +595,11 @@ const Navbar = () => {
                 overflowX="hidden"
                 boxShadow={shadowColor}
                 initial={{ x: -280 }}
-                animate={{ 
+                animate={{
                     x: 0,
                     width: isCollapsed ? "80px" : "280px"
                 }}
-                transition={{ 
+                transition={{
                     duration: 0.3,
                     ease: "easeOut"
                 }}

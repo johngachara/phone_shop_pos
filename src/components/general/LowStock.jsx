@@ -8,22 +8,16 @@ import {
     Tr,
     Th,
     Td,
-    Button,
     Select,
     Input,
     VStack,
     HStack,
     Text,
     useToast,
-    Card,
-    CardHeader,
-    CardBody,
     InputGroup,
     InputLeftElement,
-    Badge,
     Skeleton,
     useColorModeValue,
-    Icon,
     Container,
     Flex,
     Breadcrumb,
@@ -41,10 +35,9 @@ import { useNavigate } from "react-router-dom";
 import { apiService } from "../../apiService.js";
 import ModernCard from "../ui/ModernCard";
 import ModernButton from "../ui/ModernButton";
-import StatusBadge from "../ui/StatusBadge";
 
-const MotionBox = motion(Box);
-const MotionContainer = motion(Container);
+const MotionBox = motion.create(Box);
+const MotionContainer = motion.create(Container);
 
 const LowStock = () => {
     const [data, setData] = useState([]);
@@ -65,7 +58,7 @@ const LowStock = () => {
     const fetchData = async () => {
         setIsLoading(true);
         try {
-            const result = await apiService.dashboardData("low_stock", localStorage.getItem("access"));
+            const result = await apiService.dashboardData("low_stock");
             setData(prevData => [...prevData, ...result.data]);
             setNextPage(result.nextPage);
         } catch (error) {
@@ -98,14 +91,6 @@ const LowStock = () => {
             value.toString().toLowerCase().includes(searchTerm.toLowerCase())
         )
     );
-
-    const getStockStatus = (quantity) => {
-        if (quantity === 0) return 'error';
-        if (quantity <= 3) return 'error';
-        if (quantity <= 10) return 'warning';
-        return 'info';
-    };
-
     return (
         <Box bg={bgColor} minH="100vh">
             <Navbar />
@@ -268,11 +253,11 @@ const LowStock = () => {
                                                             </Text>
                                                         </Td>
                                                         <Td py={4}>
-                                                            <StatusBadge
-                                                                status={getStockStatus(item.quantity)}
-                                                                label={`${item.quantity} units left`}
+                                                            <Text
                                                                 size="md"
-                                                            />
+                                                            >
+                                                                {item.quantity}
+                                                            </Text>
                                                         </Td>
                                                     </MotionBox>
                                                 ))
@@ -320,7 +305,7 @@ const LowStock = () => {
                                     loadingText="Loading more items..."
                                     isDisabled={!nextPage || isLoading}
                                     size="lg"
-                                    variant="outline"
+                                    variant="elevated"
                                 >
                                     Load More Items
                                 </ModernButton>

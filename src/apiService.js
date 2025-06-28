@@ -47,6 +47,8 @@ export const apiService = {
         let axiosInstance;
         if (dataType === 'accessory_sales') {
             endpoint = `${API_URL}/nodeapp/Sales`;
+
+   // not being used but will change it lairers
             token = localStorage.getItem("accessories");
             axiosInstance = axios.get(endpoint,{
                 headers:{
