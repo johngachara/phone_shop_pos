@@ -18,8 +18,19 @@ import {
     BreadcrumbItem,
     BreadcrumbLink,
 } from '@chakra-ui/react';
-import { SearchIcon, ChevronRightIcon, RepeatIcon } from '@chakra-ui/icons';
+import { 
+    MagnifyingGlassIcon, 
+    ChevronRightIcon, 
+    ArrowPathIcon,
+    Cog6ToothIcon 
+} from '@heroicons/react/24/outline';
+import { motion } from "framer-motion";
+import ModernCard from '../ui/ModernCard';
+import ModernButton from '../ui/ModernButton';
 import Navbar from '../general/Navbar.jsx';
+
+const MotionBox = motion(Box);
+const MotionContainer = motion(Container);
 
 const AccessoryBody = ({
                            pageBgColor,
@@ -33,40 +44,47 @@ const AccessoryBody = ({
                            setCurrentPage,
                            hasData
                        }) => {
-    const headerBg = useColorModeValue('white', 'gray.800');
+    const cardBgColor = useColorModeValue('white', 'gray.800');
+    const textColor = useColorModeValue('gray.800', 'white');
+    const mutedTextColor = useColorModeValue('gray.600', 'gray.400');
     const borderColor = useColorModeValue('gray.200', 'gray.700');
-    const searchBg = useColorModeValue('gray.50', 'gray.700');
 
-    // Determine what to render in the content area
     const renderContent = () => {
         if (!hasData && !loading && searchResults.length === 0) {
-            // No data case
             return (
-                <Card bg={headerBg} shadow="sm">
-                    <CardBody>
-                        <VStack py={10} spacing={4}>
-                            <Text
-                                fontSize={{ base: 'lg', md: 'xl' }}
-                                color="gray.500"
-                                textAlign="center"
-                            >
-                                No accessories found matching your search.
+                <ModernCard variant="outlined">
+                    <VStack spacing={6} py={12} textAlign="center">
+                        <Box
+                            p={4}
+                            bg="gray.100"
+                            borderRadius="full"
+                            color="gray.400"
+                        >
+                            <Cog6ToothIcon size={48} />
+                        </Box>
+                        <VStack spacing={2}>
+                            <Heading size="lg" color={textColor}>
+                                No accessories found
+                            </Heading>
+                            <Text color={mutedTextColor} fontSize="lg">
+                                {searchParam 
+                                    ? "Try adjusting your search terms" 
+                                    : "Start by adding some accessories to your inventory"
+                                }
                             </Text>
-                            <Button
-                                leftIcon={<RepeatIcon />}
-                                colorScheme="blue"
-                                variant="outline"
-                                onClick={() => setSearchParam('')}
-                            >
-                                Clear Search
-                            </Button>
                         </VStack>
-                    </CardBody>
-                </Card>
+                        <ModernButton
+                            leftIcon={<ArrowPathIcon size={16} />}
+                            variant="outline"
+                            onClick={() => setSearchParam('')}
+                        >
+                            Clear Search
+                        </ModernButton>
+                    </VStack>
+                </ModernCard>
             );
         }
 
-        // Data case - the renderItems function will handle showing skeletons for individual items
         return renderItems(searchResults.length > 0 ? searchResults : (shopData || []));
     };
 
@@ -76,108 +94,158 @@ const AccessoryBody = ({
             <Box
                 bg={pageBgColor}
                 flex={1}
-                ml={{ base: 0, md: '250px' }}
+                ml={{ base: 0, md: '280px' }}
             >
-                <Container maxW="container.xl" py={6}>
-                    <VStack spacing={6} align="stretch">
-                        {/* Header Section - Always render */}
-                        <Card
-                            bg={headerBg}
-                            borderBottom="1px"
-                            borderColor={borderColor}
-                            shadow="sm"
+                <MotionContainer
+                    maxW="8xl"
+                    py={8}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.5 }}
+                >
+                    <VStack spacing={8} align="stretch">
+                        {/* Header Section */}
+                        <MotionBox
+                            initial={{ y: -20, opacity: 0 }}
+                            animate={{ y: 0, opacity: 1 }}
+                            transition={{ duration: 0.5, delay: 0.1 }}
                         >
-                            <CardBody>
-                                <Flex
-                                    direction={{ base: 'column', md: 'row' }}
-                                    justify="space-between"
-                                    align={{ base: 'stretch', md: 'center' }}
-                                    gap={4}
-                                >
-                                    <VStack align="stretch" spacing={2}>
-                                        <Breadcrumb
-                                            spacing="8px"
-                                            separator={<ChevronRightIcon color="gray.500" />}
-                                        >
-                                            <BreadcrumbItem>
-                                                <BreadcrumbLink color="blue.500">Shop</BreadcrumbLink>
-                                            </BreadcrumbItem>
-                                            <BreadcrumbItem isCurrentPage>
-                                                <BreadcrumbLink>Accessories</BreadcrumbLink>
-                                            </BreadcrumbItem>
-                                        </Breadcrumb>
+                            <ModernCard variant="elevated">
+                                <VStack spacing={6} align="stretch">
+                                    {/* Breadcrumb */}
+                                    <Breadcrumb
+                                        spacing="8px"
+                                        separator={<ChevronRightIcon size={16} color={mutedTextColor} />}
+                                        fontSize="sm"
+                                        color={mutedTextColor}
+                                    >
+                                        <BreadcrumbItem>
+                                            <BreadcrumbLink color="primary.500" fontWeight="medium">
+                                                Inventory
+                                            </BreadcrumbLink>
+                                        </BreadcrumbItem>
+                                        <BreadcrumbItem isCurrentPage>
+                                            <BreadcrumbLink color={textColor} fontWeight="medium">
+                                                Accessories
+                                            </BreadcrumbLink>
+                                        </BreadcrumbItem>
+                                    </Breadcrumb>
 
-                                        <Heading
-                                            as="h1"
-                                            size={{ base: 'lg', md: 'xl' }}
-                                            color={useColorModeValue('gray.800', 'white')}
-                                        >
-                                            Shop 2 Accessories
-                                        </Heading>
-                                    </VStack>
+                                    {/* Header Content */}
+                                    <Flex
+                                        direction={{ base: "column", lg: "row" }}
+                                        justify="space-between"
+                                        align={{ base: "stretch", lg: "center" }}
+                                        gap={6}
+                                    >
+                                        <VStack align="start" spacing={2}>
+                                            <HStack spacing={3}>
+                                                <Box
+                                                    p={2}
+                                                    bg="primary.100"
+                                                    borderRadius="lg"
+                                                    color="primary.600"
+                                                >
+                                                    <Cog6ToothIcon size={24} />
+                                                </Box>
+                                                <Heading
+                                                    fontSize={{ base: "2xl", md: "3xl" }}
+                                                    fontWeight="bold"
+                                                    color={textColor}
+                                                    letterSpacing="tight"
+                                                >
+                                                    Accessories Inventory
+                                                </Heading>
+                                            </HStack>
+                                            <Text color={mutedTextColor} fontSize="lg">
+                                                Manage your accessories and track stock levels
+                                            </Text>
+                                        </VStack>
 
-                                    <InputGroup maxW={{ base: '100%', md: 'md' }}>
-                                        <Input
-                                            placeholder="Search accessories..."
-                                            value={searchParam}
-                                            onChange={(e) => setSearchParam(e.target.value)}
-                                            bg={searchBg}
-                                            borderRadius="lg"
-                                            fontSize="md"
-                                            _focus={{
-                                                borderColor: 'blue.400',
-                                                boxShadow: 'outline',
-                                            }}
-                                        />
-                                        <InputRightElement>
-                                            <Icon as={SearchIcon} color="gray.500" />
-                                        </InputRightElement>
-                                    </InputGroup>
-                                </Flex>
-                            </CardBody>
-                        </Card>
+                                        {/* Search Bar */}
+                                        <Box minW={{ base: "full", lg: "400px" }}>
+                                            <InputGroup size="lg">
+                                                <Input
+                                                    placeholder="Search accessories..."
+                                                    value={searchParam}
+                                                    onChange={(e) => setSearchParam(e.target.value)}
+                                                    borderRadius="xl"
+                                                    bg={cardBgColor}
+                                                    borderColor={borderColor}
+                                                    borderWidth="2px"
+                                                    fontSize="md"
+                                                    _hover={{
+                                                        borderColor: "primary.400",
+                                                    }}
+                                                    _focus={{
+                                                        borderColor: "primary.500",
+                                                        boxShadow: "0 0 0 1px rgba(74, 144, 226, 0.6)",
+                                                    }}
+                                                    _placeholder={{
+                                                        color: mutedTextColor,
+                                                    }}
+                                                />
+                                                <InputRightElement pointerEvents="none">
+                                                    <Icon 
+                                                        as={MagnifyingGlassIcon} 
+                                                        color={mutedTextColor} 
+                                                        boxSize={5}
+                                                    />
+                                                </InputRightElement>
+                                            </InputGroup>
+                                        </Box>
+                                    </Flex>
+                                </VStack>
+                            </ModernCard>
+                        </MotionBox>
 
                         {/* Content Section */}
-                        <Box>
+                        <MotionBox
+                            initial={{ y: 20, opacity: 0 }}
+                            animate={{ y: 0, opacity: 1 }}
+                            transition={{ duration: 0.5, delay: 0.2 }}
+                        >
                             {renderContent()}
-                        </Box>
+                        </MotionBox>
 
-                        {/* Pagination - Only render when not searching */}
+                        {/* Pagination */}
                         {searchResults.length === 0 && (
-                            <Card bg={headerBg} shadow="sm">
-                                <CardBody>
+                            <MotionBox
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                transition={{ duration: 0.3, delay: 0.4 }}
+                            >
+                                <ModernCard variant="outlined">
                                     <HStack justify="center" spacing={4}>
-                                        <Button
+                                        <ModernButton
                                             onClick={() => setCurrentPage((prev) => prev - 1)}
                                             isDisabled={currentPage === 1}
-                                            size={{ base: 'md', md: 'lg' }}
-                                            colorScheme="blue"
                                             variant="outline"
-                                            leftIcon={<ChevronRightIcon transform="rotate(180deg)" />}
+                                            leftIcon={<ChevronRightIcon size={16} style={{ transform: 'rotate(180deg)' }} />}
                                         >
-                                            Previous Page
-                                        </Button>
+                                            Previous
+                                        </ModernButton>
                                         <Text
                                             fontSize="md"
                                             fontWeight="medium"
-                                            color="gray.600"
+                                            color={textColor}
+                                            px={4}
                                         >
                                             Page {currentPage}
                                         </Text>
-                                        <Button
+                                        <ModernButton
                                             onClick={() => setCurrentPage((prev) => prev + 1)}
-                                            size={{ base: 'md', md: 'lg' }}
-                                            colorScheme="blue"
-                                            rightIcon={<ChevronRightIcon />}
+                                            variant="outline"
+                                            rightIcon={<ChevronRightIcon size={16} />}
                                         >
-                                            Next Page
-                                        </Button>
+                                            Next
+                                        </ModernButton>
                                     </HStack>
-                                </CardBody>
-                            </Card>
+                                </ModernCard>
+                            </MotionBox>
                         )}
                     </VStack>
-                </Container>
+                </MotionContainer>
             </Box>
         </Flex>
     );

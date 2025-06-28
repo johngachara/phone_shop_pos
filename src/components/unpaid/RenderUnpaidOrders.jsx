@@ -1,11 +1,6 @@
 import {
     Badge,
     Box,
-    Button,
-    Divider,
-    Flex,
-    HStack,
-    Icon,
     Text,
     VStack,
     Card,
@@ -13,10 +8,21 @@ import {
     CardBody,
     Stack,
     useColorModeValue,
-    Tooltip
+    Tooltip,
+    HStack,
+    Flex,
+    Divider,
 } from "@chakra-ui/react";
-import { FaShoppingCart, FaUndo, FaClock } from "react-icons/fa";
+import { 
+    ShoppingCartIcon, 
+    ArrowUturnLeftIcon, 
+    ClockIcon,
+    CurrencyDollarIcon,
+    CalendarDaysIcon 
+} from "@heroicons/react/24/outline";
 import { motion } from "framer-motion";
+import ModernButton from "../ui/ModernButton";
+import StatusBadge from "../ui/StatusBadge";
 
 const MotionBox = motion(Box);
 
@@ -32,16 +38,16 @@ export default function RenderUnpaidOrders({
                                                setDialogOpen
                                            }) {
     const borderColor = useColorModeValue("gray.200", "gray.700");
-    const highlightColor = useColorModeValue("blue.50", "blue.900");
-    const priceColor = useColorModeValue("blue.600", "blue.300");
+    const highlightColor = useColorModeValue("primary.50", "primary.900");
+    const priceColor = useColorModeValue("primary.600", "primary.300");
+    const mutedTextColor = useColorModeValue("gray.500", "gray.400");
+    
     function formatPrettyDate(isoDateStr) {
         const date = new Date(isoDateStr);
-
         const day = date.getDate();
-        const month = date.toLocaleString('default', { month: 'long' }); // e.g. 'May'
+        const month = date.toLocaleString('default', { month: 'long' });
         const year = date.getFullYear();
 
-        // Add ordinal suffix to the day
         const suffix = (n) => {
             if (n >= 11 && n <= 13) return 'th';
             switch (n % 10) {
@@ -65,7 +71,7 @@ export default function RenderUnpaidOrders({
         >
             <Card
                 bg={cardBgColor}
-                borderRadius="xl"
+                borderRadius="2xl"
                 overflow="hidden"
                 boxShadow="sm"
                 borderWidth="1px"
@@ -73,88 +79,93 @@ export default function RenderUnpaidOrders({
                 _hover={{
                     transform: "translateY(-4px)",
                     shadow: "lg",
-                    borderColor: "blue.400"
+                    borderColor: "primary.400"
                 }}
-                transition="all 0.2s"
+                transition="all 0.2s cubic-bezier(0.4, 0, 0.2, 1)"
             >
                 <CardHeader
-                    bg={useColorModeValue("blue.500", "blue.600")}
+                    bg="linear-gradient(135deg, #4A90E2 0%, #667EEA 100%)"
                     py={4}
-                    px={5}
+                    px={6}
                 >
                     <Flex justify="space-between" align="center">
-                        <Text
-                            color="white"
-                            fontWeight="bold"
-                            fontSize="lg"
-                            isTruncated
-                        >
-                            {item.customer_name || ''}
-                        </Text>
-                        <Tooltip label="Awaiting Payment" hasArrow>
-                            <Badge
-                                bg="white"
-                                color="blue.500"
-                                fontSize="xs"
-                                px={2}
-                                py={1}
-                                borderRadius="full"
-                                display="flex"
-                                alignItems="center"
-                                gap={1}
+                        <VStack align="start" spacing={1}>
+                            <Text
+                                color="white"
+                                fontWeight="bold"
+                                fontSize="lg"
+                                isTruncated
                             >
-                                <Icon as={FaClock} />
-                                Unpaid
-                            </Badge>
-                        </Tooltip>
+                                {item.customer_name || 'Unknown Customer'}
+                            </Text>
+                            <Text color="whiteAlpha.800" fontSize="sm">
+                                Order #{item.id}
+                            </Text>
+                        </VStack>
+                        <StatusBadge 
+                            status="pending"
+                            label="Unpaid"
+                            size="md"
+                        />
                     </Flex>
                 </CardHeader>
 
-                <CardBody p={5}>
-                    <Stack spacing={4}>
-                        {/* Price Section */}
-                        <Flex
-                            justify="space-between"
-                            align="center"
+                <CardBody p={6}>
+                    <Stack spacing={5}>
+                        {/* Amount Section */}
+                        <Box
                             bg={highlightColor}
-                            p={3}
-                            borderRadius="lg"
+                            p={4}
+                            borderRadius="xl"
+                            border="1px solid"
+                            borderColor={useColorModeValue("primary.200", "primary.700")}
                         >
-                            <Text fontWeight="medium" color={textColor}>
-                                Total Amount:
-                            </Text>
-                            <Text
-                                fontSize="xl"
-                                fontWeight="bold"
-                                color={priceColor}
-                            >
-                                {typeof item.selling_price === 'number'
-                                ? item.selling_price.toFixed(2)
-                                : item.selling_price || ''}
-                            </Text>
-                        </Flex>
-
-                        {/* Order Details */}
-                        <VStack align="stretch" spacing={3}>
-                            <Flex justify="space-between">
-                                <Text color={textColor} fontSize="sm">
-                                    Product
-                                </Text>
-                                <Text fontWeight="medium" color={textColor}>
-                                    {item.product_name || ''}
+                            <Flex justify="space-between" align="center">
+                                <HStack spacing={2}>
+                                    <CurrencyDollarIcon size={20} color={priceColor} />
+                                    <Text fontWeight="medium" color={textColor} fontSize="sm">
+                                        Total Amount
+                                    </Text>
+                                </HStack>
+                                <Text
+                                    fontSize="2xl"
+                                    fontWeight="bold"
+                                    color={priceColor}
+                                >
+                                    ${typeof item.selling_price === 'number'
+                                        ? item.selling_price.toFixed(2)
+                                        : item.selling_price || '0.00'}
                                 </Text>
                             </Flex>
+                        </Box>
 
-                            <Flex justify="space-between">
-                                <Text color={textColor} fontSize="sm">
-                                    Date
+                        {/* Order Details */}
+                        <VStack align="stretch" spacing={4}>
+                            <Box>
+                                <Text color={mutedTextColor} fontSize="sm" fontWeight="medium" mb={1}>
+                                    Product
                                 </Text>
+                                <Text fontWeight="semibold" color={textColor} fontSize="md">
+                                    {item.product_name || 'Unknown Product'}
+                                </Text>
+                            </Box>
+
+                            <Flex justify="space-between" align="center">
+                                <HStack spacing={2}>
+                                    <CalendarDaysIcon size={16} color={mutedTextColor} />
+                                    <Text color={mutedTextColor} fontSize="sm" fontWeight="medium">
+                                        Order Date
+                                    </Text>
+                                </HStack>
                                 <Badge
                                     colorScheme="purple"
                                     borderRadius="full"
                                     px={3}
+                                    py={1}
+                                    fontSize="xs"
+                                    fontWeight="semibold"
                                 >
-                                    {formatPrettyDate(item.created_at) || ''}
+                                    {formatPrettyDate(item.created_at) || 'Unknown Date'}
                                 </Badge>
                             </Flex>
                         </VStack>
@@ -162,39 +173,36 @@ export default function RenderUnpaidOrders({
                         <Divider />
 
                         {/* Action Buttons */}
-                        <HStack spacing={3}>
-                            <Button
+                        <VStack spacing={3}>
+                            <ModernButton
                                 onClick={() => complete(item.id)}
-                                colorScheme="blue"
+                                variant="gradient"
+                                colorScheme="primary"
                                 size="lg"
-                                flex={1}
-                                leftIcon={<Icon as={FaShoppingCart} />}
+                                isFullWidth
+                                leftIcon={<ShoppingCartIcon size={18} />}
                                 isLoading={loadState[item.id]}
                                 loadingText="Completing..."
-                                _hover={{ transform: "translateY(-1px)" }}
                             >
-                                Complete
-                            </Button>
-                            <Button
+                                Mark as Paid
+                            </ModernButton>
+                            
+                            <ModernButton
                                 onClick={() => {
                                     setRefundId(item.id);
                                     setDialogOpen(true);
                                 }}
-                                colorScheme="red"
                                 variant="outline"
+                                colorScheme="red"
                                 size="lg"
-                                flex={1}
-                                leftIcon={<Icon as={FaUndo} />}
+                                isFullWidth
+                                leftIcon={<ArrowUturnLeftIcon size={18} />}
                                 isLoading={sending[item.id]}
-                                loadingText="Refunding..."
-                                _hover={{
-                                    transform: "translateY(-1px)",
-                                    bg: "red.50"
-                                }}
+                                loadingText="Processing..."
                             >
-                                Refund
-                            </Button>
-                        </HStack>
+                                Refund Order
+                            </ModernButton>
+                        </VStack>
                     </Stack>
                 </CardBody>
             </Card>

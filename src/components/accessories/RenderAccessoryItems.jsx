@@ -1,23 +1,27 @@
 import {
     Box,
-    Button,
     Heading,
     HStack,
     Text,
-    Badge,
     VStack,
     useColorModeValue,
     IconButton,
-    Divider,
     Tooltip,
-    Card,
-    CardBody,
     Flex,
-    Progress,
-    Stack,
-    Skeleton,
+    Divider,
 } from '@chakra-ui/react';
-import { DeleteIcon, EditIcon, ArrowForwardIcon } from '@chakra-ui/icons';
+import { 
+    TrashIcon, 
+    PencilIcon, 
+    ArrowRightIcon,
+    CurrencyDollarIcon 
+} from '@heroicons/react/24/outline';
+import { motion } from "framer-motion";
+import ModernCard from "../ui/ModernCard";
+import ModernButton from "../ui/ModernButton";
+import StockIndicator from "../ui/StockIndicator";
+
+const MotionBox = motion(Box);
 
 const RenderAccessoryItems = ({
                                   item,
@@ -27,159 +31,115 @@ const RenderAccessoryItems = ({
                                   setIsDeleteDialogOpen,
                                   isLoading
                               }) => {
-    const bgColor = useColorModeValue('white', 'gray.800');
-    const textColor = useColorModeValue('gray.600', 'gray.300');
-    const cardHoverBg = useColorModeValue('gray.50', 'gray.700');
-
-    // Stock level calculation
-    const getStockStatus = (quantity) => {
-        if (quantity === 0) return { color: 'red', status: 'Out of Stock', progress: 0 };
-        if (quantity <= 3) return { color: 'red', status: 'Critical', progress: 20 };
-        if (quantity <= 10) return { color: 'yellow', status: 'Moderate', progress: 60 };
-        if (quantity <= 50) return { color: 'blue', status: 'Good', progress: 80 };
-        return { color: 'green', status: 'Optimal', progress: 100 };
-    };
-
-    const stockStatus = isLoading ? { color: 'gray', status: 'Loading', progress: 50 } : getStockStatus(item.quantity);
+    const textColor = useColorModeValue('gray.700', 'gray.200');
+    const priceColor = useColorModeValue('primary.600', 'primary.300');
+    const mutedTextColor = useColorModeValue('gray.500', 'gray.400');
 
     return (
-        <Box>
-            <Card
-                bg={bgColor}
-                id={index}
-                height="100%"
-                borderRadius="xl"
-                overflow="hidden"
-                position="relative"
-                _hover={{
-                    transform: 'translateY(-2px)',
-                    shadow: 'lg',
-                    bg: cardHoverBg
-                }}
-                transition="all 0.2s"
-            >
-                <CardBody p={5}>
-                    <VStack spacing={4} align="stretch">
-                        {/* Header with Stock Badge */}
-                        <Flex justify="space-between" align="start" gap={2}>
-                            <Skeleton isLoaded={!isLoading} flex="1">
-                                <Heading
-                                    size="md"
-                                    noOfLines={2}
-                                >
-                                    {item?.product_name || "Product Name"}
-                                </Heading>
-                            </Skeleton>
-                            <Skeleton isLoaded={!isLoading} borderRadius="full">
-                                <Tooltip
-                                    label={`${isLoading ? '0' : item.quantity} units remaining`}
-                                    placement="top"
-                                    hasArrow
-                                >
-                                    <Badge
-                                        colorScheme={stockStatus.color}
-                                        px={3}
-                                        py={1}
-                                        borderRadius="full"
-                                        textTransform="none"
-                                        display="flex"
-                                        alignItems="center"
-                                        gap={2}
-                                    >
-                                        {stockStatus.status}
-                                    </Badge>
-                                </Tooltip>
-                            </Skeleton>
-                        </Flex>
+        <MotionBox
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: index * 0.1 }}
+        >
+            <ModernCard variant="elevated" isHoverable>
+                <VStack spacing={5} align="stretch">
+                    {/* Product Header */}
+                    <Box>
+                        <Heading
+                            size="md"
+                            color={textColor}
+                            noOfLines={2}
+                            lineHeight="1.3"
+                            mb={2}
+                        >
+                            {item?.product_name || "Product Name"}
+                        </Heading>
+                        <Text fontSize="sm" color={mutedTextColor}>
+                            Product ID: {item?.id || "N/A"}
+                        </Text>
+                    </Box>
 
-                        {/* Stock Level Indicator */}
-                        <Box>
-                            <Text fontSize="sm" mb={1} color={textColor}>
-                                Stock Level
-                            </Text>
-                            <Skeleton isLoaded={!isLoading} height="8px" borderRadius="full">
-                                <Progress
-                                    value={stockStatus.progress}
-                                    colorScheme={stockStatus.color}
-                                    borderRadius="full"
-                                    size="sm"
-                                    hasStripe={!isLoading && item.quantity > 0}
-                                    isAnimated={!isLoading && item.quantity > 0}
-                                />
-                            </Skeleton>
-                            <Skeleton isLoaded={!isLoading} mt={1} width="60px" float="right">
-                                <Text
-                                    fontSize="sm"
-                                    color={textColor}
-                                    textAlign="right"
-                                >
-                                    {isLoading ? '0' : item.quantity} units
-                                </Text>
-                            </Skeleton>
-                        </Box>
+                    {/* Stock Indicator */}
+                    <StockIndicator 
+                        quantity={isLoading ? 0 : item.quantity}
+                        maxQuantity={100}
+                        size="md"
+                    />
 
-                        <Divider />
+                    <Divider />
 
-                        {/* Price Section */}
-                        <Stack>
-                            <Text fontSize="sm" color={textColor}>
+                    {/* Price Section */}
+                    <Flex align="center" justify="space-between">
+                        <VStack align="start" spacing={1}>
+                            <Text fontSize="sm" color={mutedTextColor} fontWeight="medium">
                                 Unit Price
                             </Text>
-                            <Skeleton isLoaded={!isLoading} height="36px" width="100px">
-                                <Heading size="lg" color={useColorModeValue('blue.600', 'blue.300')}>
-                                    {isLoading ? '0.00' : item.price}
+                            <HStack spacing={1}>
+                                <CurrencyDollarIcon size={20} color={priceColor} />
+                                <Heading size="lg" color={priceColor}>
+                                    {isLoading ? '0.00' : parseFloat(item.price).toFixed(0)}
                                 </Heading>
-                            </Skeleton>
-                        </Stack>
-
-                        {/* Action Buttons */}
-                        <VStack spacing={3}>
-                            <Button
-                                colorScheme="blue"
-                                width="full"
-                                size="lg"
-                                isDisabled={isLoading || (item && item.quantity < 1)}
-                                onClick={() => openDrawer("sell", item)}
-                                rightIcon={<ArrowForwardIcon />}
-                                _hover={{ transform: 'translateY(-1px)' }}
-                            >
-                                Quick Sell
-                            </Button>
-
-                            <HStack width="full" spacing={2}>
-                                <Tooltip label="Update Item" hasArrow>
-                                    <IconButton
-                                        icon={<EditIcon />}
-                                        variant="outline"
-                                        colorScheme="gray"
-                                        flex={1}
-                                        onClick={() => openDrawer("update", item)}
-                                        size="lg"
-                                        aria-label="Update item"
-                                        isDisabled={isLoading}
-                                    />
-                                </Tooltip>
-                                <Tooltip label="Delete Item" hasArrow>
-                                    <IconButton
-                                        icon={<DeleteIcon />}
-                                        variant="outline"
-                                        colorScheme="red"
-                                        flex={1}
-                                        onClick={() => {
-                                            setDeleteItemId(item.id);
-                                            setIsDeleteDialogOpen(true);
-                                        }}
-                                        size="lg"
-                                        aria-label="Delete item"
-                                        isDisabled={isLoading}
-                                    />
-                                </Tooltip>
                             </HStack>
                         </VStack>
+                    </Flex>
+
+                    {/* Action Buttons */}
+                    <VStack spacing={3}>
+                        <ModernButton
+                            variant="gradient"
+                            colorScheme="primary"
+                            size="lg"
+                            isFullWidth
+                            isDisabled={isLoading || (item && item.quantity < 1)}
+                            onClick={() => openDrawer("sell", item)}
+                            rightIcon={<ArrowRightIcon size={16} />}
+                        >
+                            Quick Sell
+                        </ModernButton>
+
+                        <HStack width="full" spacing={2}>
+                            <Tooltip label="Edit Product" hasArrow placement="top">
+                                <IconButton
+                                    icon={<PencilIcon size={18} />}
+                                    variant="outline"
+                                    colorScheme="gray"
+                                    flex={1}
+                                    onClick={() => openDrawer("update", item)}
+                                    size="lg"
+                                    aria-label="Update item"
+                                    isDisabled={isLoading}
+                                    borderRadius="lg"
+                                    _hover={{
+                                        transform: "translateY(-1px)",
+                                        boxShadow: "md",
+                                    }}
+                                />
+                            </Tooltip>
+                            <Tooltip label="Delete Product" hasArrow placement="top">
+                                <IconButton
+                                    icon={<TrashIcon size={18} />}
+                                    variant="outline"
+                                    colorScheme="red"
+                                    flex={1}
+                                    onClick={() => {
+                                        setDeleteItemId(item.id);
+                                        setIsDeleteDialogOpen(true);
+                                    }}
+                                    size="lg"
+                                    aria-label="Delete item"
+                                    isDisabled={isLoading}
+                                    borderRadius="lg"
+                                    _hover={{
+                                        transform: "translateY(-1px)",
+                                        boxShadow: "md",
+                                    }}
+                                />
+                            </Tooltip>
+                        </HStack>
                     </VStack>
-                </CardBody>
-            </Card>
-        </Box>
+                </VStack>
+            </ModernCard>
+        </MotionBox>
     );
 };
 

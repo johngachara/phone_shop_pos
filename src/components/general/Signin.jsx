@@ -33,9 +33,19 @@ import {
     Stepper,
     Radio,
     RadioGroup,
+    HStack,
 } from "@chakra-ui/react";
-import { FcGoogle } from "react-icons/fc";
-import { FiKey, FiMail, FiArrowRight, FiX, FiShield } from "react-icons/fi";
+import { 
+    FcGoogle 
+} from "react-icons/fc";
+import { 
+    KeyIcon, 
+    EnvelopeIcon, 
+    ArrowRightIcon, 
+    XMarkIcon, 
+    ShieldCheckIcon 
+} from "@heroicons/react/24/outline";
+import { motion } from "framer-motion";
 import SequelizerAuth from "../axios/sequalizerAuth.js";
 import {
     GoogleAuthProvider,
@@ -56,6 +66,11 @@ import {
 } from "@simplewebauthn/browser";
 import axios from "axios";
 import { doc, getDoc } from "firebase/firestore";
+import ModernCard from "../ui/ModernCard";
+import ModernButton from "../ui/ModernButton";
+
+const MotionBox = motion(Box);
+const MotionFlex = motion(Flex);
 
 const axiosInstance = axios.create({
     baseURL: import.meta.env.VITE_ALLTECH_URL,
@@ -72,9 +87,10 @@ const SignIn = () => {
     const provider = new GoogleAuthProvider();
     const [hasPasskey, setHasPasskey] = useState(false);
     const [webAuthnSupported, setWebAuthnSupported] = useState(false);
+    
     // Authentication flow state
-    const [authStep, setAuthStep] = useState(0); // 0: Google Sign In, 1: 2FA
-    const [secondFactorMethod, setSecondFactorMethod] = useState("passkey"); // passkey, email, phone
+    const [authStep, setAuthStep] = useState(0);
+    const [secondFactorMethod, setSecondFactorMethod] = useState("passkey");
     const [waitingForPasskey, setWaitingForPasskey] = useState(false);
 
     // Email 2FA
@@ -82,11 +98,18 @@ const SignIn = () => {
     const [emailSent, setEmailSent] = useState(false);
     const [emailSending, setEmailSending] = useState(false);
 
-
-
     // Current user state after first factor
     const [currentUser, setCurrentUser] = useState(null);
     const [currentIdToken, setCurrentIdToken] = useState(null);
+
+    // Modern color scheme
+    const bgGradient = useColorModeValue(
+        "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+        "linear-gradient(135deg, #2d3748 0%, #1a202c 100%)"
+    );
+    const cardBg = useColorModeValue("white", "gray.800");
+    const textColor = useColorModeValue("gray.800", "white");
+    const mutedTextColor = useColorModeValue("gray.600", "gray.400");
 
     // Check WebAuthn support on component mount
     useEffect(() => {
@@ -101,13 +124,11 @@ const SignIn = () => {
             }
         };
 
-        // Check if the current URL contains an email sign-in link
         const checkEmailSignInLink = async () => {
             if (isSignInWithEmailLink(auth, window.location.href)) {
                 let emailForSignIn = localStorage.getItem("emailForSignIn");
 
                 if (!emailForSignIn) {
-                    // If email is not found in local storage, prompt user
                     emailForSignIn = window.prompt("Please provide your email for confirmation");
                 }
 
@@ -117,11 +138,9 @@ const SignIn = () => {
                     const user = result.user;
                     const idToken = await user.getIdToken();
 
-                    // Clear the URL and email from localStorage
                     window.history.replaceState({}, document.title, window.location.pathname);
                     localStorage.removeItem("emailForSignIn");
 
-                    // Complete authentication
                     await completeAuthentication(user, idToken);
                 } catch (error) {
                     console.error("Email link sign-in failed:", error);
@@ -138,23 +157,14 @@ const SignIn = () => {
         const init = async () => {
             await checkWebAuthnSupport();
             await checkEmailSignInLink();
-
         };
 
-        const unsubscribe = init();
-
-        // Cleanup subscription on unmount
-        return () => {
-            if (typeof unsubscribe === "function") {
-                unsubscribe();
-            }
-        };
+        init();
     }, [navigate, toast]);
 
     // Complete the authentication with backend services
     const completeAuthentication = async (user, idToken) => {
         try {
-            // Authenticate with backend
             const { data: authData, status: authStatus } = await authService.mainLogin(idToken);
             const { data: sequelData, status: sequelStatus } = await apiService.sequelizer_login(idToken);
 
@@ -167,9 +177,7 @@ const SignIn = () => {
                     description: "Successfully signed in",
                 });
 
-                navigate("/", {
-                    replace: true,
-                });
+                navigate("/", { replace: true });
                 return true;
             } else {
                 throw new Error("Failed to authenticate with backend services");
@@ -194,14 +202,11 @@ const SignIn = () => {
                 throw new Error("No user credentials found");
             }
 
-            // Get authentication options
             const optionsResponse = await axiosInstance.post("/sequel/api/generate-auth-options", { idToken: currentIdToken });
             const options = optionsResponse.data;
 
-            // Start the authentication process
             const authResp = await startAuthentication({ optionsJSON: options });
 
-            // Send verification request
             const verificationResp = await axiosInstance.post("/sequel/api/verify-authentication", {
                 idToken: currentIdToken,
                 id: authResp.id,
@@ -218,10 +223,10 @@ const SignIn = () => {
                     status: "error",
                     description: "Unable to verify your identity with passkey",
                 });
-                await auth.signOut()
+                await auth.signOut();
             }
         } catch (error) {
-            await auth.signOut()
+            await auth.signOut();
             console.error("Passkey verification failed:", error);
             toast({
                 status: "error",
@@ -248,7 +253,6 @@ const SignIn = () => {
             const response = await axiosInstance.post("/sequel/api/generate-registration-options", { idToken: currentIdToken });
             const options = response.data;
 
-            // Pass the options to the authenticator and wait for a response
             const attResp = await startRegistration({ optionsJSON: options, useAutoRegister: true });
             const verificationResp = await axiosInstance.post("/sequel/api/verify-registration", {
                 idToken: currentIdToken,
@@ -261,17 +265,16 @@ const SignIn = () => {
                     status: "success",
                     description: verificationResp.data.message || "Passkey registered successfully",
                 });
-                // Now that we've registered a passkey, verify with it
                 await handlePasskeyVerification();
             } else {
                 toast({
                     status: "error",
                     description: "An error occurred registering your passkey",
                 });
-                await auth.signOut()
+                await auth.signOut();
             }
         } catch (error) {
-            await auth.signOut()
+            await auth.signOut();
             if (error.name === "InvalidStateError") {
                 toast({
                     status: "error",
@@ -297,26 +300,22 @@ const SignIn = () => {
             const user = result.user;
             const idToken = await user.getIdToken();
 
-            // Store user info for second factor
             setCurrentUser(user);
             setCurrentIdToken(idToken);
 
-            // Check for existing passkey
             const userDoc = await getDoc(doc(firestore, "users", user.uid));
-            if(!userDoc.exists()){
-               toast({
-                   status:'error',
-                   description : 'You are not allowed to sign in'
-               })
-                await auth.signOut()
+            if (!userDoc.exists()) {
+                toast({
+                    status: 'error',
+                    description: 'You are not allowed to sign in'
+                });
+                await auth.signOut();
                 return;
             }
-            const hasExistingPasskey =
-                userDoc.exists() && userDoc.data().credentials && userDoc.data().credentials.length > 0;
-
+            
+            const hasExistingPasskey = userDoc.exists() && userDoc.data().credentials && userDoc.data().credentials.length > 0;
             setHasPasskey(hasExistingPasskey);
 
-            // Move to second factor step
             setAuthStep(1);
             setSecondFactorMethod(hasExistingPasskey ? "passkey" : "email");
 
@@ -349,16 +348,12 @@ const SignIn = () => {
         try {
             setEmailSending(true);
 
-            // Configure action code settings
             const actionCodeSettings = {
                 url: window.location.href,
                 handleCodeInApp: true,
             };
 
-            // Send sign-in link to email
             await sendSignInLinkToEmail(auth, email, actionCodeSettings);
-
-            // Save the email locally to complete sign-in if the page is closed
             localStorage.setItem("emailForSignIn", email);
 
             setEmailSent(true);
@@ -367,7 +362,7 @@ const SignIn = () => {
                 description: "Sign-in link sent to your email!",
             });
         } catch (error) {
-            await auth.signOut()
+            await auth.signOut();
             console.error("Email link sign-in failed:", error);
             toast({
                 status: "error",
@@ -378,140 +373,126 @@ const SignIn = () => {
         }
     };
 
-    // Skip second factor and continue
-    const skipSecondFactor = async () => {
-        if (!currentUser || !currentIdToken) {
-            toast({
-                status: "error",
-                description: "Authentication error. Please try again.",
-            });
-            return;
-        }
-
-        try {
-            setIsAuthenticating(true);
-            await completeAuthentication(currentUser, currentIdToken);
-        } catch (error) {
-            console.error("Authentication failed:", error);
-            toast({
-                status: "error",
-                description: error.message || "Authentication failed",
-            });
-        } finally {
-            setIsAuthenticating(false);
-        }
-    };
-
     // Render based on current auth step
     const renderAuthStep = () => {
         if (authStep === 0) {
-            // Step 1: Google Sign In (Primary method)
             return (
-                <VStack spacing={4} w="full">
-                    <Text fontWeight="medium" fontSize="lg" textAlign="center">
-                        Sign in to your account
-                    </Text>
+                <VStack spacing={6} w="full">
+                    <VStack spacing={2} textAlign="center">
+                        <Heading size="lg" color={textColor}>
+                            Welcome Back
+                        </Heading>
+                        <Text color={mutedTextColor} fontSize="md">
+                            Sign in to access your ALLTECH POS system
+                        </Text>
+                    </VStack>
 
-                    <Button
-                        leftIcon={<Icon as={FcGoogle} boxSize={5} />}
+                    <ModernButton
+                        leftIcon={<FcGoogle size={20} />}
                         size="lg"
-                        w="full"
-                        h="50px"
+                        isFullWidth
+                        variant="outline"
                         onClick={handleGoogleSignIn}
+                        bg={cardBg}
+                        borderColor="gray.300"
                         _hover={{
-                            transform: "translateY(-2px)",
-                            shadow: "lg",
+                            borderColor: "primary.400",
+                            transform: "translateY(-1px)",
                         }}
-                        transition="all 0.2s"
-                        bg={useColorModeValue("white", "gray.700")}
-                        color={useColorModeValue("gray.800", "white")}
-                        border="1px solid"
-                        borderColor={useColorModeValue("gray.200", "gray.600")}
                     >
                         Continue with Google
-                    </Button>
+                    </ModernButton>
                 </VStack>
             );
         } else if (authStep === 1) {
-            // Step 2: Second Factor Authentication
             return (
-                <VStack spacing={4} w="full">
-                    <Text fontWeight="medium" fontSize="lg" textAlign="center">
-                        Two-Factor Authentication
-                    </Text>
+                <VStack spacing={6} w="full">
+                    <VStack spacing={2} textAlign="center">
+                        <Heading size="lg" color={textColor}>
+                            Two-Factor Authentication
+                        </Heading>
+                        <Text color={mutedTextColor} fontSize="md">
+                            Complete the second authentication step for enhanced security
+                        </Text>
+                    </VStack>
 
-                    <Alert status="info" borderRadius="md">
-                        <AlertIcon />
+                    <Alert status="info" borderRadius="lg" bg="primary.50" borderColor="primary.200">
+                        <AlertIcon color="primary.500" />
                         <VStack align="start" spacing={1}>
-                            <AlertTitle>Secure your account</AlertTitle>
-                            <AlertDescription>
-                                Please complete the second authentication step to enhance your account security.
+                            <AlertTitle color="primary.700">Secure Your Account</AlertTitle>
+                            <AlertDescription color="primary.600">
+                                Choose your preferred second authentication method below.
                             </AlertDescription>
                         </VStack>
                     </Alert>
 
                     {/* 2FA Method Selection */}
                     <RadioGroup onChange={setSecondFactorMethod} value={secondFactorMethod} w="full">
-                        <VStack align="start" spacing={3}>
+                        <VStack align="start" spacing={4}>
                             {hasPasskey && webAuthnSupported && (
-                                <Radio value="passkey">
-                                    <Flex align="center">
-                                        <Icon as={FiKey} mr={2} />
-                                        <Text>Use Passkey</Text>
-                                    </Flex>
+                                <Radio value="passkey" size="lg">
+                                    <HStack spacing={3}>
+                                        <KeyIcon size={20} />
+                                        <VStack align="start" spacing={0}>
+                                            <Text fontWeight="medium">Use Passkey</Text>
+                                            <Text fontSize="sm" color={mutedTextColor}>
+                                                Authenticate with biometrics or PIN
+                                            </Text>
+                                        </VStack>
+                                    </HStack>
                                 </Radio>
                             )}
 
-                            <Radio value="email">
-                                <Flex align="center">
-                                    <Icon as={FiMail} mr={2} />
-                                    <Text>Email Link Verification</Text>
-                                </Flex>
+                            <Radio value="email" size="lg">
+                                <HStack spacing={3}>
+                                    <EnvelopeIcon size={20} />
+                                    <VStack align="start" spacing={0}>
+                                        <Text fontWeight="medium">Email Verification</Text>
+                                        <Text fontSize="sm" color={mutedTextColor}>
+                                            Receive a secure link via email
+                                        </Text>
+                                    </VStack>
+                                </HStack>
                             </Radio>
 
                             {!hasPasskey && webAuthnSupported && (
-                                <Radio value="register-passkey">
-                                    <Flex align="center">
-                                        <Icon as={FiShield} mr={2} />
-                                        <Text>Register a Passkey</Text>
-                                    </Flex>
+                                <Radio value="register-passkey" size="lg">
+                                    <HStack spacing={3}>
+                                        <ShieldCheckIcon size={20} />
+                                        <VStack align="start" spacing={0}>
+                                            <Text fontWeight="medium">Create Passkey</Text>
+                                            <Text fontSize="sm" color={mutedTextColor}>
+                                                Set up biometric authentication
+                                            </Text>
+                                        </VStack>
+                                    </HStack>
                                 </Radio>
                             )}
                         </VStack>
                     </RadioGroup>
 
-                    <Divider my={2} />
+                    <Divider />
 
                     {/* Method specific UI */}
                     {secondFactorMethod === "passkey" && (
                         <VStack spacing={4} w="full">
                             {waitingForPasskey ? (
-                                <VStack spacing={4} py={4}>
-                                    <Spinner
-                                        size="xl"
-                                        thickness="3px"
-                                        speed="0.65s"
-                                        color={useColorModeValue("blue.500", "blue.300")}
-                                    />
-                                    <Text fontSize="sm" textAlign="center">
-                                        Waiting for your passkey...
+                                <VStack spacing={4} py={6}>
+                                    <Spinner size="xl" color="primary.500" thickness="3px" />
+                                    <Text fontSize="md" textAlign="center" color={mutedTextColor}>
+                                        Waiting for your passkey authentication...
                                     </Text>
                                 </VStack>
                             ) : (
-                                <Button
-                                    leftIcon={<Icon as={FiKey} boxSize={5} />}
+                                <ModernButton
+                                    leftIcon={<KeyIcon size={18} />}
                                     size="lg"
-                                    w="full"
-                                    colorScheme="teal"
+                                    isFullWidth
+                                    variant="gradient"
                                     onClick={handlePasskeyVerification}
-                                    _hover={{
-                                        transform: "translateY(-2px)",
-                                        shadow: "lg",
-                                    }}
-                                    transition="all 0.2s"
                                 >
-                                    Verify with Fingerprint or Pin
-                                </Button>
+                                    Authenticate with Passkey
+                                </ModernButton>
                             )}
                         </VStack>
                     )}
@@ -521,20 +502,20 @@ const SignIn = () => {
                             {!emailSent ? (
                                 <>
                                     <FormControl>
-                                        <InputGroup>
+                                        <InputGroup size="lg">
                                             <Input
                                                 type="email"
                                                 placeholder="your.email@example.com"
                                                 value={email}
                                                 onChange={(e) => setEmail(e.target.value)}
-                                                size="lg"
+                                                borderRadius="lg"
+                                                bg={cardBg}
                                             />
-                                            <InputRightElement width="4.5rem" h="100%">
+                                            <InputRightElement>
                                                 <IconButton
-                                                    h="1.75rem"
                                                     size="sm"
                                                     onClick={() => setEmail("")}
-                                                    icon={<FiX />}
+                                                    icon={<XMarkIcon size={16} />}
                                                     aria-label="Clear email"
                                                     variant="ghost"
                                                 />
@@ -542,39 +523,39 @@ const SignIn = () => {
                                         </InputGroup>
                                     </FormControl>
 
-                                    <Button
-                                        w="full"
-                                        colorScheme="blue"
+                                    <ModernButton
+                                        isFullWidth
                                         size="lg"
                                         onClick={handleEmailSignIn}
                                         isLoading={emailSending}
-                                        rightIcon={<FiArrowRight />}
+                                        loadingText="Sending..."
+                                        rightIcon={<ArrowRightIcon size={16} />}
                                     >
                                         Send Verification Link
-                                    </Button>
+                                    </ModernButton>
                                 </>
                             ) : (
                                 <>
-                                    <Alert status="info" borderRadius="md">
+                                    <Alert status="success" borderRadius="lg">
                                         <AlertIcon />
                                         <VStack align="start" spacing={1}>
                                             <AlertTitle>Verification link sent!</AlertTitle>
                                             <AlertDescription>
-                                                We've sent a link to {email}. Check your inbox and click the link to complete sign-in.
+                                                Check your inbox at {email} and click the link to complete sign-in.
                                             </AlertDescription>
                                         </VStack>
                                     </Alert>
 
-                                    <Button
-                                        w="full"
+                                    <ModernButton
+                                        isFullWidth
                                         variant="outline"
                                         onClick={() => {
                                             setEmailSent(false);
                                             setEmail("");
                                         }}
                                     >
-                                        Use a different email
-                                    </Button>
+                                        Use Different Email
+                                    </ModernButton>
                                 </>
                             )}
                         </VStack>
@@ -582,43 +563,33 @@ const SignIn = () => {
 
                     {secondFactorMethod === "register-passkey" && (
                         <VStack spacing={4} w="full">
-                            <Alert status="info" borderRadius="md">
+                            <Alert status="info" borderRadius="lg">
                                 <AlertIcon />
                                 <VStack align="start" spacing={1}>
-                                    <AlertTitle>What is a passkey?</AlertTitle>
+                                    <AlertTitle>About Passkeys</AlertTitle>
                                     <AlertDescription>
-                                        A passkey lets you sign in securely using your device's built-in authentication like fingerprint or face recognition.
+                                        Passkeys use your device's built-in security like fingerprint or face recognition for secure, passwordless authentication.
                                     </AlertDescription>
                                 </VStack>
                             </Alert>
 
                             {waitingForPasskey ? (
-                                <VStack spacing={4} py={4}>
-                                    <Spinner
-                                        size="xl"
-                                        thickness="3px"
-                                        speed="0.65s"
-                                        color={useColorModeValue("blue.500", "blue.300")}
-                                    />
-                                    <Text fontSize="sm" textAlign="center">
-                                        Creating your passkey...
+                                <VStack spacing={4} py={6}>
+                                    <Spinner size="xl" color="primary.500" thickness="3px" />
+                                    <Text fontSize="md" textAlign="center" color={mutedTextColor}>
+                                        Setting up your passkey...
                                     </Text>
                                 </VStack>
                             ) : (
-                                <Button
-                                    leftIcon={<Icon as={FiKey} boxSize={5} />}
+                                <ModernButton
+                                    leftIcon={<ShieldCheckIcon size={18} />}
                                     size="lg"
-                                    w="full"
-                                    colorScheme="teal"
+                                    isFullWidth
+                                    variant="gradient"
                                     onClick={handleWebauthnRegistration}
-                                    _hover={{
-                                        transform: "translateY(-2px)",
-                                        shadow: "lg",
-                                    }}
-                                    transition="all 0.2s"
                                 >
                                     Create Passkey
-                                </Button>
+                                </ModernButton>
                             )}
                         </VStack>
                     )}
@@ -628,115 +599,116 @@ const SignIn = () => {
     };
 
     return (
-        <Flex
+        <MotionFlex
             minH="100vh"
             align="center"
             justify="center"
-            bg={useColorModeValue(
-                "linear-gradient(135deg, #e3ffe7 0%, #d9e7ff 100%)",
-                "linear-gradient(135deg, #1a202c 0%, #2d3748 100%)"
-            )}
+            bg={bgGradient}
             p={4}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5 }}
         >
-            <Box w="full" maxW="400px">
-                <Card
-                    bg={useColorModeValue("white", "gray.800")}
-                    borderRadius="2xl"
-                    boxShadow="xl"
-                    overflow="hidden"
-                    border="1px solid"
-                    borderColor={useColorModeValue("gray.100", "gray.700")}
-                >
-                    <CardBody p={8}>
-                        <VStack spacing={6}>
-                            {/* Header */}
-                            <VStack spacing={2}>
+            <MotionBox
+                w="full"
+                maxW="md"
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ duration: 0.5, delay: 0.2 }}
+            >
+                <ModernCard variant="elevated">
+                    <VStack spacing={8}>
+                        {/* Logo Section */}
+                        <VStack spacing={4}>
+                            <Box
+                                w="16"
+                                h="16"
+                                bg="linear-gradient(135deg, #4A90E2 0%, #667EEA 100%)"
+                                borderRadius="2xl"
+                                display="flex"
+                                alignItems="center"
+                                justifyContent="center"
+                                boxShadow="lg"
+                            >
+                                <Text color="white" fontWeight="bold" fontSize="2xl">
+                                    A
+                                </Text>
+                            </Box>
+                            <VStack spacing={1}>
                                 <Heading
                                     size="xl"
-                                    bgGradient="linear(to-r, blue.400, teal.400)"
+                                    bgGradient="linear(to-r, primary.400, primary.600)"
                                     bgClip="text"
                                     letterSpacing="tight"
                                 >
-                                    Welcome Back
+                                    ALLTECH
                                 </Heading>
-                                <Text
-                                    color={useColorModeValue("gray.600", "gray.400")}
-                                    textAlign="center"
-                                    fontSize="md"
-                                >
-                                    Sign in to access the system
+                                <Text color={mutedTextColor} fontSize="sm" fontWeight="medium">
+                                    Point of Sale System
                                 </Text>
                             </VStack>
-
-                            {/* Authentication Steps */}
-                            <Stepper size="sm" index={authStep} colorScheme="blue" w="full">
-                                <Step>
-                                    <StepIndicator>
-                                        <StepStatus
-                                            complete={<StepIcon />}
-                                            incomplete={<StepNumber>1</StepNumber>}
-                                            active={<StepNumber>1</StepNumber>}
-                                        />
-                                    </StepIndicator>
-                                    <Box flexShrink="0">
-                                        <StepTitle>Sign In</StepTitle>
-                                    </Box>
-                                    <StepSeparator />
-                                </Step>
-                                <Step>
-                                    <StepIndicator>
-                                        <StepStatus
-                                            complete={<StepIcon />}
-                                            incomplete={<StepNumber>2</StepNumber>}
-                                            active={<StepNumber>2</StepNumber>}
-                                        />
-                                    </StepIndicator>
-                                    <Box flexShrink="0">
-                                        <StepTitle>Two-Factor</StepTitle>
-                                    </Box>
-                                </Step>
-                            </Stepper>
-                            <Divider />
-
-                            {/* Loading State */}
-                            {isLoading ? (
-                                <VStack py={4} spacing={4}>
-                                    <Spinner
-                                        size="xl"
-                                        thickness="3px"
-                                        speed="0.65s"
-                                        color={useColorModeValue("blue.500", "blue.300")}
-                                    />
-                                </VStack>
-                            ) : isAuthenticating ? (
-                                <VStack py={4} spacing={4}>
-                                    <Spinner
-                                        size="xl"
-                                        thickness="3px"
-                                        speed="0.65s"
-                                        color={useColorModeValue("blue.500", "blue.300")}
-                                    />
-                                    <Text color={useColorModeValue("gray.600", "gray.400")} fontSize="sm">
-                                        Authenticating...
-                                    </Text>
-                                </VStack>
-                            ) : (
-                                renderAuthStep()
-                            )}
-
-                            {/* Footer Text */}
-                            <Text
-                                fontSize="xs"
-                                color={useColorModeValue("gray.500", "gray.400")}
-                                textAlign="center"
-                            >
-                                By signing in, you agree to our Terms of Service and Privacy Policy
-                            </Text>
                         </VStack>
-                    </CardBody>
-                </Card>
-            </Box>
-        </Flex>
+
+                        {/* Authentication Steps */}
+                        <Stepper size="sm" index={authStep} colorScheme="primary" w="full">
+                            <Step>
+                                <StepIndicator>
+                                    <StepStatus
+                                        complete={<StepIcon />}
+                                        incomplete={<StepNumber>1</StepNumber>}
+                                        active={<StepNumber>1</StepNumber>}
+                                    />
+                                </StepIndicator>
+                                <Box flexShrink="0">
+                                    <StepTitle>Sign In</StepTitle>
+                                </Box>
+                                <StepSeparator />
+                            </Step>
+                            <Step>
+                                <StepIndicator>
+                                    <StepStatus
+                                        complete={<StepIcon />}
+                                        incomplete={<StepNumber>2</StepNumber>}
+                                        active={<StepNumber>2</StepNumber>}
+                                    />
+                                </StepIndicator>
+                                <Box flexShrink="0">
+                                    <StepTitle>Verify</StepTitle>
+                                </Box>
+                            </Step>
+                        </Stepper>
+
+                        <Divider />
+
+                        {/* Loading State */}
+                        {isLoading ? (
+                            <VStack py={8} spacing={4}>
+                                <Spinner size="xl" color="primary.500" thickness="3px" />
+                                <Text color={mutedTextColor}>Initializing...</Text>
+                            </VStack>
+                        ) : isAuthenticating ? (
+                            <VStack py={8} spacing={4}>
+                                <Spinner size="xl" color="primary.500" thickness="3px" />
+                                <Text color={mutedTextColor}>Authenticating...</Text>
+                            </VStack>
+                        ) : (
+                            renderAuthStep()
+                        )}
+
+                        {/* Footer */}
+                        <Text
+                            fontSize="xs"
+                            color={mutedTextColor}
+                            textAlign="center"
+                            lineHeight="relaxed"
+                        >
+                            By signing in, you agree to our Terms of Service and Privacy Policy. 
+                            Your data is protected with enterprise-grade security.
+                        </Text>
+                    </VStack>
+                </ModernCard>
+            </MotionBox>
+        </MotionFlex>
     );
 };
 

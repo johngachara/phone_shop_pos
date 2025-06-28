@@ -25,12 +25,26 @@ import {
     useColorModeValue,
     Icon,
     Container,
-    Flex
+    Flex,
+    Breadcrumb,
+    BreadcrumbItem,
+    BreadcrumbLink,
 } from '@chakra-ui/react';
-import { SearchIcon, WarningIcon } from '@chakra-ui/icons';
+import { 
+    MagnifyingGlassIcon, 
+    ExclamationTriangleIcon,
+    ChevronRightIcon 
+} from '@heroicons/react/24/outline';
+import { motion } from "framer-motion";
 import Navbar from "./Navbar.jsx";
 import { useNavigate } from "react-router-dom";
 import { apiService } from "../../apiService.js";
+import ModernCard from "../ui/ModernCard";
+import ModernButton from "../ui/ModernButton";
+import StatusBadge from "../ui/StatusBadge";
+
+const MotionBox = motion(Box);
+const MotionContainer = motion(Container);
 
 const LowStock = () => {
     const [data, setData] = useState([]);
@@ -40,16 +54,20 @@ const LowStock = () => {
     const toast = useToast();
     const navigate = useNavigate();
 
-    // Color mode values
+    // Modern color scheme
+    const bgColor = useColorModeValue('gray.50', 'gray.900');
+    const cardBgColor = useColorModeValue('white', 'gray.800');
+    const textColor = useColorModeValue('gray.800', 'white');
+    const mutedTextColor = useColorModeValue('gray.600', 'gray.400');
     const borderColor = useColorModeValue('gray.200', 'gray.700');
-    const headerBg = useColorModeValue('gray.50', 'gray.900');
+    const headerBg = useColorModeValue('gray.50', 'gray.700');
 
     const fetchData = async () => {
         setIsLoading(true);
         try {
             const result = await apiService.dashboardData("low_stock", localStorage.getItem("access"));
-                setData(prevData => [...prevData, ...result.data]);
-                setNextPage(result.nextPage);
+            setData(prevData => [...prevData, ...result.data]);
+            setNextPage(result.nextPage);
         } catch (error) {
             console.error('Error fetching data:', error);
             toast({
@@ -81,110 +99,235 @@ const LowStock = () => {
         )
     );
 
-    const getQuantityColor = () => {
-        return 'white';
+    const getStockStatus = (quantity) => {
+        if (quantity === 0) return 'error';
+        if (quantity <= 3) return 'error';
+        if (quantity <= 10) return 'warning';
+        return 'info';
     };
 
     return (
-        <Box minH="100vh" bg={useColorModeValue('gray.50', 'gray.900')}>
+        <Box bg={bgColor} minH="100vh">
             <Navbar />
-            <Box ml={{ base: 0, md: "250px" }} transition="margin-left 0.3s">
-                <Container maxW="container.xl" py={8}>
-                    <VStack spacing={6} align="stretch">
-                        <Flex align="center" gap={2}>
-                            <Icon as={WarningIcon} w={6} h={6} color="orange.500" />
-                            <Heading size="lg">Low Stock Items</Heading>
-                        </Flex>
-
-                        <Card boxShadow="sm" borderRadius="lg" overflow="hidden">
-                            <CardHeader bg={headerBg} borderBottom="1px" borderColor={borderColor} py={4}>
-                                <HStack spacing={4}>
-                                    <InputGroup maxW={{ base: "full", md: "md" }}>
-                                        <InputLeftElement>
-                                            <SearchIcon color="gray.400" />
-                                        </InputLeftElement>
-                                        <Input
-                                            placeholder="Search products..."
-                                            value={searchTerm}
-                                            onChange={(e) => setSearchTerm(e.target.value)}
-                                            borderRadius="md"
-                                            _focus={{ borderColor: 'blue.400', boxShadow: 'outline' }}
-                                        />
-                                    </InputGroup>
-                                    <Select
-                                        isReadOnly={true}
-                                        value="low_stock"
-                                        maxW="200px"
-                                        borderRadius="md"
+            <Box ml={{ base: 0, md: "280px" }} transition="margin-left 0.3s">
+                <MotionContainer
+                    maxW="8xl"
+                    py={8}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.5 }}
+                >
+                    <VStack spacing={8} align="stretch">
+                        {/* Header Section */}
+                        <MotionBox
+                            initial={{ y: -20, opacity: 0 }}
+                            animate={{ y: 0, opacity: 1 }}
+                            transition={{ duration: 0.5, delay: 0.1 }}
+                        >
+                            <ModernCard variant="elevated">
+                                <VStack spacing={6} align="stretch">
+                                    {/* Breadcrumb */}
+                                    <Breadcrumb
+                                        spacing="8px"
+                                        separator={<ChevronRightIcon size={16} color={mutedTextColor} />}
+                                        fontSize="sm"
+                                        color={mutedTextColor}
                                     >
-                                        <option value="low_stock">LOW STOCK</option>
-                                    </Select>
-                                </HStack>
-                            </CardHeader>
+                                        <BreadcrumbItem>
+                                            <BreadcrumbLink color="primary.500" fontWeight="medium">
+                                                Inventory
+                                            </BreadcrumbLink>
+                                        </BreadcrumbItem>
+                                        <BreadcrumbItem isCurrentPage>
+                                            <BreadcrumbLink color={textColor} fontWeight="medium">
+                                                Low Stock
+                                            </BreadcrumbLink>
+                                        </BreadcrumbItem>
+                                    </Breadcrumb>
 
-                            <CardBody p={0}>
+                                    {/* Header Content */}
+                                    <Flex
+                                        direction={{ base: "column", lg: "row" }}
+                                        justify="space-between"
+                                        align={{ base: "stretch", lg: "center" }}
+                                        gap={6}
+                                    >
+                                        <VStack align="start" spacing={2}>
+                                            <HStack spacing={3}>
+                                                <Box
+                                                    p={2}
+                                                    bg="warning.100"
+                                                    borderRadius="lg"
+                                                    color="warning.600"
+                                                >
+                                                    <ExclamationTriangleIcon size={24} />
+                                                </Box>
+                                                <Heading
+                                                    fontSize={{ base: "2xl", md: "3xl" }}
+                                                    fontWeight="bold"
+                                                    color={textColor}
+                                                    letterSpacing="tight"
+                                                >
+                                                    Low Stock Alert
+                                                </Heading>
+                                            </HStack>
+                                            <Text color={mutedTextColor} fontSize="lg">
+                                                Monitor products that need restocking
+                                            </Text>
+                                        </VStack>
+
+                                        {/* Search and Filter */}
+                                        <HStack spacing={4} w={{ base: "full", lg: "auto" }}>
+                                            <InputGroup maxW={{ base: "full", md: "md" }}>
+                                                <InputLeftElement>
+                                                    <MagnifyingGlassIcon size={20} color={mutedTextColor} />
+                                                </InputLeftElement>
+                                                <Input
+                                                    placeholder="Search products..."
+                                                    value={searchTerm}
+                                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                                    borderRadius="lg"
+                                                    bg={cardBgColor}
+                                                    borderColor={borderColor}
+                                                    _focus={{
+                                                        borderColor: 'primary.400',
+                                                        boxShadow: 'outline',
+                                                    }}
+                                                />
+                                            </InputGroup>
+                                            <Select
+                                                isReadOnly={true}
+                                                value="low_stock"
+                                                maxW="200px"
+                                                borderRadius="lg"
+                                                bg={cardBgColor}
+                                                borderColor={borderColor}
+                                            >
+                                                <option value="low_stock">LOW STOCK</option>
+                                            </Select>
+                                        </HStack>
+                                    </Flex>
+                                </VStack>
+                            </ModernCard>
+                        </MotionBox>
+
+                        {/* Table Section */}
+                        <MotionBox
+                            initial={{ y: 20, opacity: 0 }}
+                            animate={{ y: 0, opacity: 1 }}
+                            transition={{ duration: 0.5, delay: 0.2 }}
+                        >
+                            <ModernCard variant="elevated">
                                 <Box overflowX="auto">
-                                    <Table variant="simple">
-                                        <Thead>
-                                            <Tr bg={headerBg}>
-                                                <Th>Product Name</Th>
-                                                <Th>Stock Status</Th>
+                                    <Table variant="simple" size="lg">
+                                        <Thead bg={headerBg}>
+                                            <Tr>
+                                                <Th 
+                                                    color={textColor} 
+                                                    fontWeight="semibold" 
+                                                    fontSize="sm"
+                                                    py={4}
+                                                >
+                                                    Product Name
+                                                </Th>
+                                                <Th 
+                                                    color={textColor} 
+                                                    fontWeight="semibold" 
+                                                    fontSize="sm"
+                                                    py={4}
+                                                >
+                                                    Stock Status
+                                                </Th>
                                             </Tr>
                                         </Thead>
                                         <Tbody>
                                             {isLoading && data.length === 0 ? (
                                                 [...Array(5)].map((_, idx) => (
                                                     <Tr key={`skeleton-${idx}`}>
-                                                        <Td><Skeleton height="20px" /></Td>
-                                                        <Td><Skeleton height="20px" width="100px" /></Td>
+                                                        <Td py={4}>
+                                                            <Skeleton height="20px" borderRadius="md" />
+                                                        </Td>
+                                                        <Td py={4}>
+                                                            <Skeleton height="24px" width="120px" borderRadius="full" />
+                                                        </Td>
                                                     </Tr>
                                                 ))
                                             ) : (
                                                 filteredData.map((item, index) => (
-                                                    <Tr key={index} _hover={{ bg: headerBg }}>
-                                                        <Td fontWeight="medium">{item.product_name}</Td>
-                                                        <Td>
-                                                            <Badge
-                                                                colorScheme={getQuantityColor()}
-                                                                borderRadius="full"
-                                                                px={3}
-                                                                py={1}
-                                                            >
-                                                                {item.quantity} units left
-                                                            </Badge>
+                                                    <MotionBox
+                                                        as={Tr}
+                                                        key={index}
+                                                        initial={{ opacity: 0, x: -20 }}
+                                                        animate={{ opacity: 1, x: 0 }}
+                                                        transition={{ duration: 0.3, delay: index * 0.05 }}
+                                                        _hover={{ bg: headerBg }}
+                                                    >
+                                                        <Td py={4}>
+                                                            <Text fontWeight="medium" color={textColor}>
+                                                                {item.product_name}
+                                                            </Text>
                                                         </Td>
-                                                    </Tr>
+                                                        <Td py={4}>
+                                                            <StatusBadge
+                                                                status={getStockStatus(item.quantity)}
+                                                                label={`${item.quantity} units left`}
+                                                                size="md"
+                                                            />
+                                                        </Td>
+                                                    </MotionBox>
                                                 ))
                                             )}
                                         </Tbody>
                                     </Table>
 
                                     {filteredData.length === 0 && !isLoading && (
-                                        <Box p={8} textAlign="center">
-                                            <Text color="gray.500">No results found. Try adjusting your search.</Text>
+                                        <Box p={12} textAlign="center">
+                                            <VStack spacing={4}>
+                                                <Box
+                                                    p={4}
+                                                    bg="gray.100"
+                                                    borderRadius="full"
+                                                    color="gray.400"
+                                                >
+                                                    <ExclamationTriangleIcon size={48} />
+                                                </Box>
+                                                <VStack spacing={2}>
+                                                    <Heading size="md" color={textColor}>
+                                                        No low stock items found
+                                                    </Heading>
+                                                    <Text color={mutedTextColor}>
+                                                        All products are well stocked or no results match your search.
+                                                    </Text>
+                                                </VStack>
+                                            </VStack>
                                         </Box>
                                     )}
                                 </Box>
-                            </CardBody>
-                        </Card>
+                            </ModernCard>
+                        </MotionBox>
 
+                        {/* Load More Button */}
                         {nextPage && (
-                            <Button
-                                onClick={loadMore}
-                                isLoading={isLoading}
-                                loadingText="Loading more items..."
-                                isDisabled={!nextPage || isLoading}
-                                colorScheme="blue"
-                                size="lg"
-                                width="full"
-                                maxW="md"
-                                mx="auto"
+                            <MotionBox
+                                textAlign="center"
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                transition={{ duration: 0.3, delay: 0.4 }}
                             >
-                                Load More Items
-                            </Button>
+                                <ModernButton
+                                    onClick={loadMore}
+                                    isLoading={isLoading}
+                                    loadingText="Loading more items..."
+                                    isDisabled={!nextPage || isLoading}
+                                    size="lg"
+                                    variant="outline"
+                                >
+                                    Load More Items
+                                </ModernButton>
+                            </MotionBox>
                         )}
                     </VStack>
-                </Container>
+                </MotionContainer>
             </Box>
         </Box>
     );
