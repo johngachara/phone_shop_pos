@@ -23,7 +23,7 @@
     "@testing-library/user-event": "^13.5.0",
     "@vercel/speed-insights": "^1.2.0",
     "aws-amplify": "^6.8.2",
-    "axios": "^1.8.2",
+    "axios": "^1.10.0",
     "brace-expansion": "^2.0.2",
     "braces": "^3.0.3",
     "class-variance-authority": "^0.7.0",
