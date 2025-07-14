@@ -8,7 +8,7 @@
     "@babel/helpers": "^7.27.6",
     "@babel/runtime": "^7.27.6",
     "@chakra-ui/icons": "^2.2.5",
-    "@chakra-ui/react": "^2.10.4",
+    "@chakra-ui/react": "^3.22.0",
     "@chakra-ui/system": "^2.6.2",
     "@emotion/react": "^11.13.3",
     "@emotion/styled": "^11.14.0",
