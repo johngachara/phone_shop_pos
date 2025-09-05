@@ -12,7 +12,7 @@ import {
     HStack,
     Breadcrumb,
     BreadcrumbItem,
-    BreadcrumbLink, Flex, SimpleGrid,
+    BreadcrumbLink, Flex, SimpleGrid, useToast,
 } from "@chakra-ui/react";
 import { 
     MagnifyingGlassIcon,
@@ -51,7 +51,7 @@ export default function LcdBody({
     const textColor = useColorModeValue("gray.800", "white");
     const mutedTextColor = useColorModeValue("gray.600", "gray.400");
     const borderColor = useColorModeValue("gray.200", "gray.700");
-
+    const toast = useToast()
     const client = new Meilisearch({
         host: import.meta.env.VITE_MEILISEARCH_URL,
         apiKey: import.meta.env.VITE_MEILISEARCH_KEY
@@ -73,6 +73,14 @@ export default function LcdBody({
             try {
                 const response = await client.index('Shop2Stock').search(searchParam);
                 const info = response.hits;
+                if(info.length === 0){
+                   toast({
+                       status : "warning",
+                       title : "No Results Found",
+                       description : "No item with given name found",
+                       position : "top"
+                   })
+                }
                 setSearchResults(info);
             } catch (err) {
                 console.error("Search error:", err);
