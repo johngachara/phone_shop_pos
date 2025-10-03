@@ -31,7 +31,7 @@
         },
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://apis.google.com https://*.googleapis.com https://www.gstatic.com; connect-src 'self' https://securetoken.googleapis.com https://www.alltechnyeri.co.ke https://*.googleapis.com https://models.inference.ai.azure.com https://identitytoolkit.googleapis.com https://www.googleapis.com https://apis.google.com; img-src 'self' https://static.vecteezy.com https://lh3.googleusercontent.com https://images.unsplash.com data: https://*.googleusercontent.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; frame-src 'self' https://accounts.google.com https://*.firebaseapp.com; worker-src 'self' blob:; object-src 'none';"
+          "value": "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://apis.google.com https://*.googleapis.com https://www.gstatic.com; connect-src 'self' https://securetoken.googleapis.com https://*.alltechnyeri.co.ke https://*.googleapis.com https://models.inference.ai.azure.com https://identitytoolkit.googleapis.com https://www.googleapis.com https://apis.google.com; img-src 'self' https://static.vecteezy.com https://lh3.googleusercontent.com https://images.unsplash.com data: https://*.googleusercontent.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; frame-src 'self' https://accounts.google.com https://*.firebaseapp.com; worker-src 'self' blob:; object-src 'none';"
         },
         {
           "key": "Cache-Control",
