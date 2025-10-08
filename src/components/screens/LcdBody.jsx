@@ -278,7 +278,7 @@ export default function LcdBody({
                                 isLoading={isLoadingMore}
                                 loadingText="Loading more..."
                                 size="lg"
-                                variant="outline"
+                                variant="solid"
                                 colorScheme="elevated"
                             >
                                 Load More Products
