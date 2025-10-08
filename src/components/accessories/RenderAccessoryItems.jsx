@@ -20,7 +20,7 @@ import ModernCard from "../ui/ModernCard";
 import ModernButton from "../ui/ModernButton";
 import StockIndicator from "../ui/StockIndicator";
 
-const MotionBox = motion(Box);
+const MotionBox = motion.create(Box);
 
 const RenderAccessoryItems = ({
                                   item,

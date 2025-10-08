@@ -29,8 +29,8 @@ import ModernCard from '../ui/ModernCard';
 import ModernButton from '../ui/ModernButton';
 import Navbar from '../general/Navbar.jsx';
 
-const MotionBox = motion(Box);
-const MotionContainer = motion(Container);
+const MotionBox = motion.create(Box);
+const MotionContainer = motion.create(Container);
 
 const AccessoryBody = ({
                            pageBgColor,

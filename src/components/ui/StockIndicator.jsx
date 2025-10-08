@@ -9,7 +9,7 @@ import {
 import { motion } from "framer-motion";
 import StatusBadge from "./StatusBadge";
 
-const MotionBox = motion(Box);
+const MotionBox = motion.create(Box);
 
 const StockIndicator = ({ 
     quantity, 

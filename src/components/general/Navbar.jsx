@@ -47,7 +47,7 @@ const MotionFlex = motion.create(Flex);
 
 const Navbar = () => {
     const location = useLocation();
-    const [isCollapsed, setIsCollapsed] = useState(false);
+    const [isCollapsed, setIsCollapsed] = useState(true);
     const { colorMode, toggleColorMode } = useColorMode();
 
     // Modern color scheme

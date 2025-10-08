@@ -28,8 +28,8 @@ import ModernCard from "../ui/ModernCard";
 import ModernButton from "../ui/ModernButton";
 import useSearchStore from "components/zustand/useScreenSearch.js";
 
-const MotionBox = motion(Box);
-const MotionContainer = motion(Container);
+const MotionBox = motion.create(Box);
+const MotionContainer = motion.create(Container);
 
 export default function LcdBody({
                                     searchParam,

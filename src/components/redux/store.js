@@ -2,22 +2,12 @@ import { configureStore } from '@reduxjs/toolkit';
 import { persistStore, persistReducer, FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER } from 'redux-persist';
 import storage from 'redux-persist/lib/storage';
 import { combineReducers } from 'redux';
-import { createLogger } from 'redux-logger';
 import shopReducer from './reducers/shopReducer';
 import accessoryReducer from "./reducers/accessoryReducer";
 import { searchReducer } from "./reducers/searchReducer";
 import { searchAccessoryReducer } from "./reducers/searchAccessoryReducer";
 import unpaidOrdersReducer from "./reducers/unpaidOrdersReducer";
 
-const logger = createLogger({
-    collapsed: true,
-    predicate: (getState, action) => {
-        return action.type.includes('persist') ||
-            action.type.includes('shop/') ||
-            action.type.includes('accessory/') ||
-            action.type.includes('saved/');
-    }
-});
 
 // Persist configuration for the shop reducer
 const shopPersistConfig = {
@@ -42,7 +32,7 @@ const store = configureStore({
             serializableCheck: {
                 ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER],
             },
-        }).concat(logger),
+        }).concat(),
     devTools: process.env.NODE_ENV !== 'production'
 });
 
@@ -54,7 +44,6 @@ export const persistor = persistStore(store, null, () => {
 // Add subscription to log state changes
 store.subscribe(() => {
     const state = store.getState();
-    console.log('Current State:', state);
 });
 
 export default store;

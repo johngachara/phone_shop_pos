@@ -137,7 +137,6 @@ export const fetchAccessories = (token, page, navigate, toast) => async (dispatc
         const { data } = await sequalizerAuth.axiosInstance('/nodeapp/Findall',{
             params: { page }
         })
-        console.log(data)
         dispatch(setAccessoryData(data.items));
     } catch (error) {
         console.error(error)

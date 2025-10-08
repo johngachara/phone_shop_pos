@@ -22,8 +22,9 @@ import ModernCard from "../ui/ModernCard";
 import ModernButton from "../ui/ModernButton";
 import StockIndicator from "../ui/StockIndicator";
 import ItemSkeleton from "./ItemSkeleton";
+import useCheckRole from "components/hooks/useCheckRole.js";
 
-const MotionBox = motion(Box);
+const MotionBox = motion.create(Box);
 
 export default function RenderLcdItems({
                                            items,
@@ -36,7 +37,7 @@ export default function RenderLcdItems({
     const textColor = useColorModeValue("gray.700", "gray.200");
     const priceColor = useColorModeValue("primary.600", "primary.300");
     const mutedTextColor = useColorModeValue("gray.500", "gray.400");
-
+    const {role,loading} = useCheckRole()
     return (
         <SimpleGrid
             columns={{ base: 1, sm: 2, md: 3, lg: 4 }}
@@ -121,22 +122,28 @@ export default function RenderLcdItems({
                                     </ModernButton>
                                     
                                     <HStack width="full" spacing={2}>
-                                        <Tooltip label="Edit Product" hasArrow placement="top">
-                                            <IconButton
-                                                icon={<PencilIcon size={18} />}
-                                                variant="outline"
-                                                colorScheme="gray"
-                                                flex={1}
-                                                onClick={() => handleUpdateClick(item)}
-                                                size="lg"
-                                                aria-label="Update item"
-                                                borderRadius="lg"
-                                                _hover={{
-                                                    transform: "translateY(-1px)",
-                                                    boxShadow: "md",
-                                                }}
-                                            />
-                                        </Tooltip>
+                                        {
+                                            !loading && role === 'admin' && (
+                                                <Tooltip label="Edit Product" hasArrow placement="top">
+                                                    <IconButton
+                                                        icon={<PencilIcon size={18} />}
+                                                        variant="outline"
+                                                        colorScheme="gray"
+                                                        flex={1}
+                                                        onClick={() => handleUpdateClick(item)}
+                                                        size="lg"
+                                                        aria-label="Update item"
+                                                        borderRadius="lg"
+                                                        _hover={{
+                                                            transform: "translateY(-1px)",
+                                                            boxShadow: "md",
+                                                        }}
+                                                    />
+                                                </Tooltip>
+                                            )
+                                        }
+
+
                                         <Tooltip label="Delete Product" hasArrow placement="top">
                                             <IconButton
                                                 icon={<TrashIcon size={18} />}

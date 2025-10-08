@@ -16,7 +16,7 @@ import RenderUnpaidOrders from "components/unpaid/RenderUnpaidOrders.jsx";
 import ModernCard from "../ui/ModernCard";
 import useUnpaidStore from "components/zustand/useUnpaidStore.js";
 
-const MotionBox = motion(Box);
+const MotionBox = motion.create(Box);
 
 const UnpaidOrdersBody = ({
                               searchTerm,

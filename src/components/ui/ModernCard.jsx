@@ -7,7 +7,7 @@ import {
 } from "@chakra-ui/react";
 import { motion } from "framer-motion";
 
-const MotionCard = motion(Card);
+const MotionCard = motion.create(Card);
 
 const ModernCard = ({ 
     children, 

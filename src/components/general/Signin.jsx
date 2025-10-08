@@ -69,8 +69,8 @@ import { doc, getDoc } from "firebase/firestore";
 import ModernCard from "../ui/ModernCard";
 import ModernButton from "../ui/ModernButton";
 
-const MotionBox = motion(Box);
-const MotionFlex = motion(Flex);
+const MotionBox = motion.create(Box);
+const MotionFlex = motion.create(Flex);
 
 const axiosInstance = axios.create({
     baseURL: import.meta.env.VITE_ALLTECH_URL,
@@ -391,16 +391,10 @@ const SignIn = () => {
                         leftIcon={<FcGoogle size={20} />}
                         size="lg"
                         isFullWidth
-                        variant="outline"
+                        variant="gradient"
                         onClick={handleGoogleSignIn}
-                        bg={cardBg}
-                        borderColor="gray.300"
-                        _hover={{
-                            borderColor: "primary.400",
-                            transform: "translateY(-1px)",
-                        }}
                     >
-                        Continue with Google
+                        Sign in with Google
                     </ModernButton>
                 </VStack>
             );

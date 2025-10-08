@@ -7,7 +7,7 @@ import {
 } from "@chakra-ui/react";
 import { motion } from "framer-motion";
 
-const MotionButton = motion(Button);
+const MotionButton = motion.create(Button);
 
 const ModernButton = ({
     children,
@@ -23,33 +23,33 @@ const ModernButton = ({
 }) => {
     const variants = {
         solid: {
-            bg: `${colorScheme}.500`,
+            bg: "#4285f4",
             color: "white",
             _hover: {
-                bg: `${colorScheme}.600`,
+                bg: "#357ae8",
             },
             _active: {
-                bg: `${colorScheme}.700`,
+                bg: "#2a66c9",
             },
         },
         outline: {
-            borderColor: `${colorScheme}.500`,
-            color: `${colorScheme}.500`,
+            borderColor: "#4285f4",
+            color: "#4285f4",
             _hover: {
-                bg: `${colorScheme}.50`,
+                bg: "rgba(66, 133, 244, 0.04)",
             },
         },
         ghost: {
-            color: `${colorScheme}.500`,
+            color: "#4285f4",
             _hover: {
-                bg: `${colorScheme}.50`,
+                bg: "rgba(66, 133, 244, 0.04)",
             },
         },
         gradient: {
-            bgGradient: `linear(to-r, ${colorScheme}.400, ${colorScheme}.600)`,
+            bgGradient: "linear(to-r, #4285f4, #357ae8)",
             color: "white",
             _hover: {
-                bgGradient: `linear(to-r, ${colorScheme}.500, ${colorScheme}.700)`,
+                bgGradient: "linear(to-r, #357ae8, #2a66c9)",
             },
         },
     };

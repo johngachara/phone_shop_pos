@@ -24,7 +24,7 @@ import { motion } from "framer-motion";
 import ModernButton from "../ui/ModernButton";
 import StatusBadge from "../ui/StatusBadge";
 
-const MotionBox = motion(Box);
+const MotionBox = motion.create(Box);
 
 export default function RenderUnpaidOrders({
                                                item,

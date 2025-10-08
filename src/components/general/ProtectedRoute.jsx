@@ -21,7 +21,6 @@ const PrivateRoute = ({ children }) => {
     // Memoize token refresh to prevent duplicate calls
     const refreshTokens = async () => {
         try {
-            // Use a single request if possible instead of parallel requests
             const results = await Promise.all([
                 authService.refreshAuth(),
                 sequalizerAuth.refreshAuth()
@@ -37,13 +36,16 @@ const PrivateRoute = ({ children }) => {
         // Skip frequent checks (throttle to once per minute)
         const now = Date.now();
         if (!forceRefresh && now - lastTokenCheck.current < 60000) {
-            return true; // Skip validation if checked recently
+            const [mainToken, sequalToken] = await Promise.all([
+                authService.getAccessToken(),
+                sequalizerAuth.getAccessToken()
+            ]);
+            return Boolean(mainToken && sequalToken);
         }
 
         lastTokenCheck.current = now;
 
         try {
-            // Check token expiration instead of just existence if possible
             const [mainToken, sequalToken] = await Promise.all([
                 authService.getAccessToken(),
                 sequalizerAuth.getAccessToken()
@@ -52,6 +54,7 @@ const PrivateRoute = ({ children }) => {
             if (!mainToken || !sequalToken || forceRefresh) {
                 const refreshSuccess = await refreshTokens();
                 if (!refreshSuccess) {
+                    console.log('🔴 Token refresh failed - user not authenticated');
                     return false;
                 }
 
@@ -75,17 +78,10 @@ const PrivateRoute = ({ children }) => {
 
         const checkAuthentication = async () => {
             try {
-                // Check local storage first for tokens before Firebase auth
-                const hasLocalTokens = await validateTokens(false);
-
-                if (hasLocalTokens && !isInitialMount.current) {
-                    setAuthState({
-                        isChecking: false,
-                        isAuthenticated: true
-                    });
-                }
 
                 unsubscribe = onAuthStateChanged(auth, async (user) => {
+
+
                     if (!user) {
                         setAuthState({
                             isChecking: false,
@@ -115,7 +111,7 @@ const PrivateRoute = ({ children }) => {
                                 });
                                 clearInterval(tokenCheckIntervalRef.current);
                             }
-                        }, 15 * 60 * 1000); // Check every 15 minutes
+                        }, 15 * 60 * 1000);
                     }
                 });
 
@@ -135,7 +131,7 @@ const PrivateRoute = ({ children }) => {
         if (!cleanupIntervalRef.current) {
             cleanupIntervalRef.current = setInterval(() => {
                 tokenCleanup.performFullCleanup();
-            }, 60 * 60 * 1000); // Run every 60 minutes
+            }, 60 * 60 * 1000);
         }
 
         return () => {
@@ -159,13 +155,16 @@ const PrivateRoute = ({ children }) => {
     }, []);
 
     if (authState.isChecking) {
+        console.log('⏳ Still checking - showing loader');
         return <SkeletonLoader message="Ensuring that you are signed in..." mode="auth"/>;
     }
 
     if (!authState.isAuthenticated) {
+        console.log('🚪 Not authenticated - redirecting to /login');
         return <Navigate to="/login" state={{ from: location }} replace />;
     }
 
+    console.log('✅ Authenticated - rendering protected content');
     return children;
 };
 
