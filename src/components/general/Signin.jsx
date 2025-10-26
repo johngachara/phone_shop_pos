@@ -1,18 +1,14 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
     Box,
     Flex,
     Heading,
-    Button,
     useColorModeValue,
     VStack,
     Text,
     useToast,
     Spinner,
-    Icon,
-    Card,
-    CardBody,
     Divider,
     Input,
     FormControl,
@@ -34,23 +30,25 @@ import {
     Radio,
     RadioGroup,
     HStack,
+    PinInput,
+    PinInputField,
 } from "@chakra-ui/react";
-import { 
-    FcGoogle 
+import {
+    FcGoogle
 } from "react-icons/fc";
-import { 
-    KeyIcon, 
-    EnvelopeIcon, 
-    ArrowRightIcon, 
-    XMarkIcon, 
-    ShieldCheckIcon 
+import {
+    KeyIcon,
+    EnvelopeIcon,
+    ArrowRightIcon,
+    XMarkIcon,
+    ShieldCheckIcon,
+    LockClosedIcon
 } from "@heroicons/react/24/outline";
 import { motion } from "framer-motion";
 import SequelizerAuth from "../axios/sequalizerAuth.js";
 import {
     GoogleAuthProvider,
     signInWithPopup,
-    onAuthStateChanged,
     sendSignInLinkToEmail,
     isSignInWithEmailLink,
     signInWithEmailLink,
@@ -87,11 +85,16 @@ const SignIn = () => {
     const provider = new GoogleAuthProvider();
     const [hasPasskey, setHasPasskey] = useState(false);
     const [webAuthnSupported, setWebAuthnSupported] = useState(false);
-    
+
     // Authentication flow state
-    const [authStep, setAuthStep] = useState(0);
+    const [authStep, setAuthStep] = useState(0); // 0: Google Sign-in, 1: PIN, 2: 2FA
     const [secondFactorMethod, setSecondFactorMethod] = useState("passkey");
     const [waitingForPasskey, setWaitingForPasskey] = useState(false);
+
+    // PIN Code state
+    const [pinCode, setPinCode] = useState("");
+    const [pinError, setPinError] = useState(false);
+    const [correctSignInCode, setCorrectSignInCode] = useState("");
 
     // Email 2FA
     const [email, setEmail] = useState("");
@@ -101,6 +104,7 @@ const SignIn = () => {
     // Current user state after first factor
     const [currentUser, setCurrentUser] = useState(null);
     const [currentIdToken, setCurrentIdToken] = useState(null);
+    const [userDocData, setUserDocData] = useState(null);
 
     // Modern color scheme
     const bgGradient = useColorModeValue(
@@ -193,7 +197,7 @@ const SignIn = () => {
     };
 
     // Handle passkey verification
-    const handlePasskeyVerification = async () => {
+    const handlePasskeyVerification = async (isAutomatic = false) => {
         try {
             setWaitingForPasskey(true);
             setIsAuthenticating(true);
@@ -219,19 +223,27 @@ const SignIn = () => {
             if (verificationResp.data.success) {
                 await completeAuthentication(currentUser, currentIdToken);
             } else {
-                toast({
-                    status: "error",
-                    description: "Unable to verify your identity with passkey",
-                });
-                await auth.signOut();
+                throw new Error("Unable to verify your identity with passkey");
             }
         } catch (error) {
-            await auth.signOut();
             console.error("Passkey verification failed:", error);
-            toast({
-                status: "error",
-                description: error.message || "Passkey verification failed",
-            });
+
+            if (isAutomatic) {
+                // If automatic passkey auth fails, fall back to manual 2FA selection
+                toast({
+                    status: "warning",
+                    description: "Passkey authentication failed. Please choose an alternative method.",
+                });
+                setAuthStep(2);
+                setSecondFactorMethod("email");
+            } else {
+                toast({
+                    status: "error",
+                    description: error.message || "Passkey verification failed",
+                });
+                await auth.signOut();
+                resetAuthFlow();
+            }
         } finally {
             setIsAuthenticating(false);
             setWaitingForPasskey(false);
@@ -239,8 +251,14 @@ const SignIn = () => {
     };
 
     // Register a new passkey for the user
-    const handleWebauthnRegistration = async () => {
+    const handleWebauthnRegistration = async (isAutomatic = false) => {
         if (!webAuthnSupported) {
+            if (isAutomatic) {
+                // Fallback to email if passkey registration not supported
+                setAuthStep(2);
+                setSecondFactorMethod("email");
+                return;
+            }
             toast({
                 status: "error",
                 description: "Your browser doesn't support passkeys",
@@ -267,24 +285,33 @@ const SignIn = () => {
                 });
                 await handlePasskeyVerification();
             } else {
-                toast({
-                    status: "error",
-                    description: "An error occurred registering your passkey",
-                });
-                await auth.signOut();
+                throw new Error("An error occurred registering your passkey");
             }
         } catch (error) {
-            await auth.signOut();
-            if (error.name === "InvalidStateError") {
+            console.error("Passkey registration failed:", error);
+
+            if (isAutomatic) {
+                // If automatic registration fails, fall back to email
                 toast({
-                    status: "error",
-                    description: "Error: Authenticator was probably already registered by user",
+                    status: "warning",
+                    description: "Passkey setup failed. Please use email verification.",
                 });
+                setAuthStep(2);
+                setSecondFactorMethod("email");
             } else {
-                toast({
-                    status: "error",
-                    description: error.message || "Failed to register passkey",
-                });
+                if (error.name === "InvalidStateError") {
+                    toast({
+                        status: "error",
+                        description: "Error: Authenticator was probably already registered by user",
+                    });
+                } else {
+                    toast({
+                        status: "error",
+                        description: error.message || "Failed to register passkey",
+                    });
+                }
+                await auth.signOut();
+                resetAuthFlow();
             }
         } finally {
             setWaitingForPasskey(false);
@@ -312,16 +339,32 @@ const SignIn = () => {
                 await auth.signOut();
                 return;
             }
-            
-            const hasExistingPasskey = userDoc.exists() && userDoc.data().credentials && userDoc.data().credentials.length > 0;
+
+            const userData = userDoc.data();
+            setUserDocData(userData);
+
+            // Check for signinCode
+            if (!userData.signinCode) {
+                toast({
+                    status: 'error',
+                    description: 'No sign-in code configured for this account'
+                });
+                await auth.signOut();
+                return;
+            }
+
+            // Ensure signinCode is a string for comparison
+            setCorrectSignInCode(String(userData.signinCode));
+
+            const hasExistingPasskey = userData.credentials && userData.credentials.length > 0;
             setHasPasskey(hasExistingPasskey);
 
+            // Move to PIN step
             setAuthStep(1);
-            setSecondFactorMethod(hasExistingPasskey ? "passkey" : "email");
 
             toast({
                 status: "success",
-                description: "Please complete the two-factor authentication",
+                description: "Please enter your 4-digit PIN code",
             });
         } catch (error) {
             console.error("Google sign-in failed:", error);
@@ -333,6 +376,73 @@ const SignIn = () => {
         } finally {
             setIsAuthenticating(false);
         }
+    };
+
+    // Handle PIN verification
+    const handlePinComplete = async (value) => {
+        setPinCode(value);
+
+        // Convert both to strings and trim for comparison
+        const enteredPin = String(value).trim();
+        const correctPin = String(correctSignInCode).trim();
+
+
+        if (enteredPin === correctPin) {
+            setPinError(false);
+
+            // Correct PIN - proceed with automatic WebAuthn flow
+            if (hasPasskey && webAuthnSupported) {
+                // User has passkey - authenticate automatically
+                toast({
+                    status: "success",
+                    description: "PIN verified! Authenticating with passkey...",
+                });
+                await handlePasskeyVerification(true);
+            } else if (webAuthnSupported) {
+                // User doesn't have passkey - register automatically
+                toast({
+                    status: "success",
+                    description: "PIN verified! Setting up passkey...",
+                });
+                await handleWebauthnRegistration(true);
+            } else {
+                // WebAuthn not supported - fall back to email
+                toast({
+                    status: "success",
+                    description: "PIN verified! Please complete email verification.",
+                });
+                setAuthStep(2);
+                setSecondFactorMethod("email");
+            }
+        } else {
+            // Incorrect PIN
+            setPinError(true);
+            toast({
+                status: "error",
+                description: "Incorrect PIN code. Please try again.",
+            });
+
+            // Clear the pin and sign out user
+            setTimeout(async () => {
+                await auth.signOut();
+                resetAuthFlow();
+            }, 1500);
+        }
+    };
+
+    // Reset auth flow
+    const resetAuthFlow = () => {
+        setAuthStep(0);
+        setPinCode("");
+        setPinError(false);
+        setCorrectSignInCode("");
+        setCurrentUser(null);
+        setCurrentIdToken(null);
+        setUserDocData(null);
+        setHasPasskey(false);
+        setEmailSent(false);
+        setEmail("");
+        setSecondFactorMethod("passkey");
     };
 
     // Handle Email Link as second factor
@@ -399,6 +509,110 @@ const SignIn = () => {
                 </VStack>
             );
         } else if (authStep === 1) {
+            return (
+                <VStack spacing={6} w="full">
+                    <VStack spacing={2} textAlign="center">
+                        <Box
+                            w="16"
+                            h="16"
+                            bg={pinError ? "red.500" : "primary.500"}
+                            borderRadius="full"
+                            display="flex"
+                            alignItems="center"
+                            justifyContent="center"
+                            boxShadow="lg"
+                            transition="all 0.3s"
+                        >
+                            <LockClosedIcon size={32} color="white" />
+                        </Box>
+                        <Heading size="lg" color={textColor}>
+                            Enter PIN Code
+                        </Heading>
+                        <Text color={mutedTextColor} fontSize="md">
+                            Enter your 4-digit PIN to continue
+                        </Text>
+                    </VStack>
+
+                    <VStack spacing={4} w="full" align="center">
+                        <HStack spacing={4}>
+                            <PinInput
+                                size="lg"
+                                value={pinCode}
+                                onChange={setPinCode}
+                                onComplete={handlePinComplete}
+                                isInvalid={pinError}
+                                type="number"
+                                mask
+                                placeholder="●"
+                                autoFocus
+                            >
+                                <PinInputField
+                                    borderRadius="lg"
+                                    fontSize="2xl"
+                                    fontWeight="bold"
+                                    w="16"
+                                    h="16"
+                                    borderColor={pinError ? "red.500" : "gray.300"}
+                                    _focus={{
+                                        borderColor: pinError ? "red.500" : "primary.500",
+                                        boxShadow: pinError ? "0 0 0 1px red.500" : "0 0 0 1px var(--chakra-colors-primary-500)"
+                                    }}
+                                />
+                                <PinInputField
+                                    borderRadius="lg"
+                                    fontSize="2xl"
+                                    fontWeight="bold"
+                                    w="16"
+                                    h="16"
+                                    borderColor={pinError ? "red.500" : "gray.300"}
+                                    _focus={{
+                                        borderColor: pinError ? "red.500" : "primary.500",
+                                        boxShadow: pinError ? "0 0 0 1px red.500" : "0 0 0 1px var(--chakra-colors-primary-500)"
+                                    }}
+                                />
+                                <PinInputField
+                                    borderRadius="lg"
+                                    fontSize="2xl"
+                                    fontWeight="bold"
+                                    w="16"
+                                    h="16"
+                                    borderColor={pinError ? "red.500" : "gray.300"}
+                                    _focus={{
+                                        borderColor: pinError ? "red.500" : "primary.500",
+                                        boxShadow: pinError ? "0 0 0 1px red.500" : "0 0 0 1px var(--chakra-colors-primary-500)"
+                                    }}
+                                />
+                                <PinInputField
+                                    borderRadius="lg"
+                                    fontSize="2xl"
+                                    fontWeight="bold"
+                                    w="16"
+                                    h="16"
+                                    borderColor={pinError ? "red.500" : "gray.300"}
+                                    _focus={{
+                                        borderColor: pinError ? "red.500" : "primary.500",
+                                        boxShadow: pinError ? "0 0 0 1px red.500" : "0 0 0 1px var(--chakra-colors-primary-500)"
+                                    }}
+                                />
+                            </PinInput>
+                        </HStack>
+
+                        {pinError && (
+                            <Alert status="error" borderRadius="lg" w="full">
+                                <AlertIcon />
+                                <AlertDescription>
+                                    Incorrect PIN. You will be signed out.
+                                </AlertDescription>
+                            </Alert>
+                        )}
+                    </VStack>
+
+                    <Text fontSize="sm" color={mutedTextColor} textAlign="center">
+                        Signed in as {currentUser?.email}
+                    </Text>
+                </VStack>
+            );
+        } else if (authStep === 2) {
             return (
                 <VStack spacing={6} w="full">
                     <VStack spacing={2} textAlign="center">
@@ -483,7 +697,7 @@ const SignIn = () => {
                                     size="lg"
                                     isFullWidth
                                     variant="gradient"
-                                    onClick={handlePasskeyVerification}
+                                    onClick={() => handlePasskeyVerification(false)}
                                 >
                                     Authenticate with Passkey
                                 </ModernButton>
@@ -542,7 +756,7 @@ const SignIn = () => {
 
                                     <ModernButton
                                         isFullWidth
-                                        variant="outline"
+                                        variant="gradient"
                                         onClick={() => {
                                             setEmailSent(false);
                                             setEmail("");
@@ -580,7 +794,7 @@ const SignIn = () => {
                                     size="lg"
                                     isFullWidth
                                     variant="gradient"
-                                    onClick={handleWebauthnRegistration}
+                                    onClick={() => handleWebauthnRegistration(false)}
                                 >
                                     Create Passkey
                                 </ModernButton>
@@ -662,8 +876,8 @@ const SignIn = () => {
                                 <StepIndicator>
                                     <StepStatus
                                         complete={<StepIcon />}
-                                        incomplete={<StepNumber>2</StepNumber>}
-                                        active={<StepNumber>2</StepNumber>}
+                                        incomplete={<StepNumber>3</StepNumber>}
+                                        active={<StepNumber>3</StepNumber>}
                                     />
                                 </StepIndicator>
                                 <Box flexShrink="0">
@@ -696,7 +910,7 @@ const SignIn = () => {
                             textAlign="center"
                             lineHeight="relaxed"
                         >
-                            By signing in, you agree to our Terms of Service and Privacy Policy. 
+                            By signing in, you agree to our Terms of Service and Privacy Policy.
                             Your data is protected with enterprise-grade security.
                         </Text>
                     </VStack>
