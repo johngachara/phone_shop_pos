@@ -8,15 +8,13 @@ import {
     CardBody,
     Stack,
     useColorModeValue,
-    Tooltip,
     HStack,
     Flex,
     Divider,
 } from "@chakra-ui/react";
 import { 
     ShoppingCartIcon, 
-    ArrowUturnLeftIcon, 
-    ClockIcon,
+    ArrowUturnLeftIcon,
     CurrencyDollarIcon,
     CalendarDaysIcon 
 } from "@heroicons/react/24/outline";
@@ -192,8 +190,9 @@ export default function RenderUnpaidOrders({
                                     setRefundId(item.id);
                                     setDialogOpen(true);
                                 }}
-                                variant="outline"
+                                variant="gradient"
                                 colorScheme="red"
+                                color="white"
                                 size="lg"
                                 isFullWidth
                                 leftIcon={<ArrowUturnLeftIcon size={18} />}

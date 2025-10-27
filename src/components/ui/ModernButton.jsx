@@ -1,6 +1,5 @@
 import {
     Button,
-    useColorModeValue,
     Spinner,
     HStack,
     Text,
