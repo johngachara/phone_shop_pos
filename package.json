@@ -8,7 +8,7 @@
     "@chakra-ui/react": "^2.10.5",
     "@chakra-ui/system": "^2.6.2",
     "@emotion/react": "^11.13.3",
-    "@emotion/styled": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
     "@heroicons/react": "^2.2.0",
     "@reduxjs/toolkit": "^2.3.0",
     "@simplewebauthn/browser": "^13.1.0",
