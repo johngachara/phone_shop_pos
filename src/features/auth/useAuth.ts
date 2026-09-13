@@ -111,6 +111,31 @@ export function initAuth() {
     useAuth.getState().setSession(data.session)
   })
 
+  // Supabase refreshes the access token on a timer. Browsers throttle timers in
+  // background tabs and stop them outright when a phone sleeps, so a POS left
+  // on a counter overnight wakes with an expired token and a refresh that never
+  // ran -- which is why an expired session meant signing in by hand.
+  //
+  // Coming back to the foreground restarts the timer and forces an immediate
+  // check, so the session recovers on its own before anyone taps anything.
+  const onVisibility = () => {
+    if (document.visibilityState === 'visible') {
+      supabase.auth.startAutoRefresh()
+      // getSession refreshes when the token is expired or close to it.
+      void supabase.auth.getSession().then(({ data }) => {
+        useAuth.getState().setSession(data.session)
+      })
+    } else {
+      // Nothing useful happens while hidden, and the timer would be throttled
+      // into uselessness anyway.
+      supabase.auth.stopAutoRefresh()
+    }
+  }
+
+  document.addEventListener('visibilitychange', onVisibility)
+  window.addEventListener('online', onVisibility)
+  onVisibility()
+
   const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
     const store = useAuth.getState()
 
@@ -124,8 +149,15 @@ export function initAuth() {
     }
     if (event === 'SIGNED_OUT') forgetPasskey()
 
+    // TOKEN_REFRESHED carries a new access token for the same person. It must
+    // update the session and change nothing else -- treating it as a sign-in
+    // would drop the till to the passkey screen every hour.
     store.setSession(session)
   })
 
-  return () => sub.subscription.unsubscribe()
+  return () => {
+    document.removeEventListener('visibilitychange', onVisibility)
+    window.removeEventListener('online', onVisibility)
+    sub.subscription.unsubscribe()
+  }
 }

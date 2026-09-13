@@ -35,7 +35,19 @@ export function useAppUpdate() {
       duration: Infinity,
       action: {
         label: 'Reload',
-        onClick: () => { void updateServiceWorker(true) },
+        onClick: () => {
+          // updateServiceWorker(true) tells the waiting worker to take over
+          // and reloads when it does. It does nothing at all if there is no
+          // waiting worker -- the registration was replaced, the worker was
+          // already activated, the browser discarded it -- and the button then
+          // looks broken, which is what it was doing.
+          //
+          // So: ask it to swap, and reload regardless shortly after. A reload
+          // is the outcome the button promises, and doing it unconditionally
+          // is correct even when the swap already happened.
+          void updateServiceWorker(true)
+          window.setTimeout(() => window.location.reload(), 600)
+        },
       },
       onDismiss: () => setNeedRefresh(false),
     })
