@@ -15,8 +15,13 @@ export interface StockItem {
  * The endpoint wraps its payload in `data`, and paginates when there are many
  * items. Both shapes are accepted so a change in either does not blank the
  * counter screen. */
-export async function fetchStock(): Promise<StockItem[]> {
-  return listFrom<StockItem>(await api<unknown>('/api/get_shop2_stock'))
+export async function fetchStock(query = ''): Promise<StockItem[]> {
+  // Searching on the server, not in the browser: this endpoint is paginated,
+  // so filtering what happens to be loaded reports "not stocked" for anything
+  // further down the list. The server also does fuzzy matching, which a
+  // client-side `includes` cannot.
+  const search = query.trim() ? `?q=${encodeURIComponent(query.trim())}` : ''
+  return listFrom<StockItem>(await api<unknown>(`/api/get_shop2_stock${search}`))
 }
 
 export function addStock(input: {

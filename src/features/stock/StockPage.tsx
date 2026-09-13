@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Boxes, Pencil, Plus, Search, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -14,6 +14,7 @@ import {
 import { Tooltip } from '@/components/ui/tooltip'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { formatKsh } from '@/lib/utils'
+import { useDebounced } from '@/lib/useDebounced'
 import { deleteStock, fetchStock, type StockItem } from './api'
 import { SellSheet } from './SellSheet'
 import { StockFormSheet } from './StockFormSheet'
@@ -26,17 +27,16 @@ export default function StockPage() {
   const [adding, setAdding] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState<StockItem | null>(null)
 
-  const stock = useQuery({ queryKey: ['stock'], queryFn: fetchStock })
+  const search = useDebounced(query)
+  const stock = useQuery({
+    queryKey: ['stock', search],
+    queryFn: () => fetchStock(search),
+    // Keeps the previous results on screen while the next search loads, so the
+    // list does not blank out between keystrokes.
+    placeholderData: (previous) => previous,
+  })
 
-  // Filtered in the browser rather than by round-tripping the API on every
-  // keystroke: the whole list is already loaded, and a counter search has to
-  // feel instant on a slow connection.
-  const items = useMemo(() => {
-    const all = stock.data ?? []
-    const needle = query.trim().toLowerCase()
-    if (!needle) return all
-    return all.filter((item) => item.product_name.toLowerCase().includes(needle))
-  }, [stock.data, query])
+  const items = stock.data ?? []
 
   const removal = useMutation({
     mutationFn: (item: StockItem) => deleteStock(item.id),
@@ -53,7 +53,7 @@ export default function StockPage() {
     <>
       <PageHeader
         title="Stock"
-        subtitle={stock.data ? `${stock.data.length} items` : undefined}
+        subtitle={!search && stock.data ? `${stock.data.length} items` : undefined}
         action={
           <Tooltip label="Add a new screen to stock, with its selling and buying price.">
             <Button onClick={() => setAdding(true)}><Plus /> Add item</Button>

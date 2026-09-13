@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Cable, Loader2, Pencil, Plus, Search, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -16,6 +16,7 @@ import {
 import { Tooltip } from '@/components/ui/tooltip'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { formatKsh } from '@/lib/utils'
+import { useDebounced } from '@/lib/useDebounced'
 
 interface Accessory {
   id: number
@@ -36,8 +37,9 @@ interface AccessoryPage {
  *
  * They used to be served by a separate Express service against Firestore, on a
  * second origin with its own token stack. Same screen, one API. */
-function fetchAccessories(page: number) {
-  return api<AccessoryPage>(`/api/accessories/?page=${page}&limit=50`)
+function fetchAccessories(page: number, query: string) {
+  const search = query.trim() ? `&q=${encodeURIComponent(query.trim())}` : ''
+  return api<AccessoryPage>(`/api/accessories/?page=${page}&limit=50${search}`)
 }
 
 export default function AccessoriesPage() {
@@ -49,16 +51,19 @@ export default function AccessoriesPage() {
   const [adding, setAdding] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState<Accessory | null>(null)
 
+  const search = useDebounced(query)
+
+  // A new search starts at page one; staying on page three of the previous
+  // results shows an empty list and looks like nothing matched.
+  useEffect(() => { setPage(1) }, [search])
+
   const accessories = useQuery({
-    queryKey: ['accessories', page],
-    queryFn: () => fetchAccessories(page),
+    queryKey: ['accessories', page, search],
+    queryFn: () => fetchAccessories(page, search),
+    placeholderData: (previous) => previous,
   })
 
-  const items = useMemo(() => {
-    const all = accessories.data?.items ?? []
-    const needle = query.trim().toLowerCase()
-    return needle ? all.filter((a) => a.product_name.toLowerCase().includes(needle)) : all
-  }, [accessories.data, query])
+  const items = accessories.data?.items ?? []
 
   function invalidate() {
     queryClient.invalidateQueries({ queryKey: ['accessories'] })
