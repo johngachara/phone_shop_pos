@@ -1,0 +1,86 @@
+name: Build and deploy POS frontend
+
+on:
+  push:
+    branches: [alltechv2, prod-test]
+  workflow_dispatch:
+
+env:
+  IMAGE: gachar4/alltech-pos
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      # Types are the safety net for the role gating and the money fields, so
+      # a type error must stop the build rather than ship.
+      - run: npm run typecheck
+
+  build:
+    needs: check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # Vite inlines VITE_* at build time, so these are build arguments: the
+      # values end up in the bundle and cannot be changed by restarting the
+      # container. Every one of them is public by design -- the Supabase anon
+      # key and the Turnstile site key are meant to be readable. They are still
+      # held as repository secrets so a URL change does not need a code change.
+      # The Supabase service role key must never be among them.
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.IMAGE }}:${{ github.sha }}
+            ${{ env.IMAGE }}:${{ github.ref_name }}
+          build-args: |
+            VITE_API_URL=${{ secrets.VITE_API_URL }}
+            VITE_SUPABASE_URL=${{ secrets.VITE_SUPABASE_URL }}
+            VITE_SUPABASE_ANON_KEY=${{ secrets.VITE_SUPABASE_ANON_KEY }}
+            VITE_TURNSTILE_SITE_KEY=${{ secrets.VITE_TURNSTILE_SITE_KEY }}
+            VITE_MEILISEARCH_URL=${{ secrets.VITE_MEILISEARCH_URL }}
+            VITE_MEILISEARCH_KEY=${{ secrets.VITE_MEILISEARCH_KEY }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref_name == 'alltechv2'
+    steps:
+      - name: Pull and restart on the frontend server
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.FRONTEND_HOST }}
+          username: ${{ secrets.FRONTEND_USER }}
+          key: ${{ secrets.FRONTEND_SSH_KEY }}
+          script: |
+            set -euo pipefail
+            cd /opt/alltech/pos
+            docker compose pull web
+            docker compose up -d web
+
+            for i in $(seq 1 20); do
+              if curl -fsS http://localhost:8080/ >/dev/null; then
+                echo "serving after ${i} attempts"
+                exit 0
+              fi
+              sleep 3
+            done
+            echo "frontend did not come up; recent logs:"
+            docker compose logs --tail 50 web
+            exit 1
