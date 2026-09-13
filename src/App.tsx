@@ -7,6 +7,7 @@ import { AppShell } from '@/components/layout/AppShell'
 import { RequireAuth, RequireManager } from '@/routes/guards'
 import { initAuth } from '@/features/auth/useAuth'
 import { initTheme } from '@/features/theme/useTheme'
+import { useAppUpdate } from '@/features/updates/useAppUpdate'
 import LoginPage from '@/features/auth/LoginPage'
 import DashboardPage from '@/features/dashboard/DashboardPage'
 import StockPage from '@/features/stock/StockPage'
@@ -36,6 +37,8 @@ const queryClient = new QueryClient({
 })
 
 export default function App() {
+  useAppUpdate()
+
   useEffect(() => {
     initTheme()
     return initAuth()

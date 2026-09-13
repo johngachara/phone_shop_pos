@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Cable, Loader2, Pencil, Plus, Search, Trash2 } from 'lucide-react'
+import { Cable, ChevronRight, Loader2, Plus, Search } from 'lucide-react'
 import { toast } from 'sonner'
 import { api } from '@/lib/api'
 import { Button } from '@/components/ui/button'
@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/dialog'
 import { Tooltip } from '@/components/ui/tooltip'
 import { PageHeader } from '@/components/layout/PageHeader'
+import { ProductSheet } from '@/features/stock/ProductSheet'
 import { formatKsh } from '@/lib/utils'
 import { useDebounced } from '@/lib/useDebounced'
 
@@ -50,6 +51,7 @@ export default function AccessoriesPage() {
   const [editing, setEditing] = useState<Accessory | null>(null)
   const [adding, setAdding] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState<Accessory | null>(null)
+  const [viewing, setViewing] = useState<Accessory | null>(null)
 
   const search = useDebounced(query)
 
@@ -120,20 +122,25 @@ export default function AccessoriesPage() {
             {items.map((item) => (
               <Card key={item.id} className="rise p-4">
                 <li className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
-                  <div className="flex items-start justify-between gap-3 sm:min-w-0 sm:flex-1">
-                    <div className="min-w-0">
-                      <p className="font-semibold leading-snug">{item.product_name}</p>
-                      <p className="tnum mt-0.5 text-sm text-ink-3">
+                  <button
+                    type="button"
+                    onClick={() => setViewing(item)}
+                    className="-m-1 flex items-start justify-between gap-3 rounded-xl p-1 text-left
+                               transition-colors hover:bg-surface-2 sm:min-w-0 sm:flex-1"
+                  >
+                    <span className="min-w-0">
+                      <span className="block font-semibold leading-snug">{item.product_name}</span>
+                      <span className="tnum mt-0.5 block text-sm text-ink-3">
                         {formatKsh(item.selling_price)}
                         {item.buying_price ? null : (
                           <span className="text-warn"> · no cost</span>
                         )}
-                      </p>
-                    </div>
-                    <div className="shrink-0 sm:hidden">
+                      </span>
+                    </span>
+                    <span className="shrink-0 sm:hidden">
                       <StockLevel quantity={item.quantity} />
-                    </div>
-                  </div>
+                    </span>
+                  </button>
                   <div className="hidden shrink-0 sm:block">
                     <StockLevel quantity={item.quantity} />
                   </div>
@@ -148,13 +155,9 @@ export default function AccessoriesPage() {
                       <Button className="flex-1 sm:flex-none" disabled={item.quantity <= 0}
                         onClick={() => setSelling(item)}>Sell</Button>
                     </Tooltip>
-                    <Tooltip label="Change the name, quantity or prices of this accessory.">
-                      <Button size="icon" variant="secondary" onClick={() => setEditing(item)}
-                        aria-label={`Edit ${item.product_name}`}><Pencil /></Button>
-                    </Tooltip>
-                    <Tooltip label="Remove this accessory. Past sales of it are kept.">
-                      <Button size="icon" variant="secondary" onClick={() => setConfirmDelete(item)}
-                        aria-label={`Delete ${item.product_name}`}><Trash2 /></Button>
+                    <Tooltip label="Open this accessory to see its margin and act on it.">
+                      <Button size="icon" variant="secondary" onClick={() => setViewing(item)}
+                        aria-label={`Open ${item.product_name}`}><ChevronRight /></Button>
                     </Tooltip>
                   </div>
                 </li>
@@ -176,6 +179,16 @@ export default function AccessoriesPage() {
           ) : null}
         </>
       )}
+
+      <ProductSheet
+        product={viewing}
+        open={viewing !== null}
+        kind="accessory"
+        onOpenChange={(o) => !o && setViewing(null)}
+        onSell={() => { setSelling(viewing); setViewing(null) }}
+        onEdit={() => { setEditing(viewing); setViewing(null) }}
+        onDelete={() => { setConfirmDelete(viewing); setViewing(null) }}
+      />
 
       <SellAccessory
         item={selling} open={selling !== null}

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Boxes, Loader2, Pencil, Plus, Search, Trash2 } from 'lucide-react'
+import { Boxes, ChevronRight, Loader2, Plus, Search } from 'lucide-react'
 import { useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -19,6 +19,7 @@ import { useDebounced } from '@/lib/useDebounced'
 import { deleteStock, fetchStock, type StockItem } from './api'
 import { SellSheet } from './SellSheet'
 import { StockFormSheet } from './StockFormSheet'
+import { ProductSheet } from './ProductSheet'
 
 export default function StockPage() {
   const queryClient = useQueryClient()
@@ -27,6 +28,7 @@ export default function StockPage() {
   const [editing, setEditing] = useState<StockItem | null>(null)
   const [adding, setAdding] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState<StockItem | null>(null)
+  const [viewing, setViewing] = useState<StockItem | null>(null)
 
   const search = useDebounced(query)
   const [params, setParams] = useSearchParams()
@@ -119,23 +121,33 @@ export default function StockPage() {
                   a badge and three controls onto a 375px line truncated every
                   product to three characters, which is the one thing on this
                   screen that has to be readable. */}
+              {/* The row itself opens the product. Sell stays on the row
+                  because it is the action taken dozens of times a day and
+                  should not need a second tap; everything else lives in the
+                  product sheet rather than crowding a line that has to stay
+                  readable at 375px. */}
               <li className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
-                <div className="flex items-start justify-between gap-3 sm:min-w-0 sm:flex-1">
-                  <div className="min-w-0">
-                    <p className="font-semibold leading-snug">{item.product_name}</p>
-                    <p className="tnum mt-0.5 text-sm text-ink-3">
+                <button
+                  type="button"
+                  onClick={() => setViewing(item)}
+                  className="-m-1 flex items-start justify-between gap-3 rounded-xl p-1 text-left
+                             transition-colors hover:bg-surface-2 sm:min-w-0 sm:flex-1"
+                >
+                  <span className="min-w-0">
+                    <span className="block font-semibold leading-snug">{item.product_name}</span>
+                    <span className="tnum mt-0.5 block text-sm text-ink-3">
                       {formatKsh(item.selling_price)}
                       {item.buying_price ? (
                         <span> · cost {formatKsh(item.buying_price)}</span>
                       ) : (
                         <span className="text-warn"> · no cost</span>
                       )}
-                    </p>
-                  </div>
-                  <div className="shrink-0 sm:hidden">
+                    </span>
+                  </span>
+                  <span className="shrink-0 sm:hidden">
                     <StockLevel quantity={item.quantity} />
-                  </div>
-                </div>
+                  </span>
+                </button>
 
                 <div className="hidden shrink-0 sm:block">
                   <StockLevel quantity={item.quantity} />
@@ -146,7 +158,7 @@ export default function StockPage() {
                     label={
                       item.quantity <= 0
                         ? 'Out of stock. Add more before selling.'
-                        : 'Put this on hold for a customer. It is not paid for until you mark it paid under Orders.'
+                        : 'Put this on hold for a customer, or record it as paid.'
                     }
                   >
                     <Button
@@ -157,22 +169,13 @@ export default function StockPage() {
                       Sell
                     </Button>
                   </Tooltip>
-                  <Tooltip label="Change the name, quantity or prices of this item.">
+                  <Tooltip label="Open this item to see its margin and act on it.">
                     <Button
                       size="icon" variant="secondary"
-                      onClick={() => setEditing(item)}
-                      aria-label={`Edit ${item.product_name}`}
+                      onClick={() => setViewing(item)}
+                      aria-label={`Open ${item.product_name}`}
                     >
-                      <Pencil />
-                    </Button>
-                  </Tooltip>
-                  <Tooltip label="Remove this item from stock. Past sales of it are kept.">
-                    <Button
-                      size="icon" variant="secondary"
-                      onClick={() => setConfirmDelete(item)}
-                      aria-label={`Delete ${item.product_name}`}
-                    >
-                      <Trash2 />
+                      <ChevronRight />
                     </Button>
                   </Tooltip>
                 </div>
@@ -181,6 +184,16 @@ export default function StockPage() {
           ))}
         </ul>
       )}
+
+      <ProductSheet
+        product={viewing}
+        open={viewing !== null}
+        kind="screen"
+        onOpenChange={(o) => !o && setViewing(null)}
+        onSell={() => { setSelling(viewing); setViewing(null) }}
+        onEdit={() => { setEditing(viewing); setViewing(null) }}
+        onDelete={() => { setConfirmDelete(viewing); setViewing(null) }}
+      />
 
       <SellSheet item={selling} open={selling !== null} onOpenChange={(o) => !o && setSelling(null)} />
       <StockFormSheet
