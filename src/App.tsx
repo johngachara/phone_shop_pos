@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Toaster } from 'sonner'
+import { TooltipProvider } from '@/components/ui/tooltip'
 import { AppShell } from '@/components/layout/AppShell'
 import { RequireAuth, RequireManager } from '@/routes/guards'
 import { initAuth } from '@/features/auth/useAuth'
@@ -10,6 +11,9 @@ import LoginPage from '@/features/auth/LoginPage'
 import ForgotPasswordPage from '@/features/auth/ForgotPasswordPage'
 import ResetPasswordPage from '@/features/auth/ResetPasswordPage'
 import DashboardPage from '@/features/dashboard/DashboardPage'
+import StockPage from '@/features/stock/StockPage'
+import OrdersPage from '@/features/orders/OrdersPage'
+import AccessoriesPage from '@/features/accessories/AccessoriesPage'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -37,6 +41,7 @@ export default function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
+      <TooltipProvider delayDuration={350} skipDelayDuration={200}>
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
@@ -53,15 +58,16 @@ export default function App() {
               path="users"
               element={<RequireManager><Placeholder name="Users" /></RequireManager>}
             />
-            <Route path="stock" element={<Placeholder name="Stock" />} />
-            <Route path="orders" element={<Placeholder name="Orders" />} />
-            <Route path="accessories" element={<Placeholder name="Accessories" />} />
+            <Route path="stock" element={<StockPage />} />
+            <Route path="orders" element={<OrdersPage />} />
+            <Route path="accessories" element={<AccessoriesPage />} />
             <Route path="ai" element={<Placeholder name="Alltech AI" />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
+      </TooltipProvider>
       <Toaster position="top-center" richColors closeButton />
     </QueryClientProvider>
   )

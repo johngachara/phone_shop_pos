@@ -57,3 +57,23 @@ export async function api<T>(
 
   return parsed as T
 }
+
+
+/** Pull a list out of whatever shape an endpoint returns.
+ *
+ * This API is not consistent: some endpoints wrap rows in `data`, the
+ * paginated ones use DRF's `results`, and a couple return a bare array.
+ * Guessing wrong does not throw -- it yields an empty list, so the screen
+ * quietly claims there is nothing rather than failing visibly. That is exactly
+ * how the dashboard came to report "everything is stocked" while two items
+ * were low. */
+export function listFrom<T>(body: unknown): T[] {
+  if (Array.isArray(body)) return body as T[]
+  if (body && typeof body === 'object') {
+    const record = body as Record<string, unknown>
+    if (Array.isArray(record.results)) return record.results as T[]
+    if (Array.isArray(record.data)) return record.data as T[]
+    if (Array.isArray(record.items)) return record.items as T[]
+  }
+  return []
+}

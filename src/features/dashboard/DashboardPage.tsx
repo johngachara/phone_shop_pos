@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import {
   AlertTriangle, ArrowRight, Boxes, Cable, Receipt, Sparkles, TrendingUp, Wallet,
 } from 'lucide-react'
-import { api } from '@/lib/api'
+import { api, listFrom } from '@/lib/api'
 import { formatKsh, formatNumber } from '@/lib/utils'
 import { useAuth } from '@/features/auth/useAuth'
 import { Card, CardBody, CardHeader, CardTitle, Stat } from '@/components/ui/card'
@@ -47,12 +47,13 @@ export default function DashboardPage() {
 
   const lowStock = useQuery({
     queryKey: ['low-stock'],
-    queryFn: () => api<{ data: StockItem[] }>('/api/detailed/low_stock/'),
+    // Paginated endpoint: rows arrive under `results`, not `data`.
+    queryFn: () => api<unknown>('/api/detailed/low_stock/').then(listFrom<StockItem>),
   })
 
   const unpaid = useQuery({
     queryKey: ['unpaid'],
-    queryFn: () => api<{ data: SaleRow[] }>('/api/saved2'),
+    queryFn: () => api<unknown>('/api/saved2').then(listFrom<SaleRow>),
   })
 
   // Manager only. Employees are never issued this request, and the API would
@@ -63,8 +64,8 @@ export default function DashboardPage() {
     enabled: isManager,
   })
 
-  const lowStockItems = lowStock.data?.data ?? []
-  const unpaidOrders = unpaid.data?.data ?? []
+  const lowStockItems = lowStock.data ?? []
+  const unpaidOrders = unpaid.data ?? []
 
   return (
     <>

@@ -13,7 +13,7 @@
   /* Dark-first. A shop counter is lit from above and the screen is usually
      tilted back; a dark field with luminous surfaces reads better there than a
      sheet of white, and it is far easier on the eyes over a ten-hour shift. */
-  --color-base: oklch(0.17 0.012 260);
+  --color-canvas: oklch(0.17 0.012 260);
   --color-surface: oklch(0.21 0.014 260);
   --color-surface-2: oklch(0.25 0.016 260);
   --color-surface-3: oklch(0.30 0.018 260);
@@ -50,7 +50,7 @@
    direct sun through the front, and at midday the dark theme washes out. */
 @media (prefers-color-scheme: light) {
   :root:not([data-theme='dark']) {
-    --color-base: oklch(0.98 0.004 260);
+    --color-canvas: oklch(0.98 0.004 260);
     --color-surface: oklch(1 0 0);
     --color-surface-2: oklch(0.975 0.004 260);
     --color-surface-3: oklch(0.95 0.006 260);
@@ -71,7 +71,7 @@
 }
 
 :root[data-theme='light'] {
-  --color-base: oklch(0.98 0.004 260);
+  --color-canvas: oklch(0.98 0.004 260);
   --color-surface: oklch(1 0 0);
   --color-surface-2: oklch(0.975 0.004 260);
   --color-surface-3: oklch(0.95 0.006 260);
@@ -98,7 +98,7 @@
   }
 
   body {
-    background: var(--color-base);
+    background: var(--color-canvas);
     color: var(--color-ink);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
@@ -123,6 +123,7 @@
   h1, h2, h3, h4 {
     font-family: var(--font-display);
     letter-spacing: -0.02em;
+    color: var(--color-ink);
   }
 
   /* Money and quantities line up column to column. Proportional digits make a
