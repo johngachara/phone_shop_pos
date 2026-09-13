@@ -54,7 +54,11 @@ export default defineConfig(({ mode }) => {
     tailwindcss(),
     firebaseServiceWorker(env),
     VitePWA({
-      registerType: 'autoUpdate',
+      // 'prompt', not 'autoUpdate'. autoUpdate swaps the running app out from
+      // under whoever is using it, which mid-sale means a half-filled sell
+      // sheet disappearing. The app asks instead, and the person reloads when
+      // they are between customers.
+      registerType: 'prompt',
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         clientsClaim: true,

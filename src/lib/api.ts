@@ -22,20 +22,38 @@ export async function api<T>(
   path: string,
   options: RequestInit & { json?: unknown } = {},
 ): Promise<T> {
-  const { data } = await supabase.auth.getSession()
-  const token = data.session?.access_token
-
+  let body = options.body
   const headers = new Headers(options.headers)
   headers.set('Accept', 'application/json')
-  if (token) headers.set('Authorization', `Bearer ${token}`)
-
-  let body = options.body
   if (options.json !== undefined) {
     headers.set('Content-Type', 'application/json')
     body = JSON.stringify(options.json)
   }
 
-  const response = await fetch(`${BASE_URL}${path}`, { ...options, headers, body })
+  const send = async (token: string | undefined) => {
+    const h = new Headers(headers)
+    if (token) h.set('Authorization', `Bearer ${token}`)
+    return fetch(`${BASE_URL}${path}`, { ...options, headers: h, body })
+  }
+
+  const { data } = await supabase.auth.getSession()
+  let response = await send(data.session?.access_token)
+
+  // A 401 on a request that carried a token means the token expired between
+  // being read and being used. A POS sits open on a counter all day and the
+  // access token rotates roughly hourly, so this is the normal case, not an
+  // edge one -- it is what made enabling notifications fail with a 401 while
+  // the same call worked from a fresh session.
+  //
+  // Refresh once and retry. Only once: if the refreshed token is also
+  // rejected, the session is genuinely finished and looping would just delay
+  // saying so.
+  if (response.status === 401 && data.session) {
+    const { data: refreshed } = await supabase.auth.refreshSession()
+    if (refreshed.session?.access_token) {
+      response = await send(refreshed.session.access_token)
+    }
+  }
 
   if (response.status === 204) return undefined as T
 
