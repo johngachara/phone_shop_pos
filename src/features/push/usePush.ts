@@ -13,12 +13,64 @@ export type PushState = 'unsupported' | 'default' | 'granted' | 'denied' | 'regi
  * the control is only offered to them. The server filters by role as well;
  * this just avoids asking someone to enable notifications they will never get.
  */
+/** Firebase's worker gets its own scope.
+ *
+ * Registered at '/' it competes with the PWA's own service worker, which also
+ * claims '/'. The later registration takes control and the PWA's updated
+ * worker is left permanently "waiting" -- so the app asks to reload, reloads,
+ * finds the same waiting worker, and asks again. That is the loop.
+ *
+ * This is the scope the Firebase SDK uses when it registers the worker itself,
+ * so it is also what Firebase expects to find.
+ */
+const FCM_SCOPE = '/firebase-cloud-messaging-push-scope'
+
+async function registerMessagingWorker(): Promise<ServiceWorkerRegistration> {
+  await removeRootScopedMessagingWorker()
+  return navigator.serviceWorker.register('/firebase-messaging-sw.js', {
+    scope: FCM_SCOPE,
+  })
+}
+
+/** Remove a messaging worker previously registered at the root scope.
+ *
+ * A service worker registration outlives the code that created it, so devices
+ * that already registered this worker at '/' keep that registration after a
+ * deploy and stay stuck in the reload loop. Shipping the scope fix alone would
+ * only help devices that had never installed it.
+ */
+async function removeRootScopedMessagingWorker(): Promise<void> {
+  try {
+    const registrations = await navigator.serviceWorker.getRegistrations()
+    await Promise.all(
+      registrations
+        .filter((r) => {
+          const script = r.active?.scriptURL ?? r.installing?.scriptURL ?? r.waiting?.scriptURL ?? ''
+          if (!script.includes('firebase-messaging-sw.js')) return false
+          // Only the wrongly-scoped one. The correctly-scoped registration is
+          // the one being kept.
+          return !r.scope.includes('firebase-cloud-messaging-push-scope')
+        })
+        .map((r) => r.unregister()),
+    )
+  } catch {
+    // Not being able to tidy up is not a reason to fail registration.
+  }
+}
+
 export function usePush() {
   const role = useAuth((s) => s.role)
   const session = useAuth((s) => s.session)
   const [state, setState] = useState<PushState>('default')
 
   const eligible = role === 'manager' && pushConfigured()
+
+  // Unconditionally, and before anything else: a device stuck in the reload
+  // loop may not be a manager, may have push unconfigured, and still has the
+  // wrongly-scoped worker holding the PWA's update hostage.
+  useEffect(() => {
+    if ('serviceWorker' in navigator) void removeRootScopedMessagingWorker()
+  }, [])
 
   useEffect(() => {
     if (!eligible) { setState('unsupported'); return }
@@ -45,10 +97,7 @@ export function usePush() {
       const messaging = await getMessagingIfSupported()
       if (!messaging) { setState('unsupported'); return }
 
-      // Firebase needs its own worker, registered explicitly. Left to itself it
-      // looks for /firebase-messaging-sw.js at the root and silently fails if
-      // the PWA's own worker got there first.
-      const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js')
+      const registration = await registerMessagingWorker()
 
       const token = await getToken(messaging, {
         vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY,
@@ -77,7 +126,7 @@ export function usePush() {
       try {
         const messaging = await getMessagingIfSupported()
         if (!messaging || cancelled) return
-        const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js')
+        const registration = await registerMessagingWorker()
         const token = await getToken(messaging, {
           vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY,
           serviceWorkerRegistration: registration,
