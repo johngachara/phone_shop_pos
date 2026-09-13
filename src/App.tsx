@@ -8,8 +8,6 @@ import { RequireAuth, RequireManager } from '@/routes/guards'
 import { initAuth } from '@/features/auth/useAuth'
 import { initTheme } from '@/features/theme/useTheme'
 import LoginPage from '@/features/auth/LoginPage'
-import ForgotPasswordPage from '@/features/auth/ForgotPasswordPage'
-import ResetPasswordPage from '@/features/auth/ResetPasswordPage'
 import DashboardPage from '@/features/dashboard/DashboardPage'
 import StockPage from '@/features/stock/StockPage'
 import OrdersPage from '@/features/orders/OrdersPage'
@@ -48,8 +46,6 @@ export default function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
-          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-          <Route path="/reset-password" element={<ResetPasswordPage />} />
 
           <Route element={<RequireAuth><AppShell /></RequireAuth>}>
             <Route index element={<DashboardPage />} />
