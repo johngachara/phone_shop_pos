@@ -1,7 +1,8 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import {
-  AlertTriangle, ArrowRight, Boxes, Cable, Receipt, Sparkles, TrendingUp, Wallet,
+  AlertTriangle, ArrowRight, Boxes, Cable, ChevronRight, Receipt, Sparkles,
+  TrendingUp, Wallet,
 } from 'lucide-react'
 import { api, listFrom } from '@/lib/api'
 import { formatKsh, formatNumber } from '@/lib/utils'
@@ -141,14 +142,26 @@ export default function DashboardPage() {
             ) : (
               <ul className="divide-y divide-line-soft">
                 {unpaidOrders.slice(0, 5).map((order) => (
-                  <li key={order.id} className="flex items-center justify-between gap-3 py-3">
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold">{order.product_name}</p>
-                      <p className="truncate text-xs capitalize text-ink-3">{order.customer_name}</p>
-                    </div>
-                    <span className="tnum shrink-0 text-sm font-semibold">
-                      {formatKsh(Number(order.selling_price) * order.quantity)}
-                    </span>
+                  <li key={order.id}>
+                    {/* Links to this specific order, not just the list. Seeing
+                        something on the dashboard and then having to find it
+                        again is the whole reason to show it here. */}
+                    <Link
+                      to={`/orders?order=${order.id}`}
+                      className="-mx-2 flex items-center justify-between gap-3 rounded-xl px-2 py-3
+                                 transition-colors hover:bg-surface-2 active:bg-surface-3"
+                    >
+                      <span className="min-w-0">
+                        <span className="block truncate text-sm font-semibold">{order.product_name}</span>
+                        <span className="block truncate text-xs capitalize text-ink-3">{order.customer_name}</span>
+                      </span>
+                      <span className="flex shrink-0 items-center gap-2">
+                        <span className="tnum text-sm font-semibold">
+                          {formatKsh(Number(order.selling_price) * order.quantity)}
+                        </span>
+                        <ChevronRight className="size-4 text-ink-3" />
+                      </span>
+                    </Link>
                   </li>
                 ))}
               </ul>
@@ -176,9 +189,21 @@ export default function DashboardPage() {
             ) : (
               <ul className="divide-y divide-line-soft">
                 {lowStockItems.slice(0, 5).map((item) => (
-                  <li key={item.id} className="flex items-center justify-between gap-3 py-3">
-                    <p className="truncate text-sm font-semibold">{item.product_name}</p>
-                    <StockLevel quantity={item.quantity} />
+                  <li key={item.id}>
+                    {/* Opens this item's edit sheet directly, because the only
+                        reason to look at a low-stock warning is to do something
+                        about that item. */}
+                    <Link
+                      to={`/stock?item=${item.id}`}
+                      className="-mx-2 flex items-center justify-between gap-3 rounded-xl px-2 py-3
+                                 transition-colors hover:bg-surface-2 active:bg-surface-3"
+                    >
+                      <span className="truncate text-sm font-semibold">{item.product_name}</span>
+                      <span className="flex shrink-0 items-center gap-2">
+                        <StockLevel quantity={item.quantity} />
+                        <ChevronRight className="size-4 text-ink-3" />
+                      </span>
+                    </Link>
                   </li>
                 ))}
               </ul>

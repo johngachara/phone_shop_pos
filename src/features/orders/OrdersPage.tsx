@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Check, Loader2, Receipt, Undo2 } from 'lucide-react'
+import { useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { api, listFrom } from '@/lib/api'
 import { Button } from '@/components/ui/button'
@@ -12,7 +13,7 @@ import {
 } from '@/components/ui/dialog'
 import { Tooltip } from '@/components/ui/tooltip'
 import { PageHeader } from '@/components/layout/PageHeader'
-import { formatDate, formatKsh } from '@/lib/utils'
+import { cn, formatDate, formatKsh } from '@/lib/utils'
 
 interface PendingSale {
   id: number
@@ -30,6 +31,9 @@ function fetchUnpaid() {
 export default function OrdersPage() {
   const queryClient = useQueryClient()
   const [refunding, setRefunding] = useState<PendingSale | null>(null)
+  const [params, setParams] = useSearchParams()
+  const highlighted = params.get('order')
+  const highlightRef = useRef<HTMLLIElement>(null)
 
   const orders = useQuery({ queryKey: ['unpaid'], queryFn: fetchUnpaid })
 
@@ -63,6 +67,19 @@ export default function OrdersPage() {
 
   const list = orders.data ?? []
 
+  // Arriving from the dashboard with ?order=<id>: scroll to it and mark it, so
+  // the row someone tapped is the row they land on rather than somewhere in a
+  // list they now have to search.
+  useEffect(() => {
+    if (!highlighted || !highlightRef.current) return
+    highlightRef.current.scrollIntoView({ block: 'center', behavior: 'smooth' })
+    const timer = setTimeout(() => {
+      params.delete('order')
+      setParams(params, { replace: true })
+    }, 2500)
+    return () => clearTimeout(timer)
+  }, [highlighted, list.length, params, setParams])
+
   return (
     <>
       <PageHeader
@@ -90,8 +107,17 @@ export default function OrdersPage() {
               (complete.isPending && complete.variables?.id === order.id) ||
               (refund.isPending && refund.variables?.id === order.id)
             return (
-              <Card key={order.id} className="rise p-4">
-                <li className="flex flex-wrap items-center gap-x-4 gap-y-3">
+              <Card
+                key={order.id}
+                className={cn(
+                  'rise p-4 transition-shadow',
+                  String(order.id) === highlighted && 'ring-2 ring-accent',
+                )}
+              >
+                <li
+                  ref={String(order.id) === highlighted ? highlightRef : undefined}
+                  className="flex flex-wrap items-center gap-x-4 gap-y-3"
+                >
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-semibold">{order.product_name}</p>
                     <p className="mt-0.5 text-sm capitalize text-ink-3">

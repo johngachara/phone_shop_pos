@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Boxes, Pencil, Plus, Search, Trash2 } from 'lucide-react'
+import { Boxes, Loader2, Pencil, Plus, Search, Trash2 } from 'lucide-react'
+import { useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -28,6 +29,8 @@ export default function StockPage() {
   const [confirmDelete, setConfirmDelete] = useState<StockItem | null>(null)
 
   const search = useDebounced(query)
+  const [params, setParams] = useSearchParams()
+
   const stock = useQuery({
     queryKey: ['stock', search],
     queryFn: () => fetchStock(search),
@@ -37,6 +40,20 @@ export default function StockPage() {
   })
 
   const items = stock.data ?? []
+
+  // Arriving from the dashboard with ?item=<id> opens that item straight away.
+  // The parameter is cleared once used, so a refresh does not reopen a sheet
+  // the person has already dealt with.
+  useEffect(() => {
+    const wanted = params.get('item')
+    if (!wanted || !stock.data) return
+    const match = stock.data.find((row) => String(row.id) === wanted)
+    if (match) {
+      setEditing(match)
+      params.delete('item')
+      setParams(params, { replace: true })
+    }
+  }, [params, stock.data, setParams])
 
   const removal = useMutation({
     mutationFn: (item: StockItem) => deleteStock(item.id),
@@ -62,7 +79,14 @@ export default function StockPage() {
       />
 
       <div className="relative mb-4">
-        <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-ink-3" />
+        {/* The spinner replaces the magnifier while a search is in flight.
+            Results stay on screen during a refetch, so without this there is
+            no sign anything is happening between typing and the list changing. */}
+        {stock.isFetching ? (
+          <Loader2 className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 animate-spin text-accent" />
+        ) : (
+          <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-ink-3" />
+        )}
         <Input
           className="pl-10"
           placeholder="Search stock"

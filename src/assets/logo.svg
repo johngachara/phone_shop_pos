@@ -1,0 +1,20 @@
+<!--
+  Alltech mark.
+
+  A phone screen with a chevron cut through it: the shop's trade is screens,
+  and the chevron reads as both the "A" of Alltech and an upward movement.
+  Drawn as geometry rather than a letterform so it stays legible at 24px in a
+  navigation bar and at 512px as an installed app icon.
+
+  Single accent on a dark field, matching the app. No gradient: gradients turn
+  to mud at favicon size.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" role="img" aria-label="Alltech">
+  <!-- Phone body. Generous radius so it reads as a device, not a card. -->
+  <rect x="16" y="6" width="32" height="52" rx="9" stroke="currentColor" stroke-width="4"/>
+  <!-- The chevron. Offset low so the screen still reads as a screen. -->
+  <path d="M24 40 L32 24 L40 40" stroke="currentColor" stroke-width="4.5"
+        stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Crossbar of the A, doubling as the home indicator. -->
+  <path d="M27.5 34.5 H36.5" stroke="currentColor" stroke-width="4.5" stroke-linecap="round"/>
+</svg>

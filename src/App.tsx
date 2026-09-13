@@ -15,6 +15,7 @@ import AccessoriesPage from '@/features/accessories/AccessoriesPage'
 import AnalyticsPage from '@/features/analytics/AnalyticsPage'
 import AiPage from '@/features/ai/AiPage'
 import UsersPage from '@/features/users/UsersPage'
+import { InsightsListPage, InsightDetailPage } from '@/features/insights/InsightsPage'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -52,6 +53,14 @@ export default function App() {
             <Route
               path="analytics"
               element={<RequireManager><AnalyticsPage /></RequireManager>}
+            />
+            <Route
+              path="insights"
+              element={<RequireManager><InsightsListPage /></RequireManager>}
+            />
+            <Route
+              path="insights/:id"
+              element={<RequireManager><InsightDetailPage /></RequireManager>}
             />
             <Route
               path="users"

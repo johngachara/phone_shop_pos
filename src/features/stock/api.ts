@@ -46,6 +46,8 @@ export function sellStock(id: number, input: {
   price: string
   quantity: number
   customer_name: string
+  /** true records it as paid immediately; false puts it on hold. */
+  complete?: boolean
 }) {
   return api<{ transaction_id: number }>(`/api/sell2/${id}`, { method: 'POST', json: input })
 }
