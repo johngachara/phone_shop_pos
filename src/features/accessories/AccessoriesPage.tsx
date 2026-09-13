@@ -90,7 +90,11 @@ export default function AccessoriesPage() {
       />
 
       <div className="relative mb-4">
-        <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-ink-3" />
+        {accessories.isFetching ? (
+          <Loader2 className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 animate-spin text-accent" />
+        ) : (
+          <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-ink-3" />
+        )}
         <Input
           className="pl-10" type="search" placeholder="Search accessories"
           value={query} onChange={(e) => setQuery(e.target.value)} autoComplete="off"

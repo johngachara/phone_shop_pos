@@ -3,15 +3,38 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" content="#141110" />
-    <link rel="icon" href="/favicon.ico" />
-    <link rel="apple-touch-icon" href="/logo192.png" />
+    <meta name="theme-color" content="#141821" />
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Alltech" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <title>Alltech POS</title>
     <!-- Explicit render: the widget is mounted by React when a form that needs
          it is on screen, not automatically wherever a matching class appears. -->
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" defer></script>
+    <style>
+      #boot {
+        position: fixed; inset: 0; display: flex; flex-direction: column;
+        align-items: center; justify-content: center; gap: 1rem;
+        background: #141821; color: #26D07C;
+        padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+        font-family: ui-sans-serif, system-ui, sans-serif;
+        font-weight: 600; letter-spacing: -0.01em;
+      }
+      #boot svg { width: 68px; height: 68px; animation: boot-pulse 1.6s ease-in-out infinite; }
+      #boot span { font-size: 0.875rem; color: #8A93A6; }
+      @keyframes boot-pulse { 0%,100% { opacity: .45 } 50% { opacity: 1 } }
+      @media (prefers-color-scheme: light) {
+        #boot { background: #FAFAFB; color: #17A45F; }
+        #boot span { color: #626B7D; }
+      }
+      @media (prefers-reduced-motion: reduce) { #boot svg { animation: none; opacity: 1 } }
+    </style>
   </head>
   <body>
     <script>
@@ -24,7 +47,17 @@
         }
       } catch (e) { /* storage can throw in private mode */ }
     </script>
-    <div id="root"></div>
+    <div id="root">
+      <div id="boot">
+        <svg viewBox="0 0 64 64" fill="none" aria-label="Alltech">
+          <rect x="16" y="6" width="32" height="52" rx="9" stroke="currentColor" stroke-width="4"/>
+          <path d="M24 40 L32 24 L40 40" stroke="currentColor" stroke-width="4.5"
+                stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M27.5 34.5 H36.5" stroke="currentColor" stroke-width="4.5" stroke-linecap="round"/>
+        </svg>
+        <span>Alltech POS</span>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

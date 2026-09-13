@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import {
-  BarChart3, Boxes, Cable, LayoutDashboard, LogOut, MoreHorizontal, Receipt,
-  Sparkles, Users,
+  BarChart3, Boxes, Cable, FileText, LayoutDashboard, LogOut, MoreHorizontal,
+  Receipt, Sparkles, Users,
 } from 'lucide-react'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody,
@@ -13,6 +13,7 @@ import { useAuth } from '@/features/auth/useAuth'
 import { Button } from '@/components/ui/button'
 import { ThemeToggle } from '@/features/theme/ThemeToggle'
 import { Tooltip } from '@/components/ui/tooltip'
+import { Logo } from '@/components/Logo'
 
 interface NavItem {
   to: string
@@ -28,6 +29,7 @@ const NAV: NavItem[] = [
   { to: '/accessories', label: 'Accessories', icon: Cable },
   { to: '/ai', label: 'Alltech AI', icon: Sparkles },
   { to: '/analytics', label: 'Analytics', icon: BarChart3, managerOnly: true },
+  { to: '/insights', label: 'Reports', icon: FileText, managerOnly: true },
   { to: '/users', label: 'Users', icon: Users, managerOnly: true },
 ]
 
@@ -51,7 +53,7 @@ export function AppShell() {
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r border-line-soft bg-surface/50 px-3 py-5 lg:flex">
         <div className="flex items-center gap-2.5 px-2.5">
           <div className="grid size-9 place-items-center rounded-xl bg-accent text-accent-ink">
-            <Boxes className="size-4.5" />
+            <Logo className="size-5" />
           </div>
           <div className="min-w-0">
             <p className="font-display text-sm font-semibold leading-tight">Alltech</p>
@@ -89,10 +91,18 @@ export function AppShell() {
 
       {/* Phone: a top bar for identity and a bottom bar for navigation, which
           is where a thumb already is while holding the device. */}
-      <header className="glass sticky top-0 z-30 flex items-center justify-between px-4 py-3 lg:hidden">
+      {/* The top padding follows the safe-area inset so the header clears a
+          notch or status bar when the browser falls back to standalone rather
+          than honouring fullscreen. It collapses to the normal 0.75rem where
+          there is no inset, so nothing is padded for a device that does not
+          need it. */}
+      <header
+        className="glass sticky top-0 z-30 flex items-center justify-between px-4 pb-3 lg:hidden"
+        style={{ paddingTop: 'max(0.75rem, env(safe-area-inset-top))' }}
+      >
         <div className="flex items-center gap-2.5">
           <div className="grid size-8 place-items-center rounded-lg bg-accent text-accent-ink">
-            <Boxes className="size-4" />
+            <Logo className="size-4.5" />
           </div>
           <span className="font-display text-sm font-semibold">Alltech</span>
         </div>

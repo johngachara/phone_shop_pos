@@ -1,19 +1,20 @@
-import { Monitor, Moon, Sun } from 'lucide-react'
+import { Moon, Sun } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useTheme, type ThemePreference } from './useTheme'
 
+// Two options, not three. A third button did not fit the sidebar or the sheet
+// and overflowed both. "System" is still the starting point -- until someone
+// picks a side, the app follows the device -- it just is not a button.
 const OPTIONS: { value: ThemePreference; label: string; icon: typeof Sun }[] = [
   { value: 'light', label: 'Light', icon: Sun },
   { value: 'dark', label: 'Dark', icon: Moon },
-  { value: 'system', label: 'System', icon: Monitor },
 ]
 
-/** Three-way theme control.
+/** Light or dark.
  *
- * A segmented control rather than a toggle, because "follow the device" is a
- * real third choice and the shop wants it: the counter is dark most of the day
- * and bright when the sun comes through the front, and the device already
- * knows which. */
+ * Before a choice is made the preference is "system" and the app follows the
+ * device, so the shop still gets the right theme at dusk without anyone
+ * touching this. Once someone picks, that sticks. */
 export function ThemeToggle({ className }: { className?: string }) {
   const preference = useTheme((s) => s.preference)
   const setPreference = useTheme((s) => s.setPreference)

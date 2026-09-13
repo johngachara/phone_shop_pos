@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Loader2, Minus, Plus } from 'lucide-react'
+import { Check, Clock, Loader2, Minus, Plus } from 'lucide-react'
 import { toast } from 'sonner'
 import {
   Dialog, DialogBody, DialogContent, DialogFooter, DialogHeader, DialogTitle,
@@ -8,6 +8,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Field, Input } from '@/components/ui/input'
 import { formatKsh } from '@/lib/utils'
+import { Tooltip } from '@/components/ui/tooltip'
 import { fetchCustomers, sellStock, type StockItem } from './api'
 
 /** Put an item on hold against a customer name.
@@ -48,18 +49,24 @@ export function SellSheet({
   }, [price, quantity])
 
   const mutation = useMutation({
-    mutationFn: () =>
+    mutationFn: (complete: boolean) =>
       sellStock(item!.id, {
         product_name: item!.product_name,
         price,
         quantity,
         customer_name: customer.trim(),
+        complete,
       }),
-    onSuccess: () => {
-      toast.success(`${item!.product_name} put on hold for ${customer.trim()}`)
+    onSuccess: (_data, complete) => {
+      toast.success(
+        complete
+          ? `Sold ${item!.product_name} to ${customer.trim()}`
+          : `${item!.product_name} on hold for ${customer.trim()}`,
+      )
       queryClient.invalidateQueries({ queryKey: ['stock'] })
       queryClient.invalidateQueries({ queryKey: ['unpaid'] })
       queryClient.invalidateQueries({ queryKey: ['low-stock'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard-metrics'] })
       onOpenChange(false)
     },
     onError: (error) => toast.error(error.message),
@@ -142,15 +149,35 @@ export function SellSheet({
           </div>
         </DialogBody>
 
-        <DialogFooter>
-          <Button variant="secondary" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button
-            onClick={() => mutation.mutate()}
-            disabled={!canSell || mutation.isPending}
-          >
-            {mutation.isPending ? <Loader2 className="animate-spin" /> : null}
-            Put on hold
-          </Button>
+        {/* Two ways out, because the counter does both. Holding is for an
+            item handed over before payment; selling outright is for one paid
+            there and then, which would otherwise sit in Orders forever waiting
+            for a completion nobody is going to perform. */}
+        <DialogFooter className="sm:justify-between">
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Tooltip label="Hand the item over now and record payment later, under Orders.">
+              <Button
+                variant="secondary"
+                onClick={() => mutation.mutate(false)}
+                disabled={!canSell || mutation.isPending}
+              >
+                {mutation.isPending && mutation.variables === false
+                  ? <Loader2 className="animate-spin" /> : <Clock />}
+                Put on hold
+              </Button>
+            </Tooltip>
+            <Tooltip label="The customer has paid. This counts towards today's sales straight away.">
+              <Button
+                onClick={() => mutation.mutate(true)}
+                disabled={!canSell || mutation.isPending}
+              >
+                {mutation.isPending && mutation.variables === true
+                  ? <Loader2 className="animate-spin" /> : <Check />}
+                Sell — paid
+              </Button>
+            </Tooltip>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>

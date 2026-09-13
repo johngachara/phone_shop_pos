@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Fingerprint, Loader2, LogIn, ShieldCheck } from 'lucide-react'
+import { Fingerprint, Loader2, LogIn } from 'lucide-react'
+import { Logo } from '@/components/Logo'
 import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import { Field, Input } from '@/components/ui/input'
@@ -13,6 +14,7 @@ type Step = 'password' | 'passkey' | 'enrol'
 export default function LoginPage() {
   const navigate = useNavigate()
   const session = useAuth((s) => s.session)
+  const loading = useAuth((s) => s.loading)
   const isAlltech = useAuth((s) => s.isAlltech)
   const setPasskeyVerified = useAuth((s) => s.setPasskeyVerified)
   const signOut = useAuth((s) => s.signOut)
@@ -28,11 +30,14 @@ export default function LoginPage() {
   const onToken = useCallback((token: string) => setCaptchaToken(token), [])
   const onExpire = useCallback(() => setCaptchaToken(null), [])
 
-  // A session that already exists still has to clear the second step.
+  // A restored session still has to clear the second step -- but only once the
+  // claims have been read. Acting while `loading` is true means deciding on a
+  // half-initialised store, which is what made this fire before there was
+  // anything to check.
   useEffect(() => {
-    if (session && step === 'password') decideSecondStep()
+    if (!loading && session && step === 'password') decideSecondStep()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session])
+  }, [loading, session])
 
   async function decideSecondStep() {
     if (!isAlltech) {
@@ -47,7 +52,17 @@ export default function LoginPage() {
       const enrolled = await hasPasskey()
       setStep(enrolled ? 'passkey' : 'enrol')
     } catch {
-      setError('Could not check your passkeys. Try again.')
+      // Deliberately silent at this point. This runs when a stored session is
+      // restored, before the person has typed anything, and a failure here --
+      // an expired token, a dropped connection -- is not something they did.
+      // Showing "could not check your passkeys" on a login screen nobody has
+      // touched reads as though the app is broken, which is exactly what it
+      // looked like.
+      //
+      // Enrolment is the safe fallback: if they already have a passkey the
+      // device offers it, and if the list genuinely could not be read the
+      // real error surfaces when they act.
+      setStep('enrol')
     }
   }
 
@@ -115,8 +130,8 @@ export default function LoginPage() {
     <main className="relative z-10 grid min-h-dvh place-items-center px-5 py-10">
       <div className="w-full max-w-sm rise">
         <div className="mb-8 text-center">
-          <div className="mx-auto grid size-14 place-items-center rounded-2xl bg-accent text-accent-ink shadow-[var(--shadow-glow)]">
-            <ShieldCheck className="size-7" />
+          <div className="mx-auto grid size-16 place-items-center rounded-2xl bg-accent text-accent-ink shadow-[var(--shadow-glow)]">
+            <Logo className="size-9" />
           </div>
           <h1 className="mt-5 font-display text-2xl font-semibold">Alltech POS</h1>
           <p className="mt-1 text-sm text-ink-3">
