@@ -49,9 +49,16 @@ export async function api<T>(
   // rejected, the session is genuinely finished and looping would just delay
   // saying so.
   if (response.status === 401 && data.session) {
-    const { data: refreshed } = await supabase.auth.refreshSession()
+    const { data: refreshed, error } = await supabase.auth.refreshSession()
     if (refreshed.session?.access_token) {
       response = await send(refreshed.session.access_token)
+    } else if (error) {
+      // The refresh token itself is finished -- revoked, expired, or the
+      // password was changed, which Supabase treats as ending every session.
+      // Sign out so the app returns to the login screen on its own. Without
+      // this the session lingers as a token nothing will accept, and every
+      // screen fills with errors while still looking signed in.
+      await supabase.auth.signOut()
     }
   }
 
