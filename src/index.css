@@ -1,234 +1,170 @@
-/* Import Inter font for modern typography */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+@import "tailwindcss";
 
-/* Reset and base styles */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+/* Sora for display, Plus Jakarta Sans for UI. Deliberately not Inter or a
+   system stack: this runs on a counter all day and should look like a product,
+   not a default. Both carry tabular figures, which is what actually matters
+   when a column of prices has to line up. */
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+@theme {
+  --font-display: 'Sora', ui-sans-serif, system-ui, sans-serif;
+  --font-sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+
+  /* Dark-first. A shop counter is lit from above and the screen is usually
+     tilted back; a dark field with luminous surfaces reads better there than a
+     sheet of white, and it is far easier on the eyes over a ten-hour shift. */
+  --color-base: oklch(0.17 0.012 260);
+  --color-surface: oklch(0.21 0.014 260);
+  --color-surface-2: oklch(0.25 0.016 260);
+  --color-surface-3: oklch(0.30 0.018 260);
+  --color-line: oklch(0.32 0.016 260);
+  --color-line-soft: oklch(0.27 0.014 260);
+
+  --color-ink: oklch(0.97 0.005 260);
+  --color-ink-2: oklch(0.80 0.012 260);
+  --color-ink-3: oklch(0.63 0.014 260);
+
+  /* One vivid accent, used sparingly. Spring green rather than the usual
+     SaaS blue or purple, and bright enough to stay visible in daylight. */
+  --color-accent: oklch(0.78 0.19 155);
+  --color-accent-ink: oklch(0.19 0.05 155);
+  --color-accent-dim: oklch(0.55 0.14 155);
+
+  --color-danger: oklch(0.68 0.20 22);
+  --color-warn: oklch(0.80 0.16 78);
+  --color-info: oklch(0.74 0.13 230);
+
+  /* Generous, modern radii. Anything smaller reads as a 2015 admin panel. */
+  --radius-lg: 1rem;
+  --radius-xl: 1.25rem;
+  --radius-2xl: 1.75rem;
+
+  --shadow-lift: 0 1px 2px oklch(0 0 0 / 0.4), 0 8px 24px -8px oklch(0 0 0 / 0.5);
+  --shadow-float: 0 2px 4px oklch(0 0 0 / 0.4), 0 20px 50px -12px oklch(0 0 0 / 0.7);
+  --shadow-glow: 0 0 0 1px oklch(0.78 0.19 155 / 0.25), 0 8px 32px -8px oklch(0.78 0.19 155 / 0.35);
+
+  --ease-spring: linear(0, 0.35 7%, 0.78 16%, 0.99 24%, 1.06 31%, 1.03 44%, 1 62%);
 }
 
-html {
-  font-size: 16px;
-  line-height: 1.5;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
-}
+/* Light mode is a real theme, not an inverted afterthought: the shop gets
+   direct sun through the front, and at midday the dark theme washes out. */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme='dark']) {
+    --color-base: oklch(0.98 0.004 260);
+    --color-surface: oklch(1 0 0);
+    --color-surface-2: oklch(0.975 0.004 260);
+    --color-surface-3: oklch(0.95 0.006 260);
+    --color-line: oklch(0.90 0.006 260);
+    --color-line-soft: oklch(0.94 0.005 260);
 
-body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  background-color: #fafafa;
-  color: #1a202c;
-  overflow-x: hidden;
-}
+    --color-ink: oklch(0.20 0.015 260);
+    --color-ink-2: oklch(0.40 0.015 260);
+    --color-ink-3: oklch(0.55 0.014 260);
 
-/* Smooth scrolling */
-html {
-  scroll-behavior: smooth;
-}
+    --color-accent: oklch(0.62 0.17 155);
+    --color-accent-ink: oklch(1 0 0);
+    --color-accent-dim: oklch(0.72 0.13 155);
 
-/* Custom scrollbar styles */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #cbd5e0;
-  border-radius: 3px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #4a90e2;
-}
-
-/* Focus styles for accessibility */
-*:focus {
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
-}
-
-/* Selection styles */
-::selection {
-  background-color: rgba(74, 144, 226, 0.2);
-  color: #1a202c;
-}
-
-/* Utility classes for animations */
-.fade-in {
-  animation: fadeIn 0.3s ease-in-out;
-}
-
-.slide-up {
-  animation: slideUp 0.3s ease-out;
-}
-
-.scale-in {
-  animation: scaleIn 0.2s ease-out;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
+    --shadow-lift: 0 1px 2px oklch(0 0 0 / 0.04), 0 8px 24px -12px oklch(0 0 0 / 0.12);
+    --shadow-float: 0 2px 4px oklch(0 0 0 / 0.05), 0 20px 50px -16px oklch(0 0 0 / 0.18);
   }
 }
 
-@keyframes slideUp {
-  from {
-    transform: translateY(20px);
-    opacity: 0;
+:root[data-theme='light'] {
+  --color-base: oklch(0.98 0.004 260);
+  --color-surface: oklch(1 0 0);
+  --color-surface-2: oklch(0.975 0.004 260);
+  --color-surface-3: oklch(0.95 0.006 260);
+  --color-line: oklch(0.90 0.006 260);
+  --color-line-soft: oklch(0.94 0.005 260);
+  --color-ink: oklch(0.20 0.015 260);
+  --color-ink-2: oklch(0.40 0.015 260);
+  --color-ink-3: oklch(0.55 0.014 260);
+  --color-accent: oklch(0.62 0.17 155);
+  --color-accent-ink: oklch(1 0 0);
+  --color-accent-dim: oklch(0.72 0.13 155);
+  --shadow-lift: 0 1px 2px oklch(0 0 0 / 0.04), 0 8px 24px -12px oklch(0 0 0 / 0.12);
+  --shadow-float: 0 2px 4px oklch(0 0 0 / 0.05), 0 20px 50px -16px oklch(0 0 0 / 0.18);
+}
+
+@layer base {
+  * { border-color: var(--color-line); }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    /* The POS is a single screen at a time; page bounce on a tablet makes it
+       feel like a website rather than an app. */
+    overscroll-behavior-y: none;
   }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
-}
 
-@keyframes scaleIn {
-  from {
-    transform: scale(0.95);
-    opacity: 0;
-  }
-  to {
-    transform: scale(1);
-    opacity: 1;
-  }
-}
-
-/* Loading spinner animation */
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.spinner {
-  animation: spin 1s linear infinite;
-}
-
-/* Glass morphism effect */
-.glass {
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-/* Card hover effects */
-.card-hover {
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.card-hover:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-}
-
-/* Button animations */
-.btn-hover {
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.btn-hover:hover {
-  transform: translateY(-1px);
-}
-
-.btn-hover:active {
-  transform: translateY(0);
-}
-
-/* Gradient text */
-.gradient-text {
-  background: linear-gradient(135deg, #4a90e2 0%, #667eea 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-/* Status indicators */
-.status-success {
-  color: #38a169;
-  background-color: #f0fff4;
-}
-
-.status-warning {
-  color: #d69e2e;
-  background-color: #fffbeb;
-}
-
-.status-error {
-  color: #e53e3e;
-  background-color: #fef2f2;
-}
-
-.status-info {
-  color: #3182ce;
-  background-color: #ebf8ff;
-}
-
-/* Mobile optimizations */
-@media (max-width: 768px) {
   body {
-    font-size: 14px;
+    background: var(--color-base);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    /* A counter is a place for fingers, not cursors. Text selection on a long
+       press gets in the way of tapping through a sale. */
+    -webkit-tap-highlight-color: transparent;
   }
-  
-  .mobile-padding {
-    padding: 1rem;
+
+  /* Atmosphere rather than a flat field: two very soft accent washes, fixed so
+     they do not move as lists scroll. */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background:
+      radial-gradient(60rem 40rem at 12% -10%, oklch(0.78 0.19 155 / 0.07), transparent 60%),
+      radial-gradient(50rem 35rem at 95% 8%, oklch(0.74 0.13 230 / 0.05), transparent 60%);
   }
-  
-  .mobile-text-sm {
-    font-size: 0.875rem;
+
+  h1, h2, h3, h4 {
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
+  }
+
+  /* Money and quantities line up column to column. Proportional digits make a
+     price list impossible to scan. */
+  .tnum { font-variant-numeric: tabular-nums; font-feature-settings: 'tnum' 1; }
+
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
   }
 }
 
-/* Print styles */
-@media print {
-  * {
-    background: white !important;
-    color: black !important;
-    box-shadow: none !important;
+@layer utilities {
+  .surface {
+    background: var(--color-surface);
+    border: 1px solid var(--color-line-soft);
+    box-shadow: var(--shadow-lift);
   }
-  
-  .no-print {
-    display: none !important;
-  }
-}
 
-/* High contrast mode support */
-@media (prefers-contrast: high) {
-  * {
-    border-color: currentColor;
+  /* Layered translucency, used for things that sit above the page: the nav
+     bar and sheets. Kept cheap -- heavy blur is visibly slow on the Android
+     tablets this runs on. */
+  .glass {
+    background: color-mix(in oklab, var(--color-surface) 78%, transparent);
+    backdrop-filter: blur(12px) saturate(140%);
+    border: 1px solid var(--color-line-soft);
   }
-}
 
-/* Reduced motion support */
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
+  .rise {
+    animation: rise 0.5s var(--ease-spring) both;
   }
-}
 
-/* Dark mode styles */
-@media (prefers-color-scheme: dark) {
-  body {
-    background-color: #1a202c;
-    color: #f7fafc;
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: none; }
   }
 }
