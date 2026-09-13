@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button'
 import { ThemeToggle } from '@/features/theme/ThemeToggle'
 import { Tooltip } from '@/components/ui/tooltip'
 import { Logo } from '@/components/Logo'
+import { usePush } from '@/features/push/usePush'
 
 interface NavItem {
   to: string
@@ -37,6 +38,12 @@ export function AppShell() {
   const role = useAuth((s) => s.role)
   const email = useAuth((s) => s.session?.user?.email)
   const signOut = useAuth((s) => s.signOut)
+
+  // Mounted here rather than on the Reports page so a manager's token is
+  // refreshed on every load. FCM tokens rotate, and registering only when
+  // someone happens to open Reports means notifications stop arriving weeks
+  // later with nothing to indicate why.
+  usePush()
 
   const [moreOpen, setMoreOpen] = useState(false)
   const navigate = useNavigate()
