@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Fingerprint, Loader2, LogIn, ShieldCheck } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import { Field, Input } from '@/components/ui/input'
-import { Turnstile } from './Turnstile'
+import { Turnstile, type TurnstileHandle } from './Turnstile'
 import { hasPasskey, passkeysSupported, registerPasskey, verifyPasskey } from './passkeys'
 import { useAuth } from './useAuth'
 
@@ -23,6 +23,7 @@ export default function LoginPage() {
   const [captchaToken, setCaptchaToken] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const turnstile = useRef<TurnstileHandle>(null)
 
   const onToken = useCallback((token: string) => setCaptchaToken(token), [])
   const onExpire = useCallback(() => setCaptchaToken(null), [])
@@ -65,14 +66,29 @@ export default function LoginPage() {
       // Session arrives via onAuthStateChange, which triggers decideSecondStep.
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Sign in failed'
-      setError(
-        message.toLowerCase().includes('captcha')
-          ? 'The security check expired. Please try again.'
-          : 'Wrong email or password.',
-      )
-      // The token is spent whether or not sign-in worked. Without clearing it
-      // the next attempt fails on the captcha and looks like a wrong password.
+      const lower = message.toLowerCase()
+
+      if (lower.includes('captcha')) {
+        // Distinguish the two causes. A rejected token with the widget working
+        // almost always means the site key here and the secret configured in
+        // Supabase belong to different Turnstile widgets, and telling someone
+        // to "try again" for that just makes them do it forever.
+        setError(
+          'The security check was rejected. If this keeps happening, the ' +
+          'Turnstile site key and the secret set in Supabase do not match.',
+        )
+      } else if (lower.includes('invalid login') || lower.includes('credentials')) {
+        setError('Wrong email or password.')
+      } else {
+        setError(message)
+      }
+
+      // A Turnstile token is redeemed exactly once, whether or not sign-in
+      // succeeded. Clearing the state is not enough -- the widget has to issue
+      // a new one, or the next attempt resubmits a spent token and fails as a
+      // captcha error no matter how correct the password is.
       setCaptchaToken(null)
+      turnstile.current?.reset()
     } finally {
       setBusy(false)
     }
@@ -125,7 +141,7 @@ export default function LoginPage() {
                 />
               </Field>
 
-              <Turnstile onToken={onToken} onExpire={onExpire} />
+              <Turnstile ref={turnstile} onToken={onToken} onExpire={onExpire} />
 
               {error ? <p className="text-sm text-danger">{error}</p> : null}
 

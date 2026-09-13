@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react'
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef } from 'react'
 
 declare global {
   interface Window {
@@ -21,12 +21,20 @@ declare global {
  *
  * Tokens are single use. `reset()` after every submit, or the next attempt
  * fails with `invalid-input-response` and looks like a wrong password. */
-export function Turnstile({
-  onToken, onExpire,
-}: {
+export interface TurnstileHandle {
+  /** Discard the current token and issue a fresh one.
+   *
+   * Must be called after every failed submit. A Turnstile token is redeemed
+   * exactly once, so re-submitting with the same one fails with
+   * `invalid-input-response` -- which surfaces as "the security check expired"
+   * even when the password was correct. */
+  reset: () => void
+}
+
+export const Turnstile = forwardRef<TurnstileHandle, {
   onToken: (token: string) => void
   onExpire: () => void
-}) {
+}>(function Turnstile({ onToken, onExpire }, ref) {
   const container = useRef<HTMLDivElement>(null)
   const widgetId = useRef<string | null>(null)
 
@@ -71,19 +79,13 @@ export function Turnstile({
     [],
   )
 
-  return <div ref={container} className="min-h-[65px]" />
-}
+  useImperativeHandle(ref, () => ({
+    reset: () => {
+      if (widgetId.current !== null) {
+        window.turnstile?.reset(widgetId.current)
+      }
+    },
+  }), [])
 
-export function resetTurnstile() {
-  // Exposed separately so a failed sign-in can clear the spent token without
-  // the login form holding a ref into this component.
-  const iframe = document.querySelector<HTMLIFrameElement>('iframe[src*="challenges.cloudflare.com"]')
-  const id = iframe?.closest('[id]')?.id
-  if (id && window.turnstile) {
-    try {
-      window.turnstile.reset(id)
-    } catch {
-      /* the widget may already be gone */
-    }
-  }
-}
+  return <div ref={container} className="min-h-[65px]" />
+})
