@@ -1,10 +1,10 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowLeft, Loader2, MailCheck, KeyRound } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import { Field, Input } from '@/components/ui/input'
-import { Turnstile } from './Turnstile'
+import { Turnstile, type TurnstileHandle } from './Turnstile'
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('')
@@ -12,6 +12,7 @@ export default function ForgotPasswordPage() {
   const [sent, setSent] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const turnstile = useRef<TurnstileHandle>(null)
 
   const onToken = useCallback((t: string) => setCaptchaToken(t), [])
   const onExpire = useCallback(() => setCaptchaToken(null), [])
@@ -32,7 +33,9 @@ export default function ForgotPasswordPage() {
       setSent(true)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not send the email')
+      // Single-use token: without a reset the retry fails on the captcha.
       setCaptchaToken(null)
+      turnstile.current?.reset()
     } finally {
       setBusy(false)
     }
@@ -75,7 +78,7 @@ export default function ForgotPasswordPage() {
                 />
               </Field>
 
-              <Turnstile onToken={onToken} onExpire={onExpire} />
+              <Turnstile ref={turnstile} onToken={onToken} onExpire={onExpire} />
 
               {error ? <p className="text-sm text-danger">{error}</p> : null}
 

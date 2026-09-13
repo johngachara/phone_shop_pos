@@ -54,7 +54,7 @@ export function AppShell() {
           </div>
           <div className="min-w-0">
             <p className="font-display text-sm font-semibold leading-tight">Alltech</p>
-            <p className="truncate text-[11px] capitalize text-ink-3">{role ?? '—'}</p>
+            <p className="truncate text-xs capitalize text-ink-3">{role ?? '—'}</p>
           </div>
         </div>
 
@@ -79,7 +79,7 @@ export function AppShell() {
 
         <div className="border-t border-line-soft px-1 pt-3">
           <ThemeToggle className="mb-2" />
-          <p className="truncate px-2 text-[11px] text-ink-3">{email}</p>
+          <p className="truncate px-2 text-xs text-ink-3">{email}</p>
           <Button variant="ghost" className="mt-1 w-full justify-start" onClick={() => void signOut()}>
             <LogOut /> Sign out
           </Button>
@@ -117,7 +117,7 @@ export function AppShell() {
             key={to} to={to} end={to === '/'}
             className={({ isActive }) =>
               cn(
-                'flex min-w-0 flex-1 flex-col items-center gap-1 rounded-xl px-1 py-2 text-[10px] font-semibold',
+                'flex min-w-0 flex-1 flex-col items-center gap-1 rounded-xl px-1 py-2 text-[11px] font-semibold',
                 isActive ? 'text-accent' : 'text-ink-3',
               )
             }
@@ -131,7 +131,7 @@ export function AppShell() {
           <button
             type="button"
             onClick={() => setMoreOpen(true)}
-            className="flex min-w-0 flex-1 flex-col items-center gap-1 rounded-xl px-1 py-2 text-[10px] font-semibold text-ink-3"
+            className="flex min-w-0 flex-1 flex-col items-center gap-1 rounded-xl px-1 py-2 text-[11px] font-semibold text-ink-3"
           >
             <MoreHorizontal className="size-5" />
             <span>More</span>
