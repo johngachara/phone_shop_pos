@@ -106,9 +106,7 @@ export function ProductSheet({
             label={
               outOfStock
                 ? 'Out of stock. Add more before selling.'
-                : kind === 'screen'
-                  ? 'Put on hold for a customer, or record it as paid.'
-                  : 'Sell this accessory. It is recorded as paid straight away.'
+                : 'Put on hold for a customer, or record it as paid.'
             }
           >
             <Button size="lg" disabled={outOfStock} onClick={onSell}>
