@@ -311,7 +311,7 @@ function AccessoryForm({
         product_name: name.trim(),
         quantity: Number(quantity),
         selling_price: price,
-        buying_price: cost === '' ? null : cost,
+        buying_price: cost,
       }
       return editing
         ? api(`/api/accessories/${item.id}/update/`, { method: 'PATCH', json: payload })
@@ -325,7 +325,9 @@ function AccessoryForm({
     onError: (error) => toast.error(error.message),
   })
 
-  const valid = name.trim().length > 1 && Number(quantity) >= 0 && Number(price) > 0
+  const valid =
+    name.trim().length > 1 && Number(quantity) >= 0 && Number(price) > 0 &&
+    cost !== '' && Number(cost) >= 0
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -348,9 +350,9 @@ function AccessoryForm({
                 value={price} onChange={(e) => setPrice(e.target.value)} />
             </Field>
           </div>
-          <Field label="Buying price" hint="Needed for this item to count towards profit.">
+          <Field label="Buying price" hint="What you paid for it. Used to work out profit.">
             <Input type="number" inputMode="decimal" step="0.01" min="0"
-              value={cost} onChange={(e) => setCost(e.target.value)} placeholder="Optional" />
+              value={cost} onChange={(e) => setCost(e.target.value)} placeholder="0.00" />
           </Field>
         </DialogBody>
         <DialogFooter>
