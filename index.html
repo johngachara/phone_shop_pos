@@ -1,21 +1,30 @@
-
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <link rel="icon" href="/favicon.ico" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="theme-color" content="#ffffff" />
-  <meta
-          name="description"
-          content="POS"
-  />
-  <link rel="apple-touch-icon" href="/logo192.png" />
-  <title>SHOP 2</title>
-</head>
-<body>
-<noscript>You need to enable JavaScript to run this app.</noscript>
-<div id="root"></div>
-<script type="module" src="/src/index.jsx"></script>
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#141110" />
+    <link rel="icon" href="/favicon.ico" />
+    <link rel="apple-touch-icon" href="/logo192.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <title>Alltech POS</title>
+    <!-- Explicit render: the widget is mounted by React when a form that needs
+         it is on screen, not automatically wherever a matching class appears. -->
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" defer></script>
+  </head>
+  <body>
+    <script>
+      // Runs before first paint: without this the page paints in the default
+      // theme and visibly flips once React mounts.
+      try {
+        var pref = localStorage.getItem('alltech-theme');
+        if (pref === 'light' || pref === 'dark') {
+          document.documentElement.setAttribute('data-theme', pref);
+        }
+      } catch (e) { /* storage can throw in private mode */ }
+    </script>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
 </html>

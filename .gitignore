@@ -1,34 +1,15 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
-# dependencies
-/node_modules
-/.pnp
-.pnp.js
-
-# testing
-/coverage
-
-# production
-/build
-
-# misc
-.DS_Store
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+node_modules
+build
 dist
 dev-dist
+.env
+.env.local
 *.local
 
-# amplify
-.amplify
-amplify_outputs*
-amplifyconfiguration*
+# Local-only session fixtures used to screenshot the authenticated UI without
+# a passkey-capable authenticator. Never shipped: they hold real tokens.
+public/__dev
+
+.DS_Store
 .idea
-amplify
-pnpm-lock.yaml
+*.log
