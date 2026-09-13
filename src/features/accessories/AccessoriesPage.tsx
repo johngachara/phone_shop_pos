@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Cable, ChevronRight, Loader2, Plus, Search } from 'lucide-react'
+import { Cable, Check, ChevronRight, Clock, Loader2, Plus, Search } from 'lucide-react'
 import { toast } from 'sonner'
 import { api } from '@/lib/api'
 import { Button } from '@/components/ui/button'
@@ -70,6 +70,8 @@ export default function AccessoriesPage() {
   function invalidate() {
     queryClient.invalidateQueries({ queryKey: ['accessories'] })
     queryClient.invalidateQueries({ queryKey: ['dashboard-metrics'] })
+    // A held accessory appears in Orders now, so that list is stale too.
+    queryClient.invalidateQueries({ queryKey: ['unpaid'] })
   }
 
   const removal = useMutation({
@@ -231,7 +233,7 @@ function SellAccessory({
   const [customer, setCustomer] = useState('')
 
   const mutation = useMutation({
-    mutationFn: () =>
+    mutationFn: (complete: boolean) =>
       api(`/api/accessories/${item!.id}/sell/`, {
         method: 'POST',
         json: {
@@ -239,10 +241,15 @@ function SellAccessory({
           price: item!.selling_price,
           quantity,
           customer_name: customer.trim(),
+          complete,
         },
       }),
-    onSuccess: () => {
-      toast.success('Sold')
+    onSuccess: (_data, complete) => {
+      toast.success(
+        complete
+          ? `Sold ${item!.product_name} to ${customer.trim()}`
+          : `${item!.product_name} on hold for ${customer.trim()}`,
+      )
       onDone()
       onOpenChange(false)
       setQuantity(1)
@@ -259,9 +266,9 @@ function SellAccessory({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Sell {item.product_name}</DialogTitle>
-          {/* Accessories complete immediately -- unlike screens, they are not
-              put on hold, which matches how the counter already works. */}
-          <DialogDescription>This is recorded as paid straight away.</DialogDescription>
+          <DialogDescription>
+            Hold it if they will pay later, or record it as paid now.
+          </DialogDescription>
         </DialogHeader>
         <DialogBody className="space-y-4">
           <Field label="Quantity" error={over ? `Only ${item.quantity} in stock.` : null}>
@@ -280,14 +287,34 @@ function SellAccessory({
             </span>
           </div>
         </DialogBody>
-        <DialogFooter>
-          <Button variant="secondary" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button
-            disabled={over || customer.trim().length < 2 || mutation.isPending}
-            onClick={() => mutation.mutate()}
-          >
-            {mutation.isPending ? <Loader2 className="animate-spin" /> : null} Sell
-          </Button>
+        {/* The same two ways out as a screen. An accessory handed over on
+            credit had nowhere to live before: it was recorded as paid when it
+            was not, or not recorded at all. */}
+        <DialogFooter className="sm:justify-between">
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Tooltip label="Hand it over now and record payment later, under Orders.">
+              <Button
+                variant="secondary"
+                disabled={over || customer.trim().length < 2 || mutation.isPending}
+                onClick={() => mutation.mutate(false)}
+              >
+                {mutation.isPending && mutation.variables === false
+                  ? <Loader2 className="animate-spin" /> : <Clock />}
+                Put on hold
+              </Button>
+            </Tooltip>
+            <Tooltip label="The customer has paid. This counts towards today's sales straight away.">
+              <Button
+                disabled={over || customer.trim().length < 2 || mutation.isPending}
+                onClick={() => mutation.mutate(true)}
+              >
+                {mutation.isPending && mutation.variables === true
+                  ? <Loader2 className="animate-spin" /> : <Check />}
+                Sell — paid
+              </Button>
+            </Tooltip>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>
