@@ -150,13 +150,12 @@ export default function LoginPage() {
                 {busy ? 'Signing in' : 'Continue'}
               </Button>
 
-              <button
-                type="button"
-                onClick={() => navigate('/forgot-password')}
-                className="w-full text-center text-xs font-semibold text-ink-3 hover:text-ink"
-              >
-                Forgot your password?
-              </button>
+              {/* No self-service reset: staff use addresses on the shop's
+                  domain and have no mailbox to receive a link. A manager sets
+                  passwords from the Users page instead. */}
+              <p className="text-center text-xs text-ink-3">
+                Forgotten your password? Ask a manager to set a new one.
+              </p>
             </form>
           ) : (
             <div className="space-y-5 text-center">

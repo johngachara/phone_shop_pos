@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Loader2, ShieldCheck, UserMinus, UserPlus, Users } from 'lucide-react'
+import {
+  Fingerprint, KeyRound, Loader2, ShieldCheck, UserMinus, UserPlus, Users,
+} from 'lucide-react'
 import { toast } from 'sonner'
 import { api } from '@/lib/api'
 import { Button } from '@/components/ui/button'
@@ -25,6 +27,7 @@ interface AlltechUser {
   is_alltech: boolean
   created_at: string
   last_sign_in_at: string | null
+  passkey_count: number
 }
 
 const MIN_PASSWORD = 12
@@ -34,6 +37,8 @@ export default function UsersPage() {
   const myId = useAuth((s) => s.session?.user?.id)
   const [adding, setAdding] = useState(false)
   const [revoking, setRevoking] = useState<AlltechUser | null>(null)
+  const [settingPassword, setSettingPassword] = useState<AlltechUser | null>(null)
+  const [clearingPasskeys, setClearingPasskeys] = useState<AlltechUser | null>(null)
 
   const users = useQuery({
     queryKey: ['users'],
@@ -46,6 +51,21 @@ export default function UsersPage() {
     mutationFn: ({ user, role }: { user: AlltechUser; role: 'employee' | 'manager' }) =>
       api(`/api/users/${user.id}/`, { method: 'PATCH', json: { role } }),
     onSuccess: () => { toast.success('Role updated'); invalidate() },
+    onError: (error) => toast.error(error.message),
+  })
+
+  const clearPasskeys = useMutation({
+    mutationFn: (user: AlltechUser) =>
+      api<{ removed: number }>(`/api/users/${user.id}/passkeys/`, { method: 'DELETE' }),
+    onSuccess: (result) => {
+      toast.success(
+        result.removed
+          ? `Removed ${result.removed} passkey${result.removed === 1 ? '' : 's'}`
+          : 'They had no passkeys',
+      )
+      invalidate()
+      setClearingPasskeys(null)
+    },
     onError: (error) => toast.error(error.message),
   })
 
@@ -92,6 +112,10 @@ export default function UsersPage() {
                       {user.last_sign_in_at
                         ? `Last signed in ${formatDate(user.last_sign_in_at)}`
                         : 'Has never signed in'}
+                      {' · '}
+                      {user.passkey_count > 0
+                        ? `${user.passkey_count} passkey${user.passkey_count === 1 ? '' : 's'}`
+                        : 'no passkey yet'}
                     </p>
                   </div>
 
@@ -124,6 +148,33 @@ export default function UsersPage() {
                       </select>
                     </Tooltip>
 
+                    <Tooltip label="Set a new password for this person and tell them what it is. There is no reset email.">
+                      <Button
+                        size="icon" variant="secondary"
+                        onClick={() => setSettingPassword(user)}
+                        aria-label={`Set password for ${user.email}`}
+                      >
+                        <KeyRound />
+                      </Button>
+                    </Tooltip>
+
+                    <Tooltip
+                      label={
+                        user.passkey_count > 0
+                          ? 'Remove their passkeys, so they can set one up again on a new device. Use this when someone loses their phone.'
+                          : 'They have no passkey registered. They will be asked to create one next time they sign in.'
+                      }
+                    >
+                      <Button
+                        size="icon" variant="secondary"
+                        disabled={user.passkey_count === 0}
+                        onClick={() => setClearingPasskeys(user)}
+                        aria-label={`Clear passkeys for ${user.email}`}
+                      >
+                        <Fingerprint />
+                      </Button>
+                    </Tooltip>
+
                     <Tooltip
                       label={
                         isMe
@@ -149,6 +200,42 @@ export default function UsersPage() {
       )}
 
       <AddUserDialog open={adding} onOpenChange={setAdding} onDone={invalidate} />
+
+      <SetPasswordDialog
+        user={settingPassword}
+        onOpenChange={(o) => !o && setSettingPassword(null)}
+        onDone={invalidate}
+      />
+
+      <Dialog
+        open={clearingPasskeys !== null}
+        onOpenChange={(o) => !o && setClearingPasskeys(null)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Remove passkeys for {clearingPasskeys?.email}?</DialogTitle>
+            <DialogDescription>
+              They will be asked to set up a new passkey the next time they sign
+              in. Do this when someone has lost the device they registered — a
+              passkey lives on one device, and without it they cannot get past
+              the second step.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="secondary" onClick={() => setClearingPasskeys(null)}>
+              Cancel
+            </Button>
+            <Button
+              variant="danger"
+              disabled={clearPasskeys.isPending}
+              onClick={() => clearingPasskeys && clearPasskeys.mutate(clearingPasskeys)}
+            >
+              {clearPasskeys.isPending ? <Loader2 className="animate-spin" /> : null}
+              Remove passkeys
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={revoking !== null} onOpenChange={(o) => !o && setRevoking(null)}>
         <DialogContent>
@@ -247,6 +334,71 @@ function AddUserDialog({
           <Button disabled={!valid || create.isPending} onClick={() => create.mutate()}>
             {create.isPending ? <Loader2 className="animate-spin" /> : null}
             Create user
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+
+function SetPasswordDialog({
+  user, onOpenChange, onDone,
+}: {
+  user: AlltechUser | null
+  onOpenChange: (o: boolean) => void
+  onDone: () => void
+}) {
+  const [password, setPassword] = useState('')
+
+  const save = useMutation({
+    mutationFn: () =>
+      api(`/api/users/${user!.id}/password/`, { method: 'POST', json: { password } }),
+    onSuccess: () => {
+      toast.success('Password set. Tell them what it is.')
+      onDone()
+      onOpenChange(false)
+      setPassword('')
+    },
+    onError: (error) => toast.error(error.message),
+  })
+
+  const tooShort = password.length > 0 && password.length < MIN_PASSWORD
+
+  return (
+    <Dialog open={user !== null} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Set a password for {user?.email}</DialogTitle>
+          <DialogDescription>
+            They have no mailbox, so there is no reset email. Set the password
+            here and tell them directly.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogBody className="space-y-4">
+          <Field
+            label="New password"
+            hint={`At least ${MIN_PASSWORD} characters.`}
+            error={tooShort ? `Too short — ${MIN_PASSWORD} characters or more.` : null}
+          >
+            {/* Shown as text on purpose: whoever sets it has to be able to read
+                it back to the person standing in front of them. */}
+            <Input type="text" value={password} autoComplete="off"
+              onChange={(e) => setPassword(e.target.value)} />
+          </Field>
+          <p className="rounded-xl bg-surface-2 px-4 py-3 text-xs text-ink-2">
+            Their passkey is not affected. If they have also lost the device
+            holding it, remove their passkeys too.
+          </p>
+        </DialogBody>
+        <DialogFooter>
+          <Button variant="secondary" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button
+            disabled={password.length < MIN_PASSWORD || save.isPending}
+            onClick={() => save.mutate()}
+          >
+            {save.isPending ? <Loader2 className="animate-spin" /> : null}
+            Set password
           </Button>
         </DialogFooter>
       </DialogContent>
