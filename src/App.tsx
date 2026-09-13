@@ -14,6 +14,9 @@ import DashboardPage from '@/features/dashboard/DashboardPage'
 import StockPage from '@/features/stock/StockPage'
 import OrdersPage from '@/features/orders/OrdersPage'
 import AccessoriesPage from '@/features/accessories/AccessoriesPage'
+import AnalyticsPage from '@/features/analytics/AnalyticsPage'
+import AiPage from '@/features/ai/AiPage'
+import UsersPage from '@/features/users/UsersPage'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -52,16 +55,16 @@ export default function App() {
             <Route index element={<DashboardPage />} />
             <Route
               path="analytics"
-              element={<RequireManager><Placeholder name="Analytics" /></RequireManager>}
+              element={<RequireManager><AnalyticsPage /></RequireManager>}
             />
             <Route
               path="users"
-              element={<RequireManager><Placeholder name="Users" /></RequireManager>}
+              element={<RequireManager><UsersPage /></RequireManager>}
             />
             <Route path="stock" element={<StockPage />} />
             <Route path="orders" element={<OrdersPage />} />
             <Route path="accessories" element={<AccessoriesPage />} />
-            <Route path="ai" element={<Placeholder name="Alltech AI" />} />
+            <Route path="ai" element={<AiPage />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />
@@ -70,14 +73,5 @@ export default function App() {
       </TooltipProvider>
       <Toaster position="top-center" richColors closeButton />
     </QueryClientProvider>
-  )
-}
-
-/** Routes landing in the next change. Named so the nav is navigable now. */
-function Placeholder({ name }: { name: string }) {
-  return (
-    <div className="surface grid min-h-64 place-items-center rounded-2xl text-sm text-ink-3">
-      {name} lands in the next change.
-    </div>
   )
 }
