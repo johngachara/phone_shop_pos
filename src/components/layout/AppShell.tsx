@@ -12,6 +12,7 @@ import { cn } from '@/lib/utils'
 import { useAuth } from '@/features/auth/useAuth'
 import { Button } from '@/components/ui/button'
 import { ThemeToggle } from '@/features/theme/ThemeToggle'
+import { Tooltip } from '@/components/ui/tooltip'
 
 interface NavItem {
   to: string
@@ -95,9 +96,11 @@ export function AppShell() {
           </div>
           <span className="font-display text-sm font-semibold">Alltech</span>
         </div>
-        <Button variant="ghost" size="icon" onClick={() => void signOut()} aria-label="Sign out">
-          <LogOut />
-        </Button>
+        <Tooltip label="Sign out. You will need your password and passkey to get back in." side="bottom">
+          <Button variant="ghost" size="icon" onClick={() => void signOut()} aria-label="Sign out">
+            <LogOut />
+          </Button>
+        </Tooltip>
       </header>
 
       <main className="px-4 pb-28 pt-5 sm:px-6 lg:ml-60 lg:pb-10 lg:pt-8">
