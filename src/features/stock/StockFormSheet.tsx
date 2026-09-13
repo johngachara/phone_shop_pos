@@ -33,10 +33,16 @@ export function StockFormSheet({
     setBuyingPrice(item?.buying_price ?? '')
   }, [item, open])
 
+  // Number(buyingPrice) > 0 excluded a cost of zero, so a free item showed no
+  // margin at all when its margin is the entire selling price.
   const margin =
-    Number(sellingPrice) > 0 && Number(buyingPrice) > 0
+    Number(sellingPrice) > 0 && buyingPrice !== '' && Number.isFinite(Number(buyingPrice))
       ? Number(sellingPrice) - Number(buyingPrice)
       : null
+  const marginPercent =
+    margin === null || Number(sellingPrice) <= 0
+      ? null
+      : Math.round((margin / Number(sellingPrice)) * 100)
 
   const mutation = useMutation({
     mutationFn: () => {
@@ -119,12 +125,21 @@ export function StockFormSheet({
           {margin !== null ? (
             <div className="flex items-center justify-between rounded-xl bg-surface-2 px-4 py-3">
               <span className="text-sm font-semibold text-ink-2">Margin per unit</span>
-              <span
-                className={`tnum font-semibold ${margin > 0 ? 'text-accent' : 'text-danger'}`}
-              >
+              <span className={`tnum font-semibold ${margin > 0 ? 'text-accent' : 'text-danger'}`}>
                 {formatKsh(margin)}
+                {marginPercent !== null ? (
+                  <span className="text-ink-3"> · {marginPercent}%</span>
+                ) : null}
               </span>
             </div>
+          ) : null}
+
+          {margin !== null && margin <= 0 ? (
+            <p className="rounded-xl border border-danger/30 bg-danger/5 px-4 py-3 text-xs text-danger">
+              {margin === 0
+                ? 'This sells for exactly what it cost. Every sale makes nothing.'
+                : 'This sells for less than it cost. Every sale loses money.'}
+            </p>
           ) : null}
         </DialogBody>
 

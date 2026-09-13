@@ -365,6 +365,18 @@ function AccessoryForm({
     onError: (error) => toast.error(error.message),
   })
 
+  // Shown as soon as both prices are present, so a mistyped cost is caught
+  // while the form is still open rather than after the item has been sold at
+  // a loss all week.
+  const margin =
+    Number(price) > 0 && cost !== '' && Number.isFinite(Number(cost))
+      ? Number(price) - Number(cost)
+      : null
+  const marginPercent =
+    margin === null || Number(price) <= 0
+      ? null
+      : Math.round((margin / Number(price)) * 100)
+
   const valid =
     name.trim().length > 1 && Number(quantity) >= 0 && Number(price) > 0 &&
     cost !== '' && Number(cost) >= 0
@@ -394,6 +406,26 @@ function AccessoryForm({
             <Input type="number" inputMode="decimal" step="0.01" min="0"
               value={cost} onChange={(e) => setCost(e.target.value)} placeholder="0.00" />
           </Field>
+
+          {margin !== null ? (
+            <div className="flex items-center justify-between rounded-xl bg-surface-2 px-4 py-3">
+              <span className="text-sm font-semibold text-ink-2">Margin per unit</span>
+              <span className={`tnum font-semibold ${margin > 0 ? 'text-accent' : 'text-danger'}`}>
+                {formatKsh(margin)}
+                {marginPercent !== null ? (
+                  <span className="text-ink-3"> · {marginPercent}%</span>
+                ) : null}
+              </span>
+            </div>
+          ) : null}
+
+          {margin !== null && margin <= 0 ? (
+            <p className="rounded-xl border border-danger/30 bg-danger/5 px-4 py-3 text-xs text-danger">
+              {margin === 0
+                ? 'This sells for exactly what it cost. Every sale makes nothing.'
+                : 'This sells for less than it cost. Every sale loses money.'}
+            </p>
+          ) : null}
         </DialogBody>
         <DialogFooter>
           <Button variant="secondary" onClick={() => onOpenChange(false)}>Cancel</Button>
