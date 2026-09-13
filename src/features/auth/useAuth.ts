@@ -2,6 +2,52 @@ import { create } from 'zustand'
 import type { Session } from '@supabase/supabase-js'
 import { readClaims, supabase, type AlltechRole } from '@/lib/supabase'
 
+const PASSKEY_KEY = 'alltech-passkey-verified'
+
+/** How long one passkey check covers.
+ *
+ * A passkey is the second factor, not a per-request check. Re-prompting on
+ * every page load made a reload -- or the PWA being restarted by the system,
+ * which happens on its own -- throw the till back to the login screen mid-shift.
+ *
+ * Twelve hours covers a shop day, so it is asked for once when someone starts
+ * and again the next morning. Bound to the user id, so signing in as someone
+ * else never inherits it.
+ */
+const PASSKEY_VALID_MS = 12 * 60 * 60 * 1000
+
+function rememberPasskey(userId: string) {
+  try {
+    localStorage.setItem(PASSKEY_KEY, JSON.stringify({
+      userId, expiresAt: Date.now() + PASSKEY_VALID_MS,
+    }))
+  } catch {
+    // Private mode and some locked-down Android browsers throw. Not being able
+    // to remember it means an extra prompt, not a broken sign-in.
+  }
+}
+
+function forgetPasskey() {
+  try {
+    localStorage.removeItem(PASSKEY_KEY)
+  } catch { /* see above */ }
+}
+
+function passkeyStillValid(userId: string | undefined): boolean {
+  if (!userId) return false
+  try {
+    const raw = localStorage.getItem(PASSKEY_KEY)
+    if (!raw) return false
+    const stored = JSON.parse(raw) as { userId?: string; expiresAt?: number }
+    // Both checks matter: the wrong user must not inherit it, and an expired
+    // record must not be treated as a pass.
+    return stored.userId === userId && typeof stored.expiresAt === 'number'
+      && stored.expiresAt > Date.now()
+  } catch {
+    return false
+  }
+}
+
 /** Where a session is in the two-step sign-in.
  *
  * Supabase checking the password is not enough on its own: a passkey is the
@@ -31,15 +77,27 @@ export const useAuth = create<AuthState>((set) => ({
       role: claims.role,
       isAlltech: claims.is_alltech,
       loading: false,
-      // A new session always starts unverified. Without this, signing out and
-      // back in as someone else would inherit the previous passkey step.
-      ...(session ? {} : { passkeyVerified: false }),
+      // Restored from storage rather than reset, so a reload does not send the
+      // till back to the login screen. Still false for a signed-out state, and
+      // the record is bound to the user id so another account cannot inherit it.
+      passkeyVerified: session ? passkeyStillValid(session.user?.id) : false,
     })
   },
 
-  setPasskeyVerified: (value) => set({ passkeyVerified: value }),
+  setPasskeyVerified: (value) => {
+    const userId = useAuth.getState().session?.user?.id
+    if (value && userId) {
+      rememberPasskey(userId)
+    } else if (!value) {
+      forgetPasskey()
+    }
+    set({ passkeyVerified: value })
+  },
 
   signOut: async () => {
+    // Cleared on the way out, so the next person at this device is asked for
+    // their own passkey rather than walking straight in.
+    forgetPasskey()
     await supabase.auth.signOut()
     set({
       session: null, role: null, isAlltech: false,
@@ -55,10 +113,18 @@ export function initAuth() {
 
   const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
     const store = useAuth.getState()
+
+    // A genuine sign-in clears any remembered check first -- it may belong to
+    // whoever used this device before. A token refresh is not a sign-in and
+    // must leave it alone, or the session would drop to the passkey screen
+    // every hour when the token rotates.
+    if (event === 'SIGNED_IN' && session?.user?.id) {
+      const remembered = passkeyStillValid(session.user.id)
+      if (!remembered) forgetPasskey()
+    }
+    if (event === 'SIGNED_OUT') forgetPasskey()
+
     store.setSession(session)
-    // A token refresh is not a new sign-in and must not silently reset the
-    // second factor; a genuine sign-in must.
-    if (event === 'SIGNED_IN') store.setPasskeyVerified(false)
   })
 
   return () => sub.subscription.unsubscribe()
