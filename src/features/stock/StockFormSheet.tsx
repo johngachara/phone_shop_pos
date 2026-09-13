@@ -46,7 +46,7 @@ export function StockFormSheet({
         selling_price: sellingPrice,
         // Sent as null rather than omitted when cleared, so an existing cost
         // can actually be removed instead of silently persisting.
-        buying_price: buyingPrice === '' ? null : buyingPrice,
+        buying_price: buyingPrice,
       }
       return editing ? updateStock(item.id, payload) : addStock(payload)
     },
@@ -59,10 +59,16 @@ export function StockFormSheet({
     onError: (error) => toast.error(error.message),
   })
 
+  // Buying price is required now. An item without one is invisible to every
+  // profit figure it contributes to -- silently, because the sale still
+  // happens and revenue still counts. Zero is allowed: a giveaway is a real
+  // answer, absent is not.
   const valid =
     name.trim().length > 1 &&
     Number(quantity) >= 0 &&
-    Number(sellingPrice) > 0
+    Number(sellingPrice) > 0 &&
+    buyingPrice !== '' &&
+    Number(buyingPrice) >= 0
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -96,12 +102,17 @@ export function StockFormSheet({
 
           <Field
             label="Buying price"
-            hint="What you paid. Without it, this item's sales cannot be counted in profit."
+            hint="What you paid for it. Used to work out profit."
+            error={
+              buyingPrice !== '' && Number(buyingPrice) < 0
+                ? 'Cannot be negative.'
+                : null
+            }
           >
             <Input
               type="number" inputMode="decimal" step="0.01" min="0"
               value={buyingPrice} onChange={(e) => setBuyingPrice(e.target.value)}
-              placeholder="Optional"
+              placeholder="0.00"
             />
           </Field>
 
