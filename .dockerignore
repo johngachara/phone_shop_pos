@@ -1,0 +1,11 @@
+node_modules
+build
+dist
+dev-dist
+.git
+.github
+.env
+.env.local
+public/__dev
+*.log
+.idea

@@ -1,0 +1,24 @@
+# Production stack for the frontend server.
+#
+# Static files only. TLS and the public reverse proxy are configured on the
+# server and are deliberately not in this repo.
+
+name: alltech-pos
+
+services:
+  web:
+    image: gachar4/alltech-pos:alltechv2
+    restart: unless-stopped
+    # Loopback only: the server's reverse proxy is what faces the internet.
+    ports:
+      - "127.0.0.1:8080:80"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost/"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
