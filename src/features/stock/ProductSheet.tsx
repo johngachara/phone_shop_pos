@@ -47,7 +47,11 @@ export function ProductSheet({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      {/* Radix focuses the first focusable descendant on open, which is the
+          Edit button here -- and a focused tooltip trigger opens its tooltip
+          immediately, so the sheet appeared to pop up an "Edit" explanation
+          unprompted. There is nothing here that needs the initial focus. */}
+      <DialogContent onOpenAutoFocus={(e) => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle className="pr-4">{product.product_name}</DialogTitle>
           <div className="mt-2">
@@ -92,13 +96,13 @@ export function ProductSheet({
         <DialogFooter className="sm:justify-between">
           <div className="flex gap-2">
             <Tooltip label="Change the name, quantity or prices.">
-              <Button variant="secondary" size="icon" onClick={onEdit} aria-label="Edit">
-                <Pencil />
+              <Button variant="secondary" onClick={onEdit}>
+                <Pencil /> Edit
               </Button>
             </Tooltip>
             <Tooltip label={`Remove this ${kind}. Past sales of it are kept.`}>
-              <Button variant="secondary" size="icon" onClick={onDelete} aria-label="Delete">
-                <Trash2 />
+              <Button variant="secondary" onClick={onDelete}>
+                <Trash2 /> Delete
               </Button>
             </Tooltip>
           </div>

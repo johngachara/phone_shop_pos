@@ -2,8 +2,10 @@ import { useState } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import {
   BarChart3, Boxes, Cable, FileText, LayoutDashboard, LogOut, MoreHorizontal,
-  Receipt, Sparkles, Users,
+  Receipt, RefreshCw, Sparkles, Users,
 } from 'lucide-react'
+import { useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody,
 } from '@/components/ui/dialog'
@@ -15,29 +17,37 @@ import { ThemeToggle } from '@/features/theme/ThemeToggle'
 import { Tooltip } from '@/components/ui/tooltip'
 import { Logo } from '@/components/Logo'
 import { usePush } from '@/features/push/usePush'
+import { checkForUpdate } from '@/features/updates/useAppUpdate'
 
 interface NavItem {
   to: string
   label: string
   icon: LucideIcon
+  group: string
   managerOnly?: boolean
 }
 
+// Grouped so the rail reads as sections rather than one flat list of eight
+// unrelated destinations -- inventory actions together, sales together, the
+// two report-shaped screens together, and admin on its own. Accessories sits
+// directly under Phone screens: both are "what's for sale", read the same
+// way, and used back-to-back at the counter.
 const NAV: NavItem[] = [
-  { to: '/', label: 'Dashboard', icon: LayoutDashboard },
-  { to: '/stock', label: 'Stock', icon: Boxes },
-  { to: '/orders', label: 'Orders', icon: Receipt },
-  { to: '/accessories', label: 'Accessories', icon: Cable },
-  { to: '/ai', label: 'Alltech AI', icon: Sparkles },
-  { to: '/analytics', label: 'Analytics', icon: BarChart3, managerOnly: true },
-  { to: '/insights', label: 'Reports', icon: FileText, managerOnly: true },
-  { to: '/users', label: 'Users', icon: Users, managerOnly: true },
+  { to: '/', label: 'Dashboard', icon: LayoutDashboard, group: 'Overview' },
+  { to: '/stock', label: 'Phone screens', icon: Boxes, group: 'Inventory' },
+  { to: '/accessories', label: 'Accessories', icon: Cable, group: 'Inventory' },
+  { to: '/orders', label: 'Orders', icon: Receipt, group: 'Sales' },
+  { to: '/ai', label: 'Alltech AI', icon: Sparkles, group: 'Insights' },
+  { to: '/analytics', label: 'Analytics', icon: BarChart3, group: 'Insights', managerOnly: true },
+  { to: '/insights', label: 'Reports', icon: FileText, group: 'Insights', managerOnly: true },
+  { to: '/users', label: 'Users', icon: Users, group: 'Admin', managerOnly: true },
 ]
 
 export function AppShell() {
   const role = useAuth((s) => s.role)
   const email = useAuth((s) => s.session?.user?.email)
   const signOut = useAuth((s) => s.signOut)
+  const queryClient = useQueryClient()
 
   // Mounted here rather than on the Reports page so a manager's token is
   // refreshed on every load. FCM tokens rotate, and registering only when
@@ -46,6 +56,7 @@ export function AppShell() {
   usePush()
 
   const [moreOpen, setMoreOpen] = useState(false)
+  const [refreshing, setRefreshing] = useState(false)
   const navigate = useNavigate()
 
   // Manager-only items are not rendered for an employee. The API refuses them
@@ -53,6 +64,20 @@ export function AppShell() {
   const items = NAV.filter((item) => !item.managerOnly || role === 'manager')
   const primary = items.slice(0, 4)
   const overflow = items.slice(4)
+
+  // A PWA with no browser chrome has no reload button either, so there was no
+  // way to pull fresh data or notice a stuck screen short of force-closing the
+  // app. This does both: refetch everything on screen, and ask the service
+  // worker to check for a new build right now rather than waiting on its own
+  // timer.
+  function refresh() {
+    setRefreshing(true)
+    void queryClient.invalidateQueries().finally(() => {
+      window.setTimeout(() => setRefreshing(false), 500)
+    })
+    checkForUpdate()
+    toast.success('Refreshed')
+  }
 
   return (
     <div className="relative z-10 min-h-dvh">
@@ -66,24 +91,39 @@ export function AppShell() {
             <p className="font-display text-sm font-semibold leading-tight">Alltech</p>
             <p className="truncate text-xs capitalize text-ink-3">{role ?? '—'}</p>
           </div>
+          <Tooltip label="Refresh the data on screen and check for an app update.">
+            <Button
+              variant="ghost" size="icon" className="ml-auto shrink-0"
+              onClick={refresh} aria-label="Refresh"
+            >
+              <RefreshCw className={cn(refreshing && 'animate-spin')} />
+            </Button>
+          </Tooltip>
         </div>
 
         <nav className="mt-7 flex-1 space-y-1">
-          {items.map(({ to, label, icon: Icon }) => (
-            <NavLink
-              key={to} to={to} end={to === '/'}
-              className={({ isActive }) =>
-                cn(
-                  'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-colors',
-                  isActive
-                    ? 'bg-accent/12 text-accent'
-                    : 'text-ink-2 hover:bg-surface-2 hover:text-ink',
-                )
-              }
-            >
-              <Icon className="size-4.5" />
-              {label}
-            </NavLink>
+          {items.map(({ to, label, icon: Icon, group }, index) => (
+            <div key={to}>
+              {group !== items[index - 1]?.group ? (
+                <p className="mb-1.5 mt-4 px-3 text-[11px] font-bold uppercase tracking-wide text-ink-3 first:mt-0">
+                  {group}
+                </p>
+              ) : null}
+              <NavLink
+                to={to} end={to === '/'}
+                className={({ isActive }) =>
+                  cn(
+                    'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-colors',
+                    isActive
+                      ? 'bg-accent/12 text-accent'
+                      : 'text-ink-2 hover:bg-surface-2 hover:text-ink',
+                  )
+                }
+              >
+                <Icon className="size-4.5" />
+                {label}
+              </NavLink>
+            </div>
           ))}
         </nav>
 
@@ -113,11 +153,18 @@ export function AppShell() {
           </div>
           <span className="font-display text-sm font-semibold">Alltech</span>
         </div>
-        <Tooltip label="Sign out. You will need your password and passkey to get back in." side="bottom">
-          <Button variant="ghost" size="icon" onClick={() => void signOut()} aria-label="Sign out">
-            <LogOut />
-          </Button>
-        </Tooltip>
+        <div className="flex items-center gap-1">
+          <Tooltip label="Refresh the data on screen and check for an app update." side="bottom">
+            <Button variant="ghost" size="icon" onClick={refresh} aria-label="Refresh">
+              <RefreshCw className={cn(refreshing && 'animate-spin')} />
+            </Button>
+          </Tooltip>
+          <Tooltip label="Sign out. You will need your password and passkey to get back in." side="bottom">
+            <Button variant="ghost" size="icon" onClick={() => void signOut()} aria-label="Sign out">
+              <LogOut />
+            </Button>
+          </Tooltip>
+        </div>
       </header>
 
       <main className="px-4 pb-28 pt-5 sm:px-6 lg:ml-60 lg:pb-10 lg:pt-8">
@@ -164,18 +211,24 @@ export function AppShell() {
           <DialogHeader><DialogTitle>More</DialogTitle></DialogHeader>
           <DialogBody className="pb-6">
             <div className="grid gap-2">
-              {overflow.map(({ to, label, icon: Icon }) => (
-                <button
-                  key={to}
-                  type="button"
-                  onClick={() => { setMoreOpen(false); navigate(to) }}
-                  className="flex items-center gap-3 rounded-xl bg-surface-2 px-4 py-3.5 text-left text-sm font-semibold"
-                >
-                  <span className="grid size-9 place-items-center rounded-lg bg-accent/12 text-accent">
-                    <Icon className="size-4.5" />
-                  </span>
-                  {label}
-                </button>
+              {overflow.map(({ to, label, icon: Icon, group }, index) => (
+                <div key={to}>
+                  {group !== overflow[index - 1]?.group ? (
+                    <p className="mb-1.5 mt-3 px-1 text-[11px] font-bold uppercase tracking-wide text-ink-3 first:mt-0">
+                      {group}
+                    </p>
+                  ) : null}
+                  <button
+                    type="button"
+                    onClick={() => { setMoreOpen(false); navigate(to) }}
+                    className="flex w-full items-center gap-3 rounded-xl bg-surface-2 px-4 py-3.5 text-left text-sm font-semibold"
+                  >
+                    <span className="grid size-9 place-items-center rounded-lg bg-accent/12 text-accent">
+                      <Icon className="size-4.5" />
+                    </span>
+                    {label}
+                  </button>
+                </div>
               ))}
             </div>
             <div className="mt-4">

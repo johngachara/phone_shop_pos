@@ -80,7 +80,7 @@ export function StockFormSheet({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{editing ? 'Edit item' : 'Add stock'}</DialogTitle>
+          <DialogTitle>{editing ? 'Edit item' : 'Add phone screen'}</DialogTitle>
         </DialogHeader>
 
         <DialogBody className="space-y-4">

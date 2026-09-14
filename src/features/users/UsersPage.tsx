@@ -119,7 +119,7 @@ export default function UsersPage() {
                     </p>
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     {/* A manager cannot demote or remove themselves. Either can
                         leave the shop with no manager and nobody able to undo
                         it -- the API refuses both as well. */}
@@ -129,7 +129,7 @@ export default function UsersPage() {
                           ? 'You cannot change your own role. Ask another manager.'
                           : user.role === 'manager'
                             ? 'Managers see analytics, profit and user management.'
-                            : 'Employees can only run the till: stock, sales and accessories.'
+                            : 'Employees can only run the till: phone screens, sales and accessories.'
                       }
                     >
                       <select
@@ -150,11 +150,11 @@ export default function UsersPage() {
 
                     <Tooltip label="Set a new password for this person and tell them what it is. There is no reset email.">
                       <Button
-                        size="icon" variant="secondary"
+                        size="sm" variant="secondary"
                         onClick={() => setSettingPassword(user)}
                         aria-label={`Set password for ${user.email}`}
                       >
-                        <KeyRound />
+                        <KeyRound /> Password
                       </Button>
                     </Tooltip>
 
@@ -166,12 +166,12 @@ export default function UsersPage() {
                       }
                     >
                       <Button
-                        size="icon" variant="secondary"
+                        size="sm" variant="secondary"
                         disabled={user.passkey_count === 0}
                         onClick={() => setClearingPasskeys(user)}
                         aria-label={`Clear passkeys for ${user.email}`}
                       >
-                        <Fingerprint />
+                        <Fingerprint /> Passkeys
                       </Button>
                     </Tooltip>
 
@@ -183,12 +183,12 @@ export default function UsersPage() {
                       }
                     >
                       <Button
-                        size="icon" variant="secondary"
+                        size="sm" variant="secondary"
                         disabled={isMe}
                         onClick={() => setRevoking(user)}
                         aria-label={`Revoke access for ${user.email}`}
                       >
-                        <UserMinus />
+                        <UserMinus /> Revoke
                       </Button>
                     </Tooltip>
                   </div>

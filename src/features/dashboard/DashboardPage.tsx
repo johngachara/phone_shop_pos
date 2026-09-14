@@ -178,7 +178,7 @@ export default function DashboardPage() {
               ) : null}
             </CardTitle>
             <Button asChild variant="ghost" size="sm">
-              <Link to="/stock">Stock <ArrowRight /></Link>
+              <Link to="/stock">Phone screens <ArrowRight /></Link>
             </Button>
           </CardHeader>
           <CardBody>

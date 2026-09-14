@@ -122,7 +122,7 @@ export default function AiPage() {
     <div className="flex min-h-[calc(100dvh-12rem)] flex-col lg:min-h-[calc(100dvh-8rem)]">
       <PageHeader
         title="Alltech AI"
-        subtitle="Ask about stock and sales. It can suggest changes, but nothing happens until you approve it."
+        subtitle="Ask about phone screens, accessories and sales. It can suggest changes, but nothing happens until you approve it."
       />
 
       <div className="flex-1 space-y-3">
@@ -133,8 +133,8 @@ export default function AiPage() {
             </div>
             <h2 className="mt-4 font-display text-base font-semibold">Ask a question</h2>
             <p className="mx-auto mt-1 max-w-sm text-sm text-ink-3">
-              It can read stock, accessories and sales, and can propose changes to
-              stock. It cannot sell, refund, or change anyone's account.
+              It can read phone screens, accessories and sales, and can propose
+              changes to phone screens. It cannot sell, refund, or change anyone's account.
             </p>
             <div className="mt-5 flex flex-wrap justify-center gap-2">
               {SUGGESTIONS.map((s) => (
@@ -195,7 +195,7 @@ export default function AiPage() {
               send(draft)
             }
           }}
-          placeholder="Ask about stock or sales"
+          placeholder="Ask about phone screens or sales"
           className="border-0 bg-transparent focus:ring-0"
           autoComplete="off"
           disabled={chat.isPending}
