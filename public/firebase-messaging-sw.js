@@ -33,10 +33,16 @@ messaging.onBackgroundMessage((payload) => {
     tag: payload.data?.kind || 'alltech',
     data: payload.data || {},
   })
+  // The home-screen icon badge, not the small in-notification icon above --
+  // a manager glancing at the phone should see something arrived without
+  // having to open the notification shade. Feature-detected: iOS Safari has
+  // no Badging API, and a report should not fail to notify over that.
+  if ('setAppBadge' in self) self.setAppBadge().catch(() => {})
 })
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close()
+  if ('clearAppBadge' in self) self.clearAppBadge().catch(() => {})
 
   // Open the report itself, not just the app. A notification body is
   // truncated by the operating system, so tapping it has to lead somewhere
