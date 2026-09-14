@@ -37,16 +37,7 @@
     </style>
   </head>
   <body>
-    <script>
-      // Runs before first paint: without this the page paints in the default
-      // theme and visibly flips once React mounts.
-      try {
-        var pref = localStorage.getItem('alltech-theme');
-        if (pref === 'light' || pref === 'dark') {
-          document.documentElement.setAttribute('data-theme', pref);
-        }
-      } catch (e) { /* storage can throw in private mode */ }
-    </script>
+    <script src="/theme-init.js"></script>
     <div id="root">
       <div id="boot">
         <svg viewBox="0 0 64 64" fill="none" aria-label="Alltech">

@@ -36,7 +36,7 @@ const NAV: NavItem[] = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, group: 'Overview' },
   { to: '/stock', label: 'Phone screens', icon: Boxes, group: 'Inventory' },
   { to: '/accessories', label: 'Accessories', icon: Cable, group: 'Inventory' },
-  { to: '/orders', label: 'Orders', icon: Receipt, group: 'Sales' },
+  { to: '/orders', label: 'Unpaid orders', icon: Receipt, group: 'Sales' },
   { to: '/ai', label: 'Alltech AI', icon: Sparkles, group: 'Insights' },
   { to: '/analytics', label: 'Analytics', icon: BarChart3, group: 'Insights', managerOnly: true },
   { to: '/insights', label: 'Reports', icon: FileText, group: 'Insights', managerOnly: true },
