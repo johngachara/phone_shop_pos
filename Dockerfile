@@ -50,6 +50,11 @@ FROM nginx:1.27-alpine
 # /stock directly returns 404: nginx looks for a file at that path and a single
 # page app has none.
 COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
+# Not in conf.d/: nginx's stock config auto-includes every *.conf there at the
+# http level, which would load this a second time on top of the explicit
+# per-location includes below and apply add_header in a context it was not
+# written for.
+COPY docker/security-headers.conf /etc/nginx/security-headers.conf
 COPY --from=build /app/build /usr/share/nginx/html
 
 EXPOSE 80
