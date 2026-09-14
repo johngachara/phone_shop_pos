@@ -20,6 +20,15 @@ firebase.initializeApp({
   appId: '__FIREBASE_APP_ID__',
 })
 
+// Take over immediately rather than waiting for every tab to close first.
+// Without this, a fixed bug in this file sits in "waiting" on a device that
+// keeps the PWA open across deploys -- the old worker goes on handling
+// pushes with its old logic (and old tap-to-open behaviour) indefinitely,
+// which is exactly why the click-target fix here did not take effect on a
+// device that had it installed before this shipped.
+self.addEventListener('install', () => self.skipWaiting())
+self.addEventListener('activate', (event) => event.waitUntil(self.clients.claim()))
+
 const messaging = firebase.messaging()
 
 messaging.onBackgroundMessage((payload) => {
