@@ -58,8 +58,8 @@ export function useAppUpdate() {
 
   useEffect(() => {
     if (!needRefresh) return
-    toast('A new version is ready', {
-      description: 'Reload when you are between customers.',
+    toast('A new version of the app is available', {
+      description: 'Reload to update.',
       duration: Infinity,
       action: {
         label: 'Reload',
