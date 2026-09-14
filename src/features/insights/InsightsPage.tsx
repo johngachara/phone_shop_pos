@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router-dom'
 import { ArrowLeft, BellRing, FileText } from 'lucide-react'
@@ -20,6 +21,18 @@ interface InsightSummary {
 
 interface Insight extends InsightSummary {
   body: string
+}
+
+/** Clear the home-screen icon badge on arrival here.
+ *
+ * It was set to flag an unread report; opening either the list or one report
+ * directly (from the notification itself) both count as having seen it, and
+ * without this it stays lit until the next report happens to arrive and
+ * re-set it. */
+function useClearAppBadge() {
+  useEffect(() => {
+    if ('clearAppBadge' in navigator) void navigator.clearAppBadge()
+  }, [])
 }
 
 /** Render the light markdown the model emits.
@@ -52,6 +65,7 @@ function report(text: string) {
 }
 
 export function InsightsListPage() {
+  useClearAppBadge()
   const { state, register, eligible } = usePush()
 
   const insights = useQuery({
@@ -126,6 +140,7 @@ export function InsightsListPage() {
  * This is where a notification lands. The push body is truncated by the
  * operating system; this is the whole thing. */
 export function InsightDetailPage() {
+  useClearAppBadge()
   const { id } = useParams<{ id: string }>()
 
   const insight = useQuery({

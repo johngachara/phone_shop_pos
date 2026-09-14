@@ -165,8 +165,14 @@ export function usePush() {
     return () => { cancelled = true }
   }, [eligible, session])
 
-  // Foreground messages do not raise a system notification, so nothing would
-  // appear at all while the POS is the active tab.
+  // Foreground messages do not raise a system notification on their own --
+  // FCM only does that for a message that arrives while the tab is closed or
+  // backgrounded. This raises the same real notification (and app badge) for
+  // a report that lands while the POS happens to be open, through the same
+  // service worker and the same notificationclick handler that background
+  // messages use, rather than a separate in-app toast that would double up
+  // with it and behave differently (no tray entry, no badge, nothing to tap
+  // from outside the app).
   useEffect(() => {
     if (!eligible) return
     let unsubscribe: (() => void) | undefined
@@ -174,14 +180,26 @@ export function usePush() {
       const messaging = await getMessagingIfSupported()
       if (!messaging) return
       unsubscribe = onMessage(messaging, (payload) => {
-        const id = payload.data?.insight_id
-        toast(payload.notification?.title ?? 'Alltech POS', {
-          description: payload.notification?.body,
-          duration: 10_000,
-          action: id
-            ? { label: 'Open', onClick: () => { window.location.href = `/insights/${id}` } }
-            : undefined,
-        })
+        const title = payload.notification?.title ?? 'Alltech POS'
+        const body = payload.notification?.body
+
+        void (async () => {
+          try {
+            const registration = await navigator.serviceWorker.getRegistration(FCM_SCOPE)
+            await registration?.showNotification(title, {
+              body,
+              icon: '/logo192.png',
+              badge: '/logo192.png',
+              tag: payload.data?.kind || 'alltech',
+              data: payload.data || {},
+            })
+            if ('setAppBadge' in navigator) await navigator.setAppBadge()
+          } catch {
+            // Nothing else surfaces this arrived -- there is no toast
+            // fallback by design -- but a transient failure here still
+            // should not throw past the SDK's own message handler.
+          }
+        })()
       })
     })()
     return () => unsubscribe?.()
