@@ -98,7 +98,7 @@ export default function OrdersPage() {
         <EmptyState
           icon={Receipt}
           title="Nothing on hold"
-          body="Orders put on hold from the stock screen show up here until they are paid."
+          body="Orders put on hold from Phone screens or Accessories show up here until they are paid."
         />
       ) : (
         <ul className="space-y-2">

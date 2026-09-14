@@ -1,4 +1,5 @@
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef } from 'react'
+import { useTheme } from '@/features/theme/useTheme'
 
 declare global {
   interface Window {
@@ -8,6 +9,17 @@ declare global {
       remove: (id: string) => void
     }
   }
+}
+
+/** The widget's own light/dark, resolved the same way the rest of the app is.
+ *
+ * `theme: 'auto'` follows the OS's prefers-color-scheme, not this app's
+ * `data-theme` attribute -- so picking Light in-app while the device is set to
+ * dark left the widget dark regardless. Resolving it the same way the CSS
+ * does keeps the two in sync. */
+function resolveTurnstileTheme(preference: 'light' | 'dark' | 'system'): 'light' | 'dark' {
+  if (preference !== 'system') return preference
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
 }
 
 /** Cloudflare Turnstile.
@@ -37,6 +49,7 @@ export const Turnstile = forwardRef<TurnstileHandle, {
 }>(function Turnstile({ onToken, onExpire }, ref) {
   const container = useRef<HTMLDivElement>(null)
   const widgetId = useRef<string | null>(null)
+  const preference = useTheme((s) => s.preference)
 
   const render = useCallback(() => {
     if (!container.current || widgetId.current !== null) return
@@ -47,10 +60,21 @@ export const Turnstile = forwardRef<TurnstileHandle, {
       callback: (token: string) => onToken(token),
       'expired-callback': () => onExpire(),
       'error-callback': () => onExpire(),
-      theme: 'auto',
+      theme: resolveTurnstileTheme(preference),
       size: 'flexible',
     })
-  }, [onToken, onExpire])
+  }, [onToken, onExpire, preference])
+
+  // Turnstile has no API to re-theme a live widget, so a theme change while
+  // the login screen is open has to tear it down and mount a fresh one rather
+  // than leave it showing the theme it had when it first rendered.
+  useEffect(() => {
+    if (widgetId.current === null) return
+    window.turnstile?.remove(widgetId.current)
+    widgetId.current = null
+    render()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [preference])
 
   useEffect(() => {
     // The script is loaded with `defer` and may not have run yet when this

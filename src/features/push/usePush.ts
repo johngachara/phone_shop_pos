@@ -75,7 +75,19 @@ export function usePush() {
   useEffect(() => {
     if (!eligible) { setState('unsupported'); return }
     if (typeof Notification === 'undefined') { setState('unsupported'); return }
-    setState(Notification.permission as PushState)
+    // Browser permission being "granted" only means this device was allowed
+    // to ask before -- not that the backend has a current token for it. That
+    // distinction was missing entirely: this used to set 'granted' straight
+    // from Notification.permission, so a device showed "Notifications are on"
+    // whenever permission had ever been granted, even on a load where the
+    // silent re-registration below never reached the server (nothing was
+    // registered, nothing was delivered, and there was no sign of it in the
+    // UI). Registered/confirmed is now only set once that call succeeds.
+    if (Notification.permission === 'granted') {
+      setState('registering')
+    } else {
+      setState(Notification.permission as PushState)
+    }
   }, [eligible])
 
   const register = useCallback(async () => {
@@ -133,10 +145,21 @@ export function usePush() {
         })
         if (token && !cancelled) {
           await api('/api/push/register/', { method: 'POST', json: { token } })
+          if (!cancelled) setState('granted')
+          return
         }
+        // No token and no exception: the state above was left at
+        // 'registering' pending this, and needs to resolve either way, or the
+        // "Turn on notifications" button never comes back for someone to
+        // retry -- the UI would just sit forever implying it was still
+        // working.
+        if (!cancelled) setState('default')
       } catch {
         // Silent on purpose: this runs on every load and a transient failure
-        // is not something to interrupt a sale with.
+        // is not something to interrupt a sale with. But it still has to
+        // resolve out of 'registering', or a failure here looked identical to
+        // one still in progress and the retry button never reappeared.
+        if (!cancelled) setState('default')
       }
     })()
     return () => { cancelled = true }

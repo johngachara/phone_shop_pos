@@ -158,8 +158,8 @@ export default function AccessoriesPage() {
                         onClick={() => setSelling(item)}>Sell</Button>
                     </Tooltip>
                     <Tooltip label="Open this accessory to see its margin and act on it.">
-                      <Button size="icon" variant="secondary" onClick={() => setViewing(item)}
-                        aria-label={`Open ${item.product_name}`}><ChevronRight /></Button>
+                      <Button variant="secondary" onClick={() => setViewing(item)}
+                        aria-label={`Open ${item.product_name}`}>Details <ChevronRight /></Button>
                     </Tooltip>
                   </div>
                 </li>

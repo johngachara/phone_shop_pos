@@ -71,7 +71,7 @@ export default function StockPage() {
   return (
     <>
       <PageHeader
-        title="Stock"
+        title="Phone screens"
         subtitle={!search && stock.data ? `${stock.data.length} items` : undefined}
         action={
           <Tooltip label="Add a new screen to stock, with its selling and buying price.">
@@ -91,7 +91,7 @@ export default function StockPage() {
         )}
         <Input
           className="pl-10"
-          placeholder="Search stock"
+          placeholder="Search phone screens"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           autoComplete="off"
@@ -109,7 +109,7 @@ export default function StockPage() {
       ) : items.length === 0 ? (
         <EmptyState
           icon={Boxes}
-          title={query ? 'Nothing matches that' : 'No stock yet'}
+          title={query ? 'Nothing matches that' : 'No phone screens yet'}
           body={query ? 'Try a shorter search.' : 'Add your first item to start selling.'}
           action={query ? undefined : { label: 'Add item', onClick: () => setAdding(true) }}
         />
@@ -171,11 +171,11 @@ export default function StockPage() {
                   </Tooltip>
                   <Tooltip label="Open this item to see its margin and act on it.">
                     <Button
-                      size="icon" variant="secondary"
+                      variant="secondary"
                       onClick={() => setViewing(item)}
                       aria-label={`Open ${item.product_name}`}
                     >
-                      <ChevronRight />
+                      Details <ChevronRight />
                     </Button>
                   </Tooltip>
                 </div>

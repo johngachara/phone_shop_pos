@@ -13,6 +13,17 @@ import { toast } from 'sonner'
  */
 const CHECK_INTERVAL_MS = 60_000
 
+let currentRegistration: ServiceWorkerRegistration | null = null
+
+/** Ask the browser to check for a new deployed build right now.
+ *
+ * Exported standalone, not returned from the hook, so a refresh button
+ * anywhere in the tree can trigger a check without needing this module's
+ * internal state passed down to it. */
+export function checkForUpdate() {
+  if (currentRegistration && navigator.onLine) void currentRegistration.update()
+}
+
 export function useAppUpdate() {
   const {
     needRefresh: [needRefresh, setNeedRefresh],
@@ -20,6 +31,23 @@ export function useAppUpdate() {
   } = useRegisterSW({
     onRegisteredSW(_url, registration) {
       if (!registration) return
+      currentRegistration = registration
+
+      // On a phone the PWA is opened for a minute and force-closed, not left
+      // running -- so the periodic interval below rarely got the chance to
+      // fire even once before the app was gone again, and a deploy could sit
+      // unnoticed for days with nothing on screen to say code had changed.
+      // Checking immediately on registration, and again whenever the app is
+      // brought back to the foreground, catches it the moment someone
+      // actually has the app open, rather than waiting on a timer that a
+      // short-lived tab may never survive to see fire.
+      if (navigator.onLine) void registration.update()
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible' && navigator.onLine) {
+          void registration.update()
+        }
+      })
+
       setInterval(() => {
         // Skipped while offline: update() on a dead connection just logs an
         // error every minute and achieves nothing.
