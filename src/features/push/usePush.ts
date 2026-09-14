@@ -180,8 +180,14 @@ export function usePush() {
       const messaging = await getMessagingIfSupported()
       if (!messaging) return
       unsubscribe = onMessage(messaging, (payload) => {
-        const title = payload.notification?.title ?? 'Alltech POS'
-        const body = payload.notification?.body
+        // Read from `data`, not `notification` -- the server sends
+        // data-only messages so this handler (and the service worker's
+        // equivalent for the backgrounded case) is always what decides how
+        // the notification looks and what tapping it does, rather than the
+        // browser's own default handling for a `notification`-bearing
+        // message taking over.
+        const title = payload.data?.title ?? 'Alltech POS'
+        const body = payload.data?.body
 
         void (async () => {
           try {

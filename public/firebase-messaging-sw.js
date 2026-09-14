@@ -23,9 +23,15 @@ firebase.initializeApp({
 const messaging = firebase.messaging()
 
 messaging.onBackgroundMessage((payload) => {
-  const title = payload.notification?.title || 'Alltech POS'
+  // Read from `data`, not `notification` -- the server sends data-only
+  // messages on purpose. A message carrying a `notification` block gets
+  // auto-displayed by the browser itself whenever the tab is backgrounded,
+  // using FCM's default click action (open the site root) instead of ever
+  // reaching this handler, which is why tapping a notification used to open
+  // the app but never the specific insight it was about.
+  const title = payload.data?.title || 'Alltech POS'
   self.registration.showNotification(title, {
-    body: payload.notification?.body || '',
+    body: payload.data?.body || '',
     icon: '/logo192.png',
     badge: '/logo192.png',
     // Same tag, so a second report replaces the first rather than stacking
