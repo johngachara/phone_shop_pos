@@ -5,6 +5,9 @@ on:
     branches: [alltechv2, prod-test]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 env:
   IMAGE: gachar4/alltech-pos
 
