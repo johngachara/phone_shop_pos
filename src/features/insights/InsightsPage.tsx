@@ -11,6 +11,7 @@ import { ListSkeleton, Skeleton } from '@/components/ui/skeleton'
 import { EmptyState, ErrorState } from '@/components/ui/empty'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { usePush } from '@/features/push/usePush'
+import { MarkdownView } from '@/components/MarkdownView'
 
 interface InsightSummary {
   id: number
@@ -33,35 +34,6 @@ function useClearAppBadge() {
   useEffect(() => {
     if ('clearAppBadge' in navigator) void navigator.clearAppBadge()
   }, [])
-}
-
-/** Render the light markdown the model emits.
- *
- * Text nodes only -- the report is model output and never becomes HTML. */
-function report(text: string) {
-  return text.split('\n').map((line, i) => {
-    const bullet = /^\s*[-*]\s+/.test(line)
-    const heading = /^#{1,3}\s+/.test(line)
-    const body = line.replace(/^\s*[-*]\s+/, '').replace(/^#{1,3}\s+/, '')
-    const parts = body.split(/(\*\*[^*]+\*\*)/g).filter(Boolean)
-
-    if (!line.trim()) return <div key={i} className="h-3" />
-
-    const content = parts.map((part, j) =>
-      part.startsWith('**') && part.endsWith('**')
-        ? <strong key={j} className="font-semibold text-ink">{part.slice(2, -2)}</strong>
-        : <span key={j}>{part}</span>,
-    )
-
-    if (heading) {
-      return <h3 key={i} className="mt-5 font-display text-base font-semibold">{content}</h3>
-    }
-    return (
-      <p key={i} className={bullet ? 'pl-5 -indent-3 text-ink-2' : 'text-ink-2'}>
-        {bullet ? '• ' : null}{content}
-      </p>
-    )
-  })
 }
 
 export function InsightsListPage() {
@@ -171,8 +143,8 @@ export function InsightDetailPage() {
         <Card className="rise p-6">
           <h1 className="font-display text-xl font-semibold">{insight.data.title}</h1>
           <p className="mt-1 text-xs text-ink-3">{formatDate(insight.data.created_at)}</p>
-          <div className="mt-5 space-y-1 text-sm leading-relaxed">
-            {report(insight.data.body)}
+          <div className="mt-5 text-sm leading-relaxed">
+            <MarkdownView content={insight.data.body} />
           </div>
         </Card>
       ) : null}

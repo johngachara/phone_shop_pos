@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/dialog'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Badge } from '@/components/ui/badge'
+import { MarkdownView } from '@/components/MarkdownView'
 import { cn, formatKsh } from '@/lib/utils'
 
 interface Message {
@@ -29,33 +30,6 @@ interface ChatReply {
   reply: string
   pending_actions: PendingAction[]
   tools_used: string[]
-}
-
-/** Render the small amount of markdown the model actually emits.
- *
- * It returns **bold** and bullet lines however firmly the prompt asks for
- * plain text, and printing the asterisks verbatim looks like a bug. This is
- * deliberately not a markdown parser: the input is model output rendered as
- * text nodes, never as HTML, so there is nothing here that can inject markup. */
-function renderLightMarkdown(text: string) {
-  return text.split('\n').map((line, lineIndex) => {
-    const bullet = /^\s*[-*]\s+/.test(line)
-    const body = bullet ? line.replace(/^\s*[-*]\s+/, '') : line
-    const parts = body.split(/(\*\*[^*]+\*\*)/g).filter(Boolean)
-
-    return (
-      <span key={lineIndex} className={cn('block', bullet && 'pl-4 -indent-4')}>
-        {bullet ? '• ' : null}
-        {parts.map((part, i) =>
-          part.startsWith('**') && part.endsWith('**') ? (
-            <strong key={i} className="font-semibold">{part.slice(2, -2)}</strong>
-          ) : (
-            <span key={i}>{part}</span>
-          ),
-        )}
-      </span>
-    )
-  })
 }
 
 const SUGGESTIONS = [
@@ -156,15 +130,17 @@ export default function AiPage() {
             >
               <div
                 className={cn(
-                  'max-w-[85%] whitespace-pre-wrap rounded-2xl px-4 py-3 text-sm leading-relaxed',
+                  'max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed',
                   message.role === 'user'
-                    ? 'bg-accent text-accent-ink'
+                    ? 'bg-accent text-accent-ink whitespace-pre-wrap'
                     : 'surface text-ink',
                 )}
               >
-                {message.role === 'assistant'
-                  ? renderLightMarkdown(message.content)
-                  : message.content}
+                {message.role === 'assistant' ? (
+                  <MarkdownView content={message.content} />
+                ) : (
+                  message.content
+                )}
               </div>
             </div>
           ))
