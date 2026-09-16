@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Field, Input } from '@/components/ui/input'
 import { formatKsh } from '@/lib/utils'
 import { Tooltip } from '@/components/ui/tooltip'
+import { CustomerSearchInput } from '@/components/CustomerSearchInput'
 import { fetchCustomers, sellStock, type StockItem } from './api'
 
 /** Put an item on hold against a customer name.
@@ -127,18 +128,13 @@ export function SellSheet({
           </Field>
 
           <Field label="Customer" hint="Used to find the order again and to track spend.">
-            <Input
-              list="known-customers"
+            <CustomerSearchInput
               value={customer}
-              onChange={(e) => setCustomer(e.target.value)}
+              onChange={setCustomer}
+              customers={customers.data}
+              isLoading={customers.isLoading}
               placeholder="Name"
-              autoComplete="off"
             />
-            <datalist id="known-customers">
-              {customers.data?.map((c) => (
-                <option key={c.customer_name} value={c.customer_name} />
-              ))}
-            </datalist>
           </Field>
 
           <div className="flex items-center justify-between rounded-xl bg-surface-2 px-4 py-3">

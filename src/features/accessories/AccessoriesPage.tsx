@@ -18,6 +18,7 @@ import { Tooltip } from '@/components/ui/tooltip'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { ProductSheet } from '@/features/stock/ProductSheet'
 import { fetchCustomers } from '@/features/stock/api'
+import { CustomerSearchInput } from '@/components/CustomerSearchInput'
 import { formatKsh } from '@/lib/utils'
 import { useDebounced } from '@/lib/useDebounced'
 
@@ -353,18 +354,13 @@ function SellAccessory({
           </Field>
 
           <Field label="Customer" hint="Used to find the order again and to track spend.">
-            <Input
-              list="known-customers-accessory"
+            <CustomerSearchInput
               value={customer}
-              onChange={(e) => setCustomer(e.target.value)}
+              onChange={setCustomer}
+              customers={customers.data}
+              isLoading={customers.isLoading}
               placeholder="Name"
-              autoComplete="off"
             />
-            <datalist id="known-customers-accessory">
-              {customers.data?.map((c) => (
-                <option key={c.customer_name} value={c.customer_name} />
-              ))}
-            </datalist>
           </Field>
 
           <div className="flex items-center justify-between rounded-xl bg-surface-2 px-4 py-3">
