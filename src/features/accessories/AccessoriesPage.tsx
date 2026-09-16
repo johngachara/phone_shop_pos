@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Cable, Check, ChevronRight, Clock, Loader2, Plus, Search } from 'lucide-react'
+import { useSearchParams } from 'react-router-dom'
+import { Cable, Check, ChevronRight, Clock, Loader2, Minus, Plus, Search } from 'lucide-react'
 import { toast } from 'sonner'
-import { api } from '@/lib/api'
+import { api, listFrom } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Field, Input } from '@/components/ui/input'
 import { StockLevel } from '@/components/ui/badge'
@@ -16,6 +17,7 @@ import {
 import { Tooltip } from '@/components/ui/tooltip'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { ProductSheet } from '@/features/stock/ProductSheet'
+import { fetchCustomers } from '@/features/stock/api'
 import { formatKsh } from '@/lib/utils'
 import { useDebounced } from '@/lib/useDebounced'
 
@@ -34,19 +36,22 @@ interface AccessoryPage {
   items: Accessory[]
 }
 
+const PAGE_SIZE = 12
+
 /** Accessories now come from this backend.
  *
  * They used to be served by a separate Express service against Firestore, on a
  * second origin with its own token stack. Same screen, one API. */
-function fetchAccessories(page: number, query: string) {
+function fetchAccessories(page: number, query: string, limit = PAGE_SIZE) {
   const search = query.trim() ? `&q=${encodeURIComponent(query.trim())}` : ''
-  return api<AccessoryPage>(`/api/accessories/?page=${page}&limit=50${search}`)
+  return api<AccessoryPage>(`/api/accessories/?page=${page}&limit=${limit}${search}`)
 }
 
 export default function AccessoriesPage() {
   const queryClient = useQueryClient()
+  const [params] = useSearchParams()
   const [page, setPage] = useState(1)
-  const [query, setQuery] = useState('')
+  const [query, setQuery] = useState(params.get('q') || params.get('search') || '')
   const [selling, setSelling] = useState<Accessory | null>(null)
   const [editing, setEditing] = useState<Accessory | null>(null)
   const [adding, setAdding] = useState(false)
@@ -65,13 +70,17 @@ export default function AccessoriesPage() {
     placeholderData: (previous) => previous,
   })
 
-  const items = accessories.data?.items ?? []
+  const rawItems = accessories.data?.items ?? (accessories.data as unknown as { results?: Accessory[] })?.results ?? []
+  const items = Array.isArray(rawItems) ? rawItems : listFrom<Accessory>(accessories.data)
+  const totalItems = accessories.data?.totalItems ?? (accessories.data as unknown as { count?: number })?.count ?? items.length
+  const totalPages = accessories.data?.totalPages ?? Math.max(1, Math.ceil(totalItems / PAGE_SIZE))
 
   function invalidate() {
     queryClient.invalidateQueries({ queryKey: ['accessories'] })
     queryClient.invalidateQueries({ queryKey: ['dashboard-metrics'] })
     // A held accessory appears in Orders now, so that list is stale too.
     queryClient.invalidateQueries({ queryKey: ['unpaid'] })
+    queryClient.invalidateQueries({ queryKey: ['low-stock'] })
   }
 
   const removal = useMutation({
@@ -85,7 +94,7 @@ export default function AccessoriesPage() {
     <>
       <PageHeader
         title="Accessories"
-        subtitle={accessories.data ? `${accessories.data.totalItems} items` : undefined}
+        subtitle={accessories.data ? `${totalItems} items` : undefined}
         action={
           <Tooltip label="Add a new accessory, with its selling and buying price.">
             <Button onClick={() => setAdding(true)}><Plus /> Add</Button>
@@ -167,16 +176,27 @@ export default function AccessoriesPage() {
             ))}
           </ul>
 
-          {(accessories.data?.totalPages ?? 1) > 1 ? (
+          {totalPages > 1 ? (
             <div className="mt-4 flex items-center justify-center gap-3">
-              <Button variant="secondary" size="sm" disabled={page <= 1}
-                onClick={() => setPage((p) => p - 1)}>Previous</Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                disabled={page <= 1 || accessories.isFetching}
+                onClick={() => setPage((p) => p - 1)}
+              >
+                Previous
+              </Button>
               <span className="tnum text-sm text-ink-3">
-                Page {accessories.data?.currentPage} of {accessories.data?.totalPages}
+                Page {page} of {totalPages}
               </span>
-              <Button variant="secondary" size="sm"
-                disabled={page >= (accessories.data?.totalPages ?? 1)}
-                onClick={() => setPage((p) => p + 1)}>Next</Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                disabled={page >= totalPages || accessories.isFetching}
+                onClick={() => setPage((p) => p + 1)}
+              >
+                Next
+              </Button>
             </div>
           ) : null}
         </>
@@ -230,7 +250,28 @@ function SellAccessory({
   onDone: () => void
 }) {
   const [quantity, setQuantity] = useState(1)
+  const [price, setPrice] = useState('')
   const [customer, setCustomer] = useState('')
+
+  useEffect(() => {
+    if (item) {
+      setQuantity(1)
+      setPrice(item.selling_price)
+      setCustomer('')
+    }
+  }, [item])
+
+  const customers = useQuery({
+    queryKey: ['customers'],
+    queryFn: fetchCustomers,
+    enabled: open,
+    staleTime: 5 * 60_000,
+  })
+
+  const total = useMemo(() => {
+    const value = Number(price)
+    return Number.isFinite(value) ? value * quantity : 0
+  }, [price, quantity])
 
   const mutation = useMutation({
     mutationFn: (complete: boolean) =>
@@ -238,7 +279,7 @@ function SellAccessory({
         method: 'POST',
         json: {
           product_name: item!.product_name,
-          price: item!.selling_price,
+          price,
           quantity,
           customer_name: customer.trim(),
           complete,
@@ -260,6 +301,8 @@ function SellAccessory({
 
   if (!item) return null
   const over = quantity > item.quantity
+  const priceInvalid = !Number.isFinite(Number(price)) || Number(price) <= 0
+  const canSell = !over && !priceInvalid && customer.trim().length >= 2
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -272,18 +315,62 @@ function SellAccessory({
         </DialogHeader>
         <DialogBody className="space-y-4">
           <Field label="Quantity" error={over ? `Only ${item.quantity} in stock.` : null}>
-            <Input type="number" min={1} max={item.quantity} inputMode="numeric"
-              value={quantity}
-              onChange={(e) => setQuantity(Math.max(1, Number(e.target.value) || 1))} />
+            <div className="flex items-center gap-2">
+              <Button
+                type="button" variant="secondary" size="icon"
+                onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                disabled={quantity <= 1}
+                aria-label="One fewer"
+              >
+                <Minus />
+              </Button>
+              <Input
+                type="number" min={1} max={item.quantity} inputMode="numeric"
+                className="text-center text-lg font-semibold"
+                value={quantity}
+                onChange={(e) => setQuantity(Math.max(1, Number(e.target.value) || 1))}
+              />
+              <Button
+                type="button" variant="secondary" size="icon"
+                onClick={() => setQuantity((q) => Math.min(item.quantity, q + 1))}
+                disabled={quantity >= item.quantity}
+                aria-label="One more"
+              >
+                <Plus />
+              </Button>
+            </div>
           </Field>
-          <Field label="Customer">
-            <Input value={customer} onChange={(e) => setCustomer(e.target.value)}
-              placeholder="Name" autoComplete="off" />
+
+          <Field
+            label="Unit price"
+            hint="Change it for a discount. The item's listed price is not altered."
+            error={priceInvalid ? 'Enter a price above zero.' : null}
+          >
+            <Input
+              type="number" inputMode="decimal" step="0.01" min="0"
+              value={price} onChange={(e) => setPrice(e.target.value)}
+            />
           </Field>
+
+          <Field label="Customer" hint="Used to find the order again and to track spend.">
+            <Input
+              list="known-customers-accessory"
+              value={customer}
+              onChange={(e) => setCustomer(e.target.value)}
+              placeholder="Name"
+              autoComplete="off"
+            />
+            <datalist id="known-customers-accessory">
+              {customers.data?.map((c) => (
+                <option key={c.customer_name} value={c.customer_name} />
+              ))}
+            </datalist>
+          </Field>
+
           <div className="flex items-center justify-between rounded-xl bg-surface-2 px-4 py-3">
             <span className="text-sm font-semibold text-ink-2">Total</span>
             <span className="tnum font-display text-xl font-semibold text-accent">
-              {formatKsh(Number(item.selling_price) * quantity)}
+              {formatKsh(total)}
             </span>
           </div>
         </DialogBody>
@@ -296,7 +383,7 @@ function SellAccessory({
             <Tooltip label="Hand it over now and record payment later, under Orders.">
               <Button
                 variant="secondary"
-                disabled={over || customer.trim().length < 2 || mutation.isPending}
+                disabled={!canSell || mutation.isPending}
                 onClick={() => mutation.mutate(false)}
               >
                 {mutation.isPending && mutation.variables === false
@@ -306,7 +393,7 @@ function SellAccessory({
             </Tooltip>
             <Tooltip label="The customer has paid. This counts towards today's sales straight away.">
               <Button
-                disabled={over || customer.trim().length < 2 || mutation.isPending}
+                disabled={!canSell || mutation.isPending}
                 onClick={() => mutation.mutate(true)}
               >
                 {mutation.isPending && mutation.variables === true
