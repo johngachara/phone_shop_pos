@@ -95,6 +95,8 @@
     /* The POS is a single screen at a time; page bounce on a tablet makes it
        feel like a website rather than an app. */
     overscroll-behavior-y: none;
+    scroll-padding-top: 2rem;
+    scroll-padding-bottom: 35vh;
   }
 
   body {

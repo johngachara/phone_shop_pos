@@ -18,6 +18,12 @@ interface StockItem {
   product_name: string
   quantity: number
   selling_price: string
+  item_type?: 'SCREEN' | 'ACCESSORY'
+}
+
+interface LowStockApiResponse {
+  count?: number
+  results?: StockItem[]
 }
 
 interface SaleRow {
@@ -48,8 +54,16 @@ export default function DashboardPage() {
 
   const lowStock = useQuery({
     queryKey: ['low-stock'],
-    // Paginated endpoint: rows arrive under `results`, not `data`.
-    queryFn: () => api<unknown>('/api/detailed/low_stock/').then(listFrom<StockItem>),
+    queryFn: async () => {
+      const resp = await api<LowStockApiResponse | StockItem[]>('/api/detailed/low_stock/?page_size=10')
+      if (Array.isArray(resp)) {
+        return { count: resp.length, results: resp }
+      }
+      return {
+        count: resp.count ?? resp.results?.length ?? 0,
+        results: Array.isArray(resp.results) ? resp.results : listFrom<StockItem>(resp),
+      }
+    },
   })
 
   const unpaid = useQuery({
@@ -65,7 +79,8 @@ export default function DashboardPage() {
     enabled: isManager,
   })
 
-  const lowStockItems = lowStock.data ?? []
+  const lowStockItems = lowStock.data?.results ?? []
+  const lowStockCount = lowStock.data?.count ?? lowStockItems.length
   const unpaidOrders = unpaid.data ?? []
 
   return (
@@ -173,12 +188,12 @@ export default function DashboardPage() {
           <CardHeader className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">
               <AlertTriangle className="size-4 text-warn" /> Running low
-              {lowStockItems.length ? (
-                <Badge tone="danger">{lowStockItems.length}</Badge>
+              {lowStockCount > 0 ? (
+                <Badge tone="danger">{lowStockCount}</Badge>
               ) : null}
             </CardTitle>
             <Button asChild variant="ghost" size="sm">
-              <Link to="/stock">Phone screens <ArrowRight /></Link>
+              <Link to="/low-stock">View all <ArrowRight /></Link>
             </Button>
           </CardHeader>
           <CardBody>
@@ -187,26 +202,48 @@ export default function DashboardPage() {
             ) : lowStockItems.length === 0 ? (
               <p className="py-6 text-center text-sm text-ink-3">Everything is stocked.</p>
             ) : (
-              <ul className="divide-y divide-line-soft">
-                {lowStockItems.slice(0, 5).map((item) => (
-                  <li key={item.id}>
-                    {/* Opens this item's edit sheet directly, because the only
-                        reason to look at a low-stock warning is to do something
-                        about that item. */}
-                    <Link
-                      to={`/stock?item=${item.id}`}
-                      className="-mx-2 flex items-center justify-between gap-3 rounded-xl px-2 py-3
-                                 transition-colors hover:bg-surface-2 active:bg-surface-3"
-                    >
-                      <span className="truncate text-sm font-semibold">{item.product_name}</span>
-                      <span className="flex shrink-0 items-center gap-2">
-                        <StockLevel quantity={item.quantity} />
-                        <ChevronRight className="size-4 text-ink-3" />
-                      </span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
+              <>
+                <ul className="divide-y divide-line-soft">
+                  {lowStockItems.slice(0, 5).map((item) => (
+                    <li key={`${item.item_type || 'SCREEN'}-${item.id}`}>
+                      {/* Opens this item's edit sheet or accessory search directly, because the only
+                          reason to look at a low-stock warning is to do something
+                          about that item. */}
+                      <Link
+                        to={
+                          item.item_type === 'ACCESSORY'
+                            ? `/accessories?q=${encodeURIComponent(item.product_name)}`
+                            : `/stock?item=${item.id}`
+                        }
+                        className="-mx-2 flex items-center justify-between gap-3 rounded-xl px-2 py-3
+                                   transition-colors hover:bg-surface-2 active:bg-surface-3"
+                      >
+                        <span className="min-w-0 flex items-center gap-2">
+                          <span className="truncate text-sm font-semibold">{item.product_name}</span>
+                          {item.item_type && (
+                            <Badge tone={item.item_type === 'SCREEN' ? 'neutral' : 'accent'} className="text-[9px] px-1 py-0">
+                              {item.item_type === 'SCREEN' ? 'Screen' : 'Acc'}
+                            </Badge>
+                          )}
+                        </span>
+                        <span className="flex shrink-0 items-center gap-2">
+                          <StockLevel quantity={item.quantity} />
+                          <ChevronRight className="size-4 text-ink-3" />
+                        </span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+                {lowStockCount > 5 ? (
+                  <div className="mt-2 border-t border-line-soft pt-2 text-center">
+                    <Button asChild variant="ghost" size="sm" className="w-full text-xs font-semibold text-accent hover:text-accent">
+                      <Link to="/low-stock">
+                        View all {lowStockCount} items running low <ArrowRight className="size-3.5" />
+                      </Link>
+                    </Button>
+                  </div>
+                ) : null}
+              </>
             )}
           </CardBody>
         </Card>

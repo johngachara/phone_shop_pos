@@ -9,17 +9,18 @@ import { Turnstile, type TurnstileHandle } from './Turnstile'
 import { hasPasskey, passkeysSupported, registerPasskey, verifyPasskey } from './passkeys'
 import { useAuth } from './useAuth'
 
-type Step = 'password' | 'passkey' | 'enrol'
+type Step = 'checking' | 'password' | 'passkey' | 'enrol'
 
 export default function LoginPage() {
   const navigate = useNavigate()
   const session = useAuth((s) => s.session)
   const loading = useAuth((s) => s.loading)
   const isAlltech = useAuth((s) => s.isAlltech)
+  const passkeyVerified = useAuth((s) => s.passkeyVerified)
   const setPasskeyVerified = useAuth((s) => s.setPasskeyVerified)
   const signOut = useAuth((s) => s.signOut)
 
-  const [step, setStep] = useState<Step>('password')
+  const [step, setStep] = useState<Step>('checking')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [captchaToken, setCaptchaToken] = useState<string | null>(null)
@@ -30,14 +31,29 @@ export default function LoginPage() {
   const onToken = useCallback((token: string) => setCaptchaToken(token), [])
   const onExpire = useCallback(() => setCaptchaToken(null), [])
 
-  // A restored session still has to clear the second step -- but only once the
-  // claims have been read. Acting while `loading` is true means deciding on a
-  // half-initialised store, which is what made this fire before there was
-  // anything to check.
+  // Avoid racing past Turnstile or flashing the login form:
+  // While auth is restoring (loading === true), stay in 'checking'.
+  // Once settled:
+  // - If already fully verified, route straight into the app.
+  // - If session exists but unverified, cleanly determine second step without mounting Turnstile.
+  // - If no session, present the password form and let Turnstile initialize.
   useEffect(() => {
-    if (!loading && session && step === 'password') decideSecondStep()
+    if (loading) {
+      setStep('checking')
+      return
+    }
+
+    if (session) {
+      if (passkeyVerified) {
+        navigate('/', { replace: true })
+        return
+      }
+      decideSecondStep()
+    } else {
+      setStep('password')
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loading, session])
+  }, [loading, session, passkeyVerified, navigate])
 
   async function decideSecondStep() {
     if (!isAlltech) {
@@ -135,12 +151,21 @@ export default function LoginPage() {
           </div>
           <h1 className="mt-5 font-display text-2xl font-semibold">Alltech POS</h1>
           <p className="mt-1 text-sm text-ink-3">
-            {step === 'password' ? 'Sign in to the counter' : 'One more step'}
+            {step === 'checking'
+              ? 'Checking session...'
+              : step === 'password'
+                ? 'Sign in to the counter'
+                : 'One more step'}
           </p>
         </div>
 
         <div className="surface rounded-2xl p-6">
-          {step === 'password' ? (
+          {step === 'checking' ? (
+            <div className="space-y-4 py-8 text-center">
+              <Loader2 className="mx-auto size-8 animate-spin text-accent" />
+              <p className="text-sm font-medium text-ink-3">Verifying session...</p>
+            </div>
+          ) : step === 'password' ? (
             <form onSubmit={submitPassword} className="space-y-4">
               <Field label="Email" htmlFor="email">
                 <Input
@@ -207,7 +232,12 @@ export default function LoginPage() {
 
               <button
                 type="button"
-                onClick={() => { void signOut(); setStep('password') }}
+                onClick={async () => {
+                  setBusy(true)
+                  await signOut()
+                  setBusy(false)
+                  setStep('password')
+                }}
                 className="w-full text-xs font-semibold text-ink-3 hover:text-ink"
               >
                 Sign in as someone else

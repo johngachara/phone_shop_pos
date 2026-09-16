@@ -10,18 +10,41 @@ export interface StockItem {
   updated_at?: string
 }
 
-/** Stock list.
+export interface PaginatedStock {
+  count: number
+  next: string | null
+  previous: string | null
+  results: StockItem[]
+}
+
+/** Stock list with pagination and search.
  *
- * The endpoint wraps its payload in `data`, and paginates when there are many
- * items. Both shapes are accepted so a change in either does not blank the
- * counter screen. */
-export async function fetchStock(query = ''): Promise<StockItem[]> {
-  // Searching on the server, not in the browser: this endpoint is paginated,
-  // so filtering what happens to be loaded reports "not stocked" for anything
-  // further down the list. The server also does fuzzy matching, which a
-  // client-side `includes` cannot.
-  const search = query.trim() ? `?q=${encodeURIComponent(query.trim())}` : ''
-  return listFrom<StockItem>(await api<unknown>(`/api/get_shop2_stock${search}`))
+ * The endpoint wraps its payload in DRF pagination (`count`, `results`), and
+ * supports `page` and `page_size` query params.
+ */
+export async function fetchStock(
+  page = 1,
+  pageSize = 12,
+  query = '',
+): Promise<PaginatedStock> {
+  const search = query.trim() ? `&q=${encodeURIComponent(query.trim())}` : ''
+  const resp = await api<PaginatedStock | StockItem[]>(
+    `/api/get_shop2_stock?page=${page}&page_size=${pageSize}${search}`,
+  )
+  if (Array.isArray(resp)) {
+    return {
+      count: resp.length,
+      next: null,
+      previous: null,
+      results: resp,
+    }
+  }
+  return {
+    count: resp.count ?? resp.results?.length ?? 0,
+    next: resp.next ?? null,
+    previous: resp.previous ?? null,
+    results: Array.isArray(resp.results) ? resp.results : listFrom<StockItem>(resp),
+  }
 }
 
 export function addStock(input: {

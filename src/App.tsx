@@ -16,7 +16,10 @@ import AccessoriesPage from '@/features/accessories/AccessoriesPage'
 import AnalyticsPage from '@/features/analytics/AnalyticsPage'
 import AiPage from '@/features/ai/AiPage'
 import UsersPage from '@/features/users/UsersPage'
+import LowStockPage from '@/features/stock/LowStockPage'
 import { InsightsListPage, InsightDetailPage } from '@/features/insights/InsightsPage'
+import { ScrollToTop } from '@/components/ScrollToTop'
+import { useMobileKeyboardScroll } from '@/lib/useMobileKeyboardScroll'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -38,6 +41,7 @@ const queryClient = new QueryClient({
 
 export default function App() {
   useAppUpdate()
+  useMobileKeyboardScroll()
 
   useEffect(() => {
     initTheme()
@@ -48,6 +52,7 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider delayDuration={350} skipDelayDuration={200}>
       <BrowserRouter>
+        <ScrollToTop />
         <Routes>
           <Route path="/login" element={<LoginPage />} />
 
@@ -72,6 +77,7 @@ export default function App() {
             <Route path="stock" element={<StockPage />} />
             <Route path="orders" element={<OrdersPage />} />
             <Route path="accessories" element={<AccessoriesPage />} />
+            <Route path="low-stock" element={<LowStockPage />} />
             <Route path="ai" element={<AiPage />} />
           </Route>
 

@@ -10,7 +10,8 @@ import {
   DialogHeader, DialogTitle,
 } from '@/components/ui/dialog'
 import { PageHeader } from '@/components/layout/PageHeader'
-import { cn } from '@/lib/utils'
+import { Badge } from '@/components/ui/badge'
+import { cn, formatKsh } from '@/lib/utils'
 
 interface Message {
   role: 'user' | 'assistant'
@@ -206,7 +207,7 @@ export default function AiPage() {
       </form>
 
       <Dialog open={pending !== null} onOpenChange={(o) => !o && setPending(null)}>
-        <DialogContent>
+        <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <AlertTriangle className="size-5 text-warn" /> Approve this change?
@@ -216,12 +217,7 @@ export default function AiPage() {
             </DialogDescription>
           </DialogHeader>
           <DialogBody>
-            {/* The plain-language description, not the raw arguments. If the
-                person approving cannot tell what will happen, the confirmation
-                step is theatre. */}
-            <p className="rounded-xl bg-surface-2 px-4 py-3.5 text-sm font-medium">
-              {pending?.description}
-            </p>
+            {pending ? <ActionProposalReview action={pending} /> : null}
           </DialogBody>
           <DialogFooter>
             <Button variant="secondary" onClick={() => setPending(null)}>
@@ -237,6 +233,70 @@ export default function AiPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </div>
+  )
+}
+
+function ActionProposalReview({ action }: { action: PendingAction }) {
+  const isBatch = action.tool.endsWith('_batch') || Array.isArray(action.arguments?.items)
+  const items = (Array.isArray(action.arguments?.items) ? action.arguments.items : []) as Array<Record<string, unknown> | number>
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-semibold uppercase tracking-wider text-ink-3">Proposed change</span>
+        {isBatch ? (
+          <Badge tone="warn" className="text-[11px]">
+            Batch · {items.length} items
+          </Badge>
+        ) : null}
+      </div>
+
+      <p className="rounded-xl bg-surface-2 px-4 py-3 text-sm font-medium leading-relaxed text-ink">
+        {action.description}
+      </p>
+
+      {isBatch && items.length > 0 ? (
+        <div className="mt-2 space-y-2">
+          <p className="text-xs font-semibold text-ink-2">
+            Items to {action.tool.startsWith('add') ? 'add' : action.tool.startsWith('update') ? 'update' : 'delete'} ({items.length}):
+          </p>
+          <div className="max-h-56 overflow-y-auto rounded-xl border border-line-soft bg-surface-2 divide-y divide-line-soft">
+            {items.map((item, idx) => {
+              const obj = typeof item === 'object' && item !== null ? item : { id: item }
+              return (
+                <div key={idx} className="flex items-center justify-between gap-3 px-3.5 py-2 text-xs">
+                  <div className="min-w-0 flex-1">
+                    <span className="font-semibold text-ink block truncate">
+                      {String(obj.product_name || `Item #${obj.id}`)}
+                    </span>
+                    {action.tool.startsWith('update') ? (
+                      <span className="text-ink-3 block truncate">
+                        {Object.entries(obj)
+                          .filter(([k, v]) => k !== 'id' && k !== 'product_name' && v !== undefined)
+                          .map(([k, v]) => `${k.replace('_', ' ')}: ${String(v)}`)
+                          .join(', ')}
+                      </span>
+                    ) : null}
+                  </div>
+                  <div className="shrink-0 flex items-center gap-2 tnum">
+                    {obj.quantity !== undefined ? (
+                      <span className="rounded-md bg-surface-3 px-1.5 py-0.5 font-medium text-ink-2">
+                        Qty: {String(obj.quantity)}
+                      </span>
+                    ) : null}
+                    {obj.selling_price !== undefined ? (
+                      <span className="font-semibold text-accent">
+                        {formatKsh(Number(obj.selling_price))}
+                      </span>
+                    ) : null}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      ) : null}
     </div>
   )
 }

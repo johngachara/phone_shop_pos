@@ -17,6 +17,7 @@ import { PageHeader } from '@/components/layout/PageHeader'
 import { formatKsh } from '@/lib/utils'
 import { useDebounced } from '@/lib/useDebounced'
 import { deleteStock, fetchStock, type StockItem } from './api'
+import { api } from '@/lib/api'
 import { SellSheet } from './SellSheet'
 import { StockFormSheet } from './StockFormSheet'
 import { ProductSheet } from './ProductSheet'
@@ -24,6 +25,8 @@ import { ProductSheet } from './ProductSheet'
 export default function StockPage() {
   const queryClient = useQueryClient()
   const [query, setQuery] = useState('')
+  const [page, setPage] = useState(1)
+  const pageSize = 12
   const [selling, setSelling] = useState<StockItem | null>(null)
   const [editing, setEditing] = useState<StockItem | null>(null)
   const [adding, setAdding] = useState(false)
@@ -33,27 +36,49 @@ export default function StockPage() {
   const search = useDebounced(query)
   const [params, setParams] = useSearchParams()
 
+  useEffect(() => {
+    setPage(1)
+  }, [search])
+
   const stock = useQuery({
-    queryKey: ['stock', search],
-    queryFn: () => fetchStock(search),
+    queryKey: ['stock', page, search],
+    queryFn: () => fetchStock(page, pageSize, search),
     // Keeps the previous results on screen while the next search loads, so the
     // list does not blank out between keystrokes.
     placeholderData: (previous) => previous,
   })
 
-  const items = stock.data ?? []
+  const items = stock.data?.results ?? []
+  const totalCount = stock.data?.count ?? items.length
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize))
 
   // Arriving from the dashboard with ?item=<id> opens that item straight away.
   // The parameter is cleared once used, so a refresh does not reopen a sheet
   // the person has already dealt with.
   useEffect(() => {
     const wanted = params.get('item')
-    if (!wanted || !stock.data) return
-    const match = stock.data.find((row) => String(row.id) === wanted)
+    if (!wanted) return
+
+    // Check if the item is already in the currently loaded page
+    const match = stock.data?.results?.find((row) => String(row.id) === wanted)
     if (match) {
       setEditing(match)
       params.delete('item')
       setParams(params, { replace: true })
+      return
+    }
+
+    // If not in current page, fetch it directly so it opens seamlessly
+    if (stock.data) {
+      api<StockItem>(`/api/get_shop2_stock/${wanted}/`)
+        .then((fetched) => {
+          if (fetched) setEditing(fetched)
+        })
+        .catch(() => { /* silent if not found */ })
+        .finally(() => {
+          params.delete('item')
+          setParams(params, { replace: true })
+        })
     }
   }, [params, stock.data, setParams])
 
@@ -72,7 +97,7 @@ export default function StockPage() {
     <>
       <PageHeader
         title="Phone screens"
-        subtitle={!search && stock.data ? `${stock.data.length} items` : undefined}
+        subtitle={stock.data ? `${totalCount} items` : undefined}
         action={
           <Tooltip label="Add a new screen to stock, with its selling and buying price.">
             <Button onClick={() => setAdding(true)}><Plus /> Add item</Button>
@@ -114,7 +139,8 @@ export default function StockPage() {
           action={query ? undefined : { label: 'Add item', onClick: () => setAdding(true) }}
         />
       ) : (
-        <ul className="space-y-2">
+        <>
+          <ul className="space-y-2">
           {items.map((item) => (
             <Card key={item.id} className="rise p-4">
               {/* Stacked on a phone, one row from sm up. Squeezing the name,
@@ -183,6 +209,31 @@ export default function StockPage() {
             </Card>
           ))}
         </ul>
+
+        {totalPages > 1 ? (
+          <div className="mt-4 flex items-center justify-center gap-3">
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={page <= 1 || stock.isFetching}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+            >
+              Previous
+            </Button>
+            <span className="tnum text-sm text-ink-3">
+              Page {page} of {totalPages}
+            </span>
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={page >= totalPages || stock.isFetching}
+              onClick={() => setPage((p) => p + 1)}
+            >
+              Next
+            </Button>
+          </div>
+        ) : null}
+      </>
       )}
 
       <ProductSheet

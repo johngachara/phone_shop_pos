@@ -1,11 +1,16 @@
 import * as React from 'react'
 import { cn } from '@/lib/utils'
+import { scrollInputIntoView } from '@/lib/useMobileKeyboardScroll'
 
 export const Input = React.forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTMLInputElement>>(
-  ({ className, type, ...props }, ref) => (
+  ({ className, type, onFocus, ...props }, ref) => (
     <input
       ref={ref}
       type={type}
+      onFocus={(e) => {
+        scrollInputIntoView(e.currentTarget)
+        onFocus?.(e)
+      }}
       className={cn(
         'w-full min-h-11 rounded-xl bg-surface-2 border border-line px-3.5 text-sm text-ink',
         'placeholder:text-ink-3 transition-colors',
