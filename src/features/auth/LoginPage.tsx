@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { Fingerprint, Loader2, LogIn } from 'lucide-react'
 import { Logo } from '@/components/Logo'
 import { supabase } from '@/lib/supabase'
@@ -13,6 +13,13 @@ type Step = 'checking' | 'password' | 'passkey' | 'enrol'
 
 export default function LoginPage() {
   const navigate = useNavigate()
+  const location = useLocation()
+  // RequireAuth records where the visit was headed (e.g. a push notification
+  // landing on /insights/<id>) as location.state.from before bouncing here
+  // for sign-in or a passkey re-check. Landing everyone on '/' afterwards
+  // silently dropped that -- tapping an insight notification on a device that
+  // needed to re-verify its passkey opened the dashboard, never the report.
+  const from = (location.state as { from?: string } | null)?.from || '/'
   const session = useAuth((s) => s.session)
   const loading = useAuth((s) => s.loading)
   const isAlltech = useAuth((s) => s.isAlltech)
@@ -45,7 +52,7 @@ export default function LoginPage() {
 
     if (session) {
       if (passkeyVerified) {
-        navigate('/', { replace: true })
+        navigate(from, { replace: true })
         return
       }
       decideSecondStep()
@@ -53,7 +60,7 @@ export default function LoginPage() {
       setStep('password')
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loading, session, passkeyVerified, navigate])
+  }, [loading, session, passkeyVerified, navigate, from])
 
   async function decideSecondStep() {
     if (!isAlltech) {
@@ -134,7 +141,7 @@ export default function LoginPage() {
       }
       await verifyPasskey()
       setPasskeyVerified(true)
-      navigate('/', { replace: true })
+      navigate(from, { replace: true })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Passkey check failed')
     } finally {
