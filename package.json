@@ -38,11 +38,14 @@
     "@types/node": "^22.13.5",
     "@types/react": "^19.0.10",
     "@types/react-dom": "^19.0.4",
-    "@vite-pwa/assets-generator": "^2.0.0",
+    "@vite-pwa/assets-generator": "^0.2.6",
     "@vitejs/plugin-react": "^4.3.4",
     "tailwindcss": "^4.0.9",
     "typescript": "^5.7.3",
     "vite": "^6.2.0",
     "vite-plugin-pwa": "^0.21.1"
+  },
+  "overrides": {
+    "sharp": "^0.35.4"
   }
 }
