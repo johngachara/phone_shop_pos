@@ -23,7 +23,7 @@ export function ChartFrame({
       <CardBody>
         <div className="h-64 w-full">{children}</div>
         {table ? (
-          <details className="mt-3">
+          <details className="mt-3" open>
             <summary className="cursor-pointer text-xs font-semibold text-ink-3 hover:text-ink">
               Show the numbers
             </summary>

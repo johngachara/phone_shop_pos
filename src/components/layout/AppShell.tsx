@@ -22,6 +22,7 @@ import { checkForUpdate } from '@/features/updates/useAppUpdate'
 interface NavItem {
   to: string
   label: string
+  shortLabel?: string
   icon: LucideIcon
   group: string
   managerOnly?: boolean
@@ -34,7 +35,7 @@ interface NavItem {
 // way, and used back-to-back at the counter.
 const NAV: NavItem[] = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, group: 'Overview' },
-  { to: '/stock', label: 'Phone screens', icon: Boxes, group: 'Inventory' },
+  { to: '/stock', label: 'Phone screens', shortLabel: 'Screens', icon: Boxes, group: 'Inventory' },
   { to: '/accessories', label: 'Accessories', icon: Cable, group: 'Inventory' },
   { to: '/low-stock', label: 'Low Stock', icon: AlertTriangle, group: 'Inventory' },
   { to: '/orders', label: 'Unpaid orders', icon: Receipt, group: 'Sales' },
@@ -63,8 +64,8 @@ export function AppShell() {
   // Manager-only items are not rendered for an employee. The API refuses them
   // regardless -- this only avoids showing a door that will not open.
   const items = NAV.filter((item) => !item.managerOnly || role === 'manager')
-  const primary = items.slice(0, 4)
-  const overflow = items.slice(4)
+  const primary = items.slice(0, 3)
+  const overflow = items.slice(3)
 
   // A PWA with no browser chrome has no reload button either, so there was no
   // way to pull fresh data or notice a stuck screen short of force-closing the
@@ -106,7 +107,7 @@ export function AppShell() {
           {items.map(({ to, label, icon: Icon, group }, index) => (
             <div key={to}>
               {group !== items[index - 1]?.group ? (
-                <p className="mb-1.5 mt-4 px-3 text-[11px] font-bold uppercase tracking-wide text-ink-3 first:mt-0">
+                <p className="mb-1.5 mt-4 px-3 text-xs font-bold uppercase tracking-wide text-ink-3 first:mt-0">
                   {group}
                 </p>
               ) : null}
@@ -172,26 +173,25 @@ export function AppShell() {
         <Outlet />
       </main>
 
-      {/* Four destinations plus More. Seven tabs across a 375px phone leaves
-          each one around 50px wide with labels that collide, which is both
-          unreadable and easy to mis-tap. The four here are what the counter
-          actually uses minute to minute; the rest live one tap away. */}
+      {/* Three primary destinations plus More. With 4 tabs across a 360-390px
+          phone, each tab gets ~90px, leaving ample room for 12px (text-xs)
+          labels without collision, clipping mid-word, or awkward truncation. */}
       <nav
         className="glass fixed inset-x-0 bottom-0 z-30 flex justify-around
                    px-1 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-1.5 lg:hidden"
       >
-        {primary.map(({ to, label, icon: Icon }) => (
+        {primary.map(({ to, label, shortLabel, icon: Icon }) => (
           <NavLink
             key={to} to={to} end={to === '/'}
             className={({ isActive }) =>
               cn(
-                'flex min-w-0 flex-1 flex-col items-center gap-1 rounded-xl px-1 py-2 text-[11px] font-semibold',
+                'flex min-w-0 flex-1 flex-col items-center gap-1 rounded-xl px-1 py-1.5 text-xs font-semibold',
                 isActive ? 'text-accent' : 'text-ink-3',
               )
             }
           >
-            <Icon className="size-5" />
-            <span className="truncate">{label}</span>
+            <Icon className="size-5 shrink-0" />
+            <span className="truncate">{shortLabel ?? label}</span>
           </NavLink>
         ))}
 
@@ -199,9 +199,9 @@ export function AppShell() {
           <button
             type="button"
             onClick={() => setMoreOpen(true)}
-            className="flex min-w-0 flex-1 flex-col items-center gap-1 rounded-xl px-1 py-2 text-[11px] font-semibold text-ink-3"
+            className="flex min-w-0 flex-1 flex-col items-center gap-1 rounded-xl px-1 py-1.5 text-xs font-semibold text-ink-3"
           >
-            <MoreHorizontal className="size-5" />
+            <MoreHorizontal className="size-5 shrink-0" />
             <span>More</span>
           </button>
         ) : null}
@@ -215,7 +215,7 @@ export function AppShell() {
               {overflow.map(({ to, label, icon: Icon, group }, index) => (
                 <div key={to}>
                   {group !== overflow[index - 1]?.group ? (
-                    <p className="mb-1.5 mt-3 px-1 text-[11px] font-bold uppercase tracking-wide text-ink-3 first:mt-0">
+                    <p className="mb-1.5 mt-3 px-1 text-xs font-bold uppercase tracking-wide text-ink-3 first:mt-0">
                       {group}
                     </p>
                   ) : null}

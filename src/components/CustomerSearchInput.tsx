@@ -195,7 +195,7 @@ export function CustomerSearchInput({
                     onClick={() => handleSelect(name)}
                     onMouseEnter={() => setHighlightedIndex(idx)}
                     className={cn(
-                      'flex items-center justify-between gap-2 rounded-lg px-3 py-2 text-sm cursor-pointer transition-colors',
+                      'flex items-center justify-between gap-2 rounded-lg px-3 py-2.5 text-base cursor-pointer transition-colors',
                       isHighlighted ? 'bg-surface-2 text-ink' : 'text-ink-2 hover:bg-surface-2 hover:text-ink',
                       isSelected && 'font-medium text-accent',
                     )}
@@ -214,7 +214,7 @@ export function CustomerSearchInput({
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => handleSelect(value.trim())}
                   className={cn(
-                    'mt-1 border-t border-line-soft pt-1.5 pb-1 px-3 text-xs text-ink-3 flex items-center justify-between gap-2',
+                    'mt-1 border-t border-line-soft pt-2 pb-1.5 px-3 text-sm text-ink-3 flex items-center justify-between gap-2',
                     'hover:bg-surface-2 rounded-lg cursor-pointer',
                   )}
                 >
@@ -229,13 +229,13 @@ export function CustomerSearchInput({
             </ul>
           ) : (
             <div className="py-3 px-3 text-center">
-              <p className="text-xs text-ink-3">No customers found.</p>
+              <p className="text-sm text-ink-3">No customers found.</p>
               {value.trim().length > 0 ? (
                 <button
                   type="button"
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => handleSelect(value.trim())}
-                  className="mt-1.5 inline-flex items-center gap-1.5 rounded-lg bg-surface-2 px-3 py-1.5 text-xs font-medium text-ink hover:bg-surface-3 transition-colors"
+                  className="mt-1.5 inline-flex items-center gap-1.5 rounded-lg bg-surface-2 px-3.5 py-2 text-sm font-medium text-ink hover:bg-surface-3 transition-colors"
                 >
                   Use new customer "{value.trim()}"
                 </button>

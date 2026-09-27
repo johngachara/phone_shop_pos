@@ -160,9 +160,9 @@ export default function StockPage() {
                              transition-colors hover:bg-surface-2 sm:min-w-0 sm:flex-1"
                 >
                   <span className="min-w-0">
-                    <span className="block font-semibold leading-snug">{item.product_name}</span>
-                    <span className="tnum mt-0.5 block text-sm text-ink-3">
-                      {formatKsh(item.selling_price)}
+                    <span className="block text-base font-semibold leading-snug">{item.product_name}</span>
+                    <span className="tnum mt-1 block text-base text-ink-3">
+                      <strong className="font-semibold text-ink">{formatKsh(item.selling_price)}</strong>
                       {item.buying_price ? (
                         <span> · cost {formatKsh(item.buying_price)}</span>
                       ) : (
