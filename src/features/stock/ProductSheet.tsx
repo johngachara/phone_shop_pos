@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { StockLevel } from '@/components/ui/badge'
 import { Tooltip } from '@/components/ui/tooltip'
 import { formatDate, formatKsh } from '@/lib/utils'
+import { useAuth } from '@/features/auth/useAuth'
 
 export interface Product {
   id: number
@@ -36,6 +37,9 @@ export function ProductSheet({
   onEdit: () => void
   onDelete: () => void
 }) {
+  const role = useAuth((s) => s.role)
+  const isManager = role === 'manager'
+
   if (!product) return null
 
   const selling = Number(product.selling_price)
@@ -100,11 +104,13 @@ export function ProductSheet({
                 <Pencil /> Edit
               </Button>
             </Tooltip>
-            <Tooltip label={`Remove this ${kind}. Past sales of it are kept.`}>
-              <Button variant="secondary" onClick={onDelete}>
-                <Trash2 /> Delete
-              </Button>
-            </Tooltip>
+            {isManager ? (
+              <Tooltip label={`Remove this ${kind}. Past sales of it are kept.`}>
+                <Button variant="secondary" onClick={onDelete}>
+                  <Trash2 /> Delete
+                </Button>
+              </Tooltip>
+            ) : null}
           </div>
           <Tooltip
             label={

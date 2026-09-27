@@ -222,7 +222,7 @@ export default function LowStockPage() {
           <select
             value={sortOrder}
             onChange={(e) => setSortOrder(e.target.value as SortOrder)}
-            className="w-full rounded-xl border border-line bg-surface-2 px-3 py-2 text-xs font-medium text-ink focus:border-accent focus:outline-none"
+            className="w-full rounded-xl border border-line bg-surface-2 px-3 py-2 text-sm font-medium text-ink focus:border-accent focus:outline-none"
           >
             <option value="qty_asc">Lowest quantity first</option>
             <option value="qty_desc">Highest quantity first</option>
@@ -256,7 +256,7 @@ export default function LowStockPage() {
                 <li className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-semibold leading-snug">{item.product_name}</span>
+                      <span className="text-base font-semibold leading-snug">{item.product_name}</span>
                       <Badge
                         tone={item.item_type === 'SCREEN' ? 'info' : 'accent'}
                         className="text-[10px]"
@@ -265,8 +265,8 @@ export default function LowStockPage() {
                       </Badge>
                     </div>
 
-                    <div className="tnum mt-1 flex flex-wrap items-center gap-3 text-sm text-ink-3">
-                      <span>Selling {formatKsh(item.selling_price || item.price || 0)}</span>
+                    <div className="tnum mt-1 flex flex-wrap items-center gap-3 text-base text-ink-3">
+                      <span>Selling <strong className="font-semibold text-ink">{formatKsh(item.selling_price || item.price || 0)}</strong></span>
                       {item.buying_price ? (
                         <span>· Cost {formatKsh(item.buying_price)}</span>
                       ) : (

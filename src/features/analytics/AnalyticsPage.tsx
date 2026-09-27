@@ -178,7 +178,7 @@ export default function AnalyticsPage() {
               <DataTable
                 columns={['Product', 'Revenue', 'Units']}
                 rows={(products.data?.current_year_performance ?? []).slice(0, 10).map((p: any) => [
-                  p.product_name, formatKsh(p.total_sales), p.total_quantity ?? p.total_items ?? 0,
+                  p.product_name, formatKsh(p.total_revenue), p.units_sold ?? 0,
                 ])}
               />
             }
@@ -197,7 +197,7 @@ export default function AnalyticsPage() {
                 <RTooltip content={<ChartTooltip />} cursor={{ fill: ink.grid }} />
                 {/* One series, so no legend: the title names it. Rounded ends
                     on the data end only, anchored to the baseline. */}
-                <Bar dataKey="total_sales" name="Revenue" radius={[0, 4, 4, 0]} maxBarSize={22}>
+                <Bar dataKey="total_revenue" name="Revenue" radius={[0, 4, 4, 0]} maxBarSize={22}>
                   {(products.data?.current_year_performance ?? []).slice(0, 8).map((_: any, i: number) => (
                     <Cell key={i} fill={SERIES[i % SERIES.length]} />
                   ))}
