@@ -52,7 +52,9 @@ export default function StockPage() {
   const totalCount = stock.data?.count ?? items.length
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize))
 
-  // Arriving from the dashboard with ?item=<id> opens that item straight away.
+  // Arriving from the dashboard with ?item=<id> opens that item straight away
+  // -- its detail sheet, not the edit form: an employee can sell from the
+  // sheet, and only a manager is offered Edit there.
   // The parameter is cleared once used, so a refresh does not reopen a sheet
   // the person has already dealt with.
   useEffect(() => {
@@ -62,7 +64,7 @@ export default function StockPage() {
     // Check if the item is already in the currently loaded page
     const match = stock.data?.results?.find((row) => String(row.id) === wanted)
     if (match) {
-      setEditing(match)
+      setViewing(match)
       params.delete('item')
       setParams(params, { replace: true })
       return
@@ -70,9 +72,11 @@ export default function StockPage() {
 
     // If not in current page, fetch it directly so it opens seamlessly
     if (stock.data) {
-      api<StockItem>(`/api/get_shop2_stock/${wanted}/`)
+      // The detail route wraps the item in `data`. This used to call a path
+      // that does not exist, so an item off the current page never opened.
+      api<{ data: StockItem }>(`/api/get_shop2_stock_api/${wanted}`)
         .then((fetched) => {
-          if (fetched) setEditing(fetched)
+          if (fetched?.data) setViewing(fetched.data)
         })
         .catch(() => { /* silent if not found */ })
         .finally(() => {

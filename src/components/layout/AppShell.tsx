@@ -17,6 +17,7 @@ import { ThemeToggle } from '@/features/theme/ThemeToggle'
 import { Tooltip } from '@/components/ui/tooltip'
 import { Logo } from '@/components/Logo'
 import { usePush } from '@/features/push/usePush'
+import { PrinterControl, ReceiptPrompt } from '@/features/printer/ReceiptPrompt'
 import { checkForUpdate } from '@/features/updates/useAppUpdate'
 
 interface NavItem {
@@ -130,6 +131,7 @@ export function AppShell() {
         </nav>
 
         <div className="border-t border-line-soft px-1 pt-3">
+          <PrinterControl className="mb-2" />
           <ThemeToggle className="mb-2" />
           <p className="truncate px-2 text-xs text-ink-3">{email}</p>
           <Button variant="ghost" className="mt-1 w-full justify-start" onClick={() => void signOut()}>
@@ -156,6 +158,7 @@ export function AppShell() {
           <span className="font-display text-sm font-semibold">Alltech</span>
         </div>
         <div className="flex items-center gap-1">
+          <PrinterControl compact />
           <Tooltip label="Refresh the data on screen and check for an app update." side="bottom">
             <Button variant="ghost" size="icon" onClick={refresh} aria-label="Refresh">
               <RefreshCw className={cn(refreshing && 'animate-spin')} />
@@ -172,6 +175,10 @@ export function AppShell() {
       <main className="px-4 pb-28 pt-5 sm:px-6 lg:ml-60 lg:pb-10 lg:pt-8">
         <Outlet />
       </main>
+
+      {/* One prompt for the whole app: every place a sale is paid offers a
+          receipt through it, and it only appears when a printer is connected. */}
+      <ReceiptPrompt />
 
       {/* Three primary destinations plus More. With 4 tabs across a 360-390px
           phone, each tab gets ~90px, leaving ample room for 12px (text-xs)

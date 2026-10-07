@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Check, Loader2, Receipt, Undo2 } from 'lucide-react'
+import { Check, Loader2, Receipt, Undo2, Wrench } from 'lucide-react'
 import { useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { api, listFrom } from '@/lib/api'
@@ -14,6 +14,7 @@ import {
 import { Tooltip } from '@/components/ui/tooltip'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { cn, formatDate, formatKsh } from '@/lib/utils'
+import { offerReceipt } from '@/features/printer/ReceiptPrompt'
 
 interface PendingSale {
   id: number
@@ -22,6 +23,16 @@ interface PendingSale {
   selling_price: string
   customer_name: string
   created_at: string
+  sale_type?: 'CUSTOMER' | 'REPAIR'
+  repair_charge?: string
+  total_amount?: string
+}
+
+/** What the customer owes: the screens plus any repair charge. */
+function orderTotal(order: PendingSale) {
+  return order.total_amount !== undefined
+    ? Number(order.total_amount)
+    : Number(order.selling_price) * order.quantity + Number(order.repair_charge ?? 0)
 }
 
 function fetchUnpaid() {
@@ -50,6 +61,17 @@ export default function OrdersPage() {
     onSuccess: (_data, order) => {
       toast.success(`Paid — ${order.product_name}`)
       invalidate()
+      offerReceipt({
+        saleId: order.id,
+        customer: order.customer_name,
+        saleType: order.sale_type ?? 'CUSTOMER',
+        lines: [{
+          name: order.product_name,
+          quantity: order.quantity,
+          unitPrice: Number(order.selling_price),
+          repairCharge: order.sale_type === 'REPAIR' ? Number(order.repair_charge ?? 0) : undefined,
+        }],
+      })
     },
     onError: (error) => toast.error(error.message),
   })
@@ -119,7 +141,14 @@ export default function OrdersPage() {
                   className="flex flex-wrap items-center gap-x-4 gap-y-3"
                 >
                   <div className="min-w-0 flex-1">
-                    <p className="truncate font-semibold">{order.product_name}</p>
+                    <p className="flex min-w-0 items-center gap-2 font-semibold">
+                      <span className="truncate">{order.product_name}</span>
+                      {order.sale_type === 'REPAIR' ? (
+                        <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-accent/12 px-2 py-0.5 text-xs font-semibold text-accent">
+                          <Wrench className="size-3" /> Repair
+                        </span>
+                      ) : null}
+                    </p>
                     <p className="mt-0.5 text-sm capitalize text-ink-3">
                       {order.customer_name}
                       <span className="text-ink-3"> · {formatDate(order.created_at)}</span>
@@ -128,10 +157,11 @@ export default function OrdersPage() {
 
                   <div className="text-right">
                     <p className="tnum font-display font-semibold">
-                      {formatKsh(Number(order.selling_price) * order.quantity)}
+                      {formatKsh(orderTotal(order))}
                     </p>
                     <p className="tnum text-xs text-ink-3">
                       {order.quantity} × {formatKsh(order.selling_price)}
+                      {order.sale_type === 'REPAIR' ? ` + ${formatKsh(order.repair_charge ?? 0)} repair` : null}
                     </p>
                   </div>
 
