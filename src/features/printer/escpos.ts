@@ -1,16 +1,26 @@
-/** ESC/POS receipt encoding for the counter's 80mm thermal printer.
+/** ESC/POS receipt layout and encoding for the counter's 80mm thermal printer.
  *
  * The Xprinter XP-Q838L speaks ESC/POS over USB. Sending it raw bytes, rather
  * than going through the browser's print dialog, is what lets a receipt print
- * with one tap and the paper cut afterwards. Pure functions, no I/O: the bytes
- * for a receipt can be checked without a printer attached.
+ * with one tap and the paper cut afterwards.
+ *
+ * The receipt is laid out once, as a list of blocks, and both the printer
+ * bytes and the on-screen preview are produced from that list -- so what the
+ * dialog shows is what comes out of the printer. Pure functions, no I/O.
  */
 
-/** Characters per line in the printer's default font (Font A) on 80mm paper. */
+/** Characters per line on 80mm paper (576 dots): Font A is 12 dots wide,
+ * Font B 9. Font B is the smaller type used for details. */
 export const LINE_WIDTH = 48
+export const SMALL_WIDTH = 64
 
-export const SHOP_NAME = 'ALLTECH'
-export const SHOP_TAGLINE = 'Phone screens & accessories'
+export const SHOP = {
+  name: 'ALLTECH',
+  trade: 'PHONE REPAIR SERVICES',
+  address: 'Mudavadi Street, Nyeri Town',
+  phone: '0712 539 139',
+  strapline: 'Screens · Repairs · Accessories',
+}
 
 export interface ReceiptLine {
   name: string
@@ -30,30 +40,41 @@ export interface Receipt {
   at: Date
 }
 
+export type Block =
+  | {
+      kind: 'text'
+      text: string
+      align?: 'left' | 'center'
+      bold?: boolean
+      /** small = Font B; large = double width and height; tall = double height. */
+      size?: 'small' | 'normal' | 'tall' | 'large'
+      /** Extra dots between characters, for the spaced-out wordmark. */
+      spacing?: number
+      /** White on black, full width. */
+      invert?: boolean
+    }
+  | { kind: 'rule' }
+  | { kind: 'feed'; lines: number }
+
 const ESC = 0x1b
 const GS = 0x1d
 const LF = 0x0a
 
-const INIT = [ESC, 0x40]
-const ALIGN_LEFT = [ESC, 0x61, 0]
-const ALIGN_CENTER = [ESC, 0x61, 1]
-const BOLD_ON = [ESC, 0x45, 1]
-const BOLD_OFF = [ESC, 0x45, 0]
-const SIZE_DOUBLE = [GS, 0x21, 0x11]
-const SIZE_NORMAL = [GS, 0x21, 0x00]
-// Feed 4 lines so the last printed line clears the cutter, then partial cut.
-const FEED_AND_CUT = [ESC, 0x64, 4, GS, 0x56, 0x42, 0x00]
+// The printer's character table is PC437, selected explicitly so the box
+// rule and middle dot print as drawn rather than as whatever the firmware
+// defaulted to. Anything else outside ASCII is folded to a plain letter.
+const CP437: Record<string, number> = { '─': 0xc4, '·': 0xfa }
+const RULE_CHAR = '─'
 
-/** The printer's default code page is not UTF-8; anything outside printable
- * ASCII prints as garbage, so it is replaced rather than sent. */
-export function toAscii(text: string): string {
+export function toPrintable(text: string): string {
   return text
     .normalize('NFKD')
     .replace(/[̀-ͯ]/g, '')
     .replace(/[–—]/g, '-')
     .replace(/[‘’]/g, "'")
     .replace(/[“”]/g, '"')
-    .replace(/[^\x20-\x7e]/g, '?')
+    .replace(/×/g, 'x')
+    .replace(/[^\x20-\x7e─·]/g, '?')
 }
 
 export function money(value: number): string {
@@ -62,16 +83,16 @@ export function money(value: number): string {
 
 /** Left text and right text on one line, the left truncated if they collide. */
 export function columns(left: string, right: string, width = LINE_WIDTH): string {
-  const r = toAscii(right)
+  const r = toPrintable(right)
   const room = Math.max(0, width - r.length - 1)
-  let l = toAscii(left)
+  let l = toPrintable(left)
   if (l.length > room) l = room > 1 ? l.slice(0, room - 1) + '.' : ''
   return l + ' '.repeat(width - l.length - r.length) + r
 }
 
 /** Word-wrap to the paper width, so long product names are not cut off. */
 export function wrap(text: string, width = LINE_WIDTH): string[] {
-  const words = toAscii(text).split(/\s+/).filter(Boolean)
+  const words = toPrintable(text).split(/\s+/).filter(Boolean)
   const lines: string[] = []
   let current = ''
   for (const word of words) {
@@ -89,61 +110,92 @@ export function receiptTotal(receipt: Receipt): number {
   )
 }
 
-/** The receipt as plain text lines, exactly as they will print. Separate from
- * the byte encoding so the layout can be tested and previewed on screen. */
-export function receiptText(receipt: Receipt): { header: string[]; body: string[] } {
-  const rule = '-'.repeat(LINE_WIDTH)
-  const when = receipt.at.toLocaleString('en-KE', {
-    day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
-  })
-  const body: string[] = [
-    columns(`Receipt #${receipt.saleId}`, when),
-    columns('Customer', receipt.customer),
+function titleCase(name: string) {
+  return name.replace(/\b\w/g, (c) => c.toUpperCase())
+}
+
+/** The receipt, top to bottom. The one place its design lives. */
+export function receiptLayout(receipt: Receipt): Block[] {
+  const date = receipt.at.toLocaleDateString('en-KE', { day: '2-digit', month: 'short', year: 'numeric' })
+  const time = receipt.at.toLocaleTimeString('en-KE', { hour: '2-digit', minute: '2-digit', hour12: false })
+  const small = (left: string, right: string): Block =>
+    ({ kind: 'text', size: 'small', text: columns(left, right, SMALL_WIDTH) })
+
+  const blocks: Block[] = [
+    { kind: 'text', text: SHOP.name, align: 'center', bold: true, size: 'large', spacing: 6 },
+    { kind: 'text', text: SHOP.trade, align: 'center', bold: true, spacing: 2 },
+    { kind: 'feed', lines: 1 },
+    { kind: 'text', text: SHOP.address, align: 'center', size: 'small' },
+    { kind: 'text', text: `Tel ${SHOP.phone}`, align: 'center', size: 'small' },
+    { kind: 'feed', lines: 1 },
+    { kind: 'rule' },
+    small(`RECEIPT #${receipt.saleId}`, `${date}  ${time}`),
+    small('Customer', titleCase(receipt.customer)),
   ]
-  if (receipt.servedBy) body.push(columns('Served by', receipt.servedBy))
-  body.push(receipt.saleType === 'REPAIR' ? 'IN-HOUSE REPAIR' : 'SALE', rule)
+  if (receipt.servedBy) blocks.push(small('Served by', titleCase(receipt.servedBy)))
+  blocks.push(
+    small('Type', receipt.saleType === 'REPAIR' ? 'In-house repair' : 'Sale'),
+    { kind: 'rule' },
+  )
 
   for (const line of receipt.lines) {
-    body.push(...wrap(line.name))
-    body.push(columns(
-      `  ${line.quantity} x ${money(line.unitPrice)}`,
-      money(line.unitPrice * line.quantity),
-    ))
-    if (line.repairCharge) body.push(columns('  Repair charge', money(line.repairCharge)))
+    for (const part of wrap(line.name)) blocks.push({ kind: 'text', text: part, bold: true })
+    blocks.push({
+      kind: 'text',
+      text: columns(`  ${line.quantity} x ${money(line.unitPrice)}`, money(line.unitPrice * line.quantity)),
+    })
+    if (line.repairCharge) {
+      blocks.push({ kind: 'text', text: columns('  Repair & fitting', money(line.repairCharge)) })
+    }
   }
 
-  body.push(rule)
-  return { header: [SHOP_NAME, SHOP_TAGLINE], body }
+  blocks.push(
+    { kind: 'feed', lines: 1 },
+    // Full-width black bar with the amount in tall type: the one thing a
+    // customer looks for, so it is the one thing that stands out.
+    {
+      kind: 'text', invert: true, bold: true, size: 'tall',
+      text: columns(' TOTAL', `KSh ${money(receiptTotal(receipt))} `),
+    },
+    { kind: 'feed', lines: 1 },
+    { kind: 'text', text: 'Thank you for choosing Alltech', align: 'center', bold: true },
+    { kind: 'text', text: SHOP.strapline, align: 'center', size: 'small' },
+  )
+  return blocks
 }
 
 /** Encode a receipt as ESC/POS bytes, ending with a paper cut. */
 export function encodeReceipt(receipt: Receipt): Uint8Array {
-  const bytes: number[] = []
-  const text = (s: string) => {
-    for (const ch of toAscii(s)) bytes.push(ch.charCodeAt(0))
+  const bytes: number[] = [ESC, 0x40, ESC, 0x74, 0] // init; code page PC437
+  const write = (s: string) => {
+    for (const ch of toPrintable(s)) bytes.push(CP437[ch] ?? ch.charCodeAt(0))
     bytes.push(LF)
   }
-  const cmd = (c: number[]) => bytes.push(...c)
-  const { header, body } = receiptText(receipt)
 
-  cmd(INIT)
-  cmd(ALIGN_CENTER); cmd(BOLD_ON); cmd(SIZE_DOUBLE)
-  text(header[0])
-  cmd(SIZE_NORMAL); cmd(BOLD_OFF)
-  text(header[1])
-  bytes.push(LF)
+  for (const block of receiptLayout(receipt)) {
+    if (block.kind === 'feed') {
+      for (let i = 0; i < block.lines; i++) bytes.push(LF)
+      continue
+    }
+    if (block.kind === 'rule') {
+      bytes.push(ESC, 0x61, 0, ESC, 0x4d, 0)
+      write(RULE_CHAR.repeat(LINE_WIDTH))
+      continue
+    }
+    const size = block.size ?? 'normal'
+    bytes.push(
+      ESC, 0x61, block.align === 'center' ? 1 : 0,
+      ESC, 0x4d, size === 'small' ? 1 : 0,
+      ESC, 0x45, block.bold ? 1 : 0,
+      GS, 0x21, size === 'large' ? 0x11 : size === 'tall' ? 0x01 : 0x00,
+      ESC, 0x20, block.spacing ?? 0,
+      GS, 0x42, block.invert ? 1 : 0,
+    )
+    write(block.text)
+  }
 
-  cmd(ALIGN_LEFT)
-  for (const line of body) text(line)
-
-  cmd(BOLD_ON); cmd(SIZE_DOUBLE)
-  // Double width halves the characters per line.
-  text(columns('TOTAL', `KSh ${money(receiptTotal(receipt))}`, LINE_WIDTH / 2))
-  cmd(SIZE_NORMAL); cmd(BOLD_OFF)
-  bytes.push(LF)
-
-  cmd(ALIGN_CENTER)
-  text('Thank you for your business')
-  cmd(FEED_AND_CUT)
+  // Reset styling, feed past the cutter, partial cut.
+  bytes.push(GS, 0x42, 0, GS, 0x21, 0, ESC, 0x45, 0, ESC, 0x20, 0, ESC, 0x4d, 0)
+  bytes.push(ESC, 0x64, 4, GS, 0x56, 0x42, 0x00)
   return new Uint8Array(bytes)
 }

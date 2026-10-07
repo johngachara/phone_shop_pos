@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Tooltip } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/features/auth/useAuth'
-import { encodeReceipt, money, receiptText, receiptTotal, type Receipt } from './escpos'
+import { encodeReceipt, receiptLayout, LINE_WIDTH, type Receipt } from './escpos'
 import { usePrinter } from './usePrinter'
 
 interface ReceiptPromptState {
@@ -62,8 +62,6 @@ export function ReceiptPrompt() {
     }
   }
 
-  const preview = pending ? receiptText(pending) : null
-
   return (
     <Dialog open={pending !== null} onOpenChange={(o) => !o && !busy && dismiss()}>
       <DialogContent onOpenAutoFocus={(e) => e.preventDefault()}>
@@ -73,17 +71,9 @@ export function ReceiptPrompt() {
             The sale is recorded either way.
           </DialogDescription>
         </DialogHeader>
-        {pending && preview ? (
+        {pending ? (
           <DialogBody>
-            {/* What will come out of the printer, line for line. */}
-            <div className="overflow-x-auto rounded-xl bg-surface-2 px-3 py-3">
-              <pre className="mx-auto w-max font-mono text-[10px] leading-snug text-ink sm:text-[11px]">
-                <span className="block text-center font-bold">{preview.header[0]}</span>
-                <span className="block text-center">{preview.header[1]}</span>
-                {'\n'}{preview.body.join('\n')}
-                {'\n'}<span className="font-bold">{`TOTAL  KSh ${money(receiptTotal(pending))}`}</span>
-              </pre>
-            </div>
+            <ReceiptPreview receipt={pending} />
           </DialogBody>
         ) : null}
         <DialogFooter>
@@ -183,5 +173,47 @@ export function PrinterControl({ className, compact = false }: { className?: str
         </DialogContent>
       </Dialog>
     </>
+  )
+}
+
+/** The receipt as it will print, drawn from the same layout as the bytes.
+ *
+ * Fixed light "paper" in both themes: it is a picture of a printed slip. Sized
+ * in ch of a monospace face, so the 48 columns line up exactly as on paper. */
+export function ReceiptPreview({ receipt }: { receipt: Receipt }) {
+  return (
+    <div className="overflow-x-auto rounded-xl bg-surface-2 p-3">
+      <div
+        className="mx-auto w-max rounded-sm bg-[#fdfdfb] px-4 py-5 font-mono text-[9px] leading-[1.45] text-[#111] shadow-[0_1px_3px_rgba(0,0,0,.18)] sm:text-[10.5px]"
+        style={{ width: `calc(${LINE_WIDTH}ch + 2rem)` }}
+      >
+        {receiptLayout(receipt).map((block, i) => {
+          if (block.kind === 'feed') return <div key={i} style={{ height: `${block.lines * 1.45}em` }} />
+          if (block.kind === 'rule') return <div key={i} className="my-[0.6em] border-t border-[#111]" />
+          const size = block.size ?? 'normal'
+          return (
+            <div
+              key={i}
+              className={cn(
+                'whitespace-pre',
+                block.align === 'center' && 'text-center',
+                block.bold && 'font-bold',
+                block.invert && 'bg-[#111] py-[0.2em] text-[#fdfdfb]',
+              )}
+              style={{
+                // Font B is 9 dots to Font A's 12; scaled so 64 columns
+                // fill the same width as 48.
+                fontSize: size === 'small' ? '0.75em' : size === 'large' ? '2em' : undefined,
+                transform: size === 'tall' ? 'scaleY(1.6)' : undefined,
+                margin: size === 'tall' ? '0.35em 0' : undefined,
+                letterSpacing: block.spacing ? `${block.spacing / 12}em` : undefined,
+              }}
+            >
+              {block.text}
+            </div>
+          )
+        })}
+      </div>
+    </div>
   )
 }
