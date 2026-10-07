@@ -1,5 +1,8 @@
 import { api, listFrom } from '@/lib/api'
 
+/** Sold over the counter, or fitted by the shop as an in-house repair. */
+export type SaleType = 'CUSTOMER' | 'REPAIR'
+
 export interface StockItem {
   id: number
   product_name: string
@@ -71,6 +74,10 @@ export function sellStock(id: number, input: {
   customer_name: string
   /** true records it as paid immediately; false puts it on hold. */
   complete?: boolean
+  /** REPAIR: the shop fitted the screen and charges for the labour too. */
+  sale_type?: SaleType
+  /** In-house repair labour, once per sale. Only sent with REPAIR. */
+  repair_charge?: string
 }) {
   return api<{ transaction_id: number }>(`/api/sell2/${id}`, { method: 'POST', json: input })
 }

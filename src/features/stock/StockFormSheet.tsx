@@ -8,7 +8,6 @@ import {
 import { Button } from '@/components/ui/button'
 import { Field, Input } from '@/components/ui/input'
 import { formatKsh } from '@/lib/utils'
-import { useAuth } from '@/features/auth/useAuth'
 import { addStock, updateStock, type StockItem } from './api'
 
 export function StockFormSheet({
@@ -19,8 +18,6 @@ export function StockFormSheet({
   onOpenChange: (open: boolean) => void
 }) {
   const queryClient = useQueryClient()
-  const role = useAuth((s) => s.role)
-  const isManager = role === 'manager'
   const editing = item !== null
 
   const [name, setName] = useState('')
@@ -95,14 +92,12 @@ export function StockFormSheet({
           </Field>
 
           <div className="grid grid-cols-2 gap-3">
-            <Field
-              label="Quantity"
-              hint={editing && !isManager ? 'Only a manager can change quantity.' : undefined}
-            >
+            {/* Editing is manager-only now, so the old employee lock on
+                quantity has nothing left to guard. */}
+            <Field label="Quantity">
               <Input
                 type="number" inputMode="numeric" min="0"
                 value={quantity} onChange={(e) => setQuantity(e.target.value)}
-                disabled={editing && !isManager}
               />
             </Field>
             <Field label="Selling price">

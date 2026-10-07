@@ -1,22 +1,24 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Check, Clock, Loader2, Minus, Plus } from 'lucide-react'
+import { Check, Clock, Loader2, Minus, Plus, ShoppingBag, Wrench } from 'lucide-react'
 import { toast } from 'sonner'
 import {
   Dialog, DialogBody, DialogContent, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Field, Input } from '@/components/ui/input'
-import { formatKsh } from '@/lib/utils'
+import { cn, formatKsh } from '@/lib/utils'
 import { Tooltip } from '@/components/ui/tooltip'
 import { CustomerSearchInput } from '@/components/CustomerSearchInput'
-import { fetchCustomers, sellStock, type StockItem } from './api'
+import { offerReceipt } from '@/features/printer/ReceiptPrompt'
+import { fetchCustomers, sellStock, type SaleType, type StockItem } from './api'
 
-/** Put an item on hold against a customer name.
+/** Sell a screen to a customer, or record it as an in-house repair.
  *
- * Selling creates a pending sale; it is not money until someone completes it
- * on the Orders screen. That two-step is how the shop already works -- an item
- * is handed over before it is paid for. */
+ * Either can be held (handed over, paid later on the Orders screen) or paid
+ * now. An in-house repair is a screen the shop fitted itself: the customer
+ * pays for the screen and a repair charge on top, so a 1200 screen fitted for
+ * 700 is a 1900 sale. */
 export function SellSheet({
   item, open, onOpenChange,
 }: {
@@ -28,14 +30,20 @@ export function SellSheet({
   const [quantity, setQuantity] = useState(1)
   const [price, setPrice] = useState('')
   const [customer, setCustomer] = useState('')
+  const [saleType, setSaleType] = useState<SaleType>('CUSTOMER')
+  const [repairCharge, setRepairCharge] = useState('')
 
   useEffect(() => {
     if (item) {
       setQuantity(1)
       setPrice(item.selling_price)
       setCustomer('')
+      setSaleType('CUSTOMER')
+      setRepairCharge('')
     }
   }, [item])
+
+  const isRepair = saleType === 'REPAIR'
 
   const customers = useQuery({
     queryKey: ['customers'],
@@ -46,8 +54,10 @@ export function SellSheet({
 
   const total = useMemo(() => {
     const value = Number(price)
-    return Number.isFinite(value) ? value * quantity : 0
-  }, [price, quantity])
+    const screens = Number.isFinite(value) ? value * quantity : 0
+    const labour = Number(repairCharge)
+    return screens + (isRepair && Number.isFinite(labour) ? labour : 0)
+  }, [price, quantity, repairCharge, isRepair])
 
   const mutation = useMutation({
     mutationFn: (complete: boolean) =>
@@ -57,13 +67,28 @@ export function SellSheet({
         quantity,
         customer_name: customer.trim(),
         complete,
+        ...(isRepair ? { sale_type: 'REPAIR' as const, repair_charge: repairCharge } : {}),
       }),
-    onSuccess: (_data, complete) => {
+    onSuccess: (data, complete) => {
+      const what = isRepair ? `Repair with ${item!.product_name}` : item!.product_name
       toast.success(
         complete
-          ? `Sold ${item!.product_name} to ${customer.trim()}`
-          : `${item!.product_name} on hold for ${customer.trim()}`,
+          ? `${isRepair ? `${what} for` : `Sold ${what} to`} ${customer.trim()}`
+          : `${what} on hold for ${customer.trim()}`,
       )
+      if (complete) {
+        offerReceipt({
+          saleId: data.transaction_id,
+          customer: customer.trim(),
+          saleType,
+          lines: [{
+            name: item!.product_name,
+            quantity,
+            unitPrice: Number(price),
+            repairCharge: isRepair ? Number(repairCharge) : undefined,
+          }],
+        })
+      }
       queryClient.invalidateQueries({ queryKey: ['stock'] })
       queryClient.invalidateQueries({ queryKey: ['unpaid'] })
       queryClient.invalidateQueries({ queryKey: ['low-stock'] })
@@ -77,7 +102,9 @@ export function SellSheet({
 
   const overStock = quantity > item.quantity
   const priceInvalid = !Number.isFinite(Number(price)) || Number(price) <= 0
-  const canSell = !overStock && !priceInvalid && customer.trim().length > 1
+  const repairInvalid =
+    isRepair && (!Number.isFinite(Number(repairCharge)) || Number(repairCharge) <= 0)
+  const canSell = !overStock && !priceInvalid && !repairInvalid && customer.trim().length > 1
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -87,6 +114,26 @@ export function SellSheet({
         </DialogHeader>
 
         <DialogBody className="space-y-4">
+          <div role="radiogroup" aria-label="Kind of sale" className="grid grid-cols-2 gap-1 rounded-xl bg-surface-2 p-1">
+            {([
+              { value: 'CUSTOMER', label: 'Sell to customer', icon: ShoppingBag },
+              { value: 'REPAIR', label: 'In-house repair', icon: Wrench },
+            ] as const).map(({ value, label, icon: Icon }) => (
+              <button
+                key={value} type="button" role="radio" aria-checked={saleType === value}
+                onClick={() => setSaleType(value)}
+                className={cn(
+                  'flex items-center justify-center gap-2 rounded-lg px-2 py-2.5 text-sm font-semibold transition-colors',
+                  saleType === value
+                    ? 'bg-surface text-accent shadow-[var(--shadow-lift)]'
+                    : 'text-ink-3 hover:text-ink',
+                )}
+              >
+                <Icon className="size-4 shrink-0" /> {label}
+              </button>
+            ))}
+          </div>
+
           <Field label="Quantity" error={overStock ? `Only ${item.quantity} in stock.` : null}>
             <div className="flex items-center gap-2">
               {/* Stepper as well as a field: at a counter, tapping is faster
@@ -127,6 +174,19 @@ export function SellSheet({
             />
           </Field>
 
+          {isRepair ? (
+            <Field
+              label="Repair charge"
+              hint="The labour for fitting the screen, on top of the screen price."
+              error={repairInvalid && repairCharge !== '' ? 'Enter a repair charge above zero.' : null}
+            >
+              <Input
+                type="number" inputMode="decimal" step="0.01" min="0" placeholder="e.g. 700"
+                value={repairCharge} onChange={(e) => setRepairCharge(e.target.value)}
+              />
+            </Field>
+          ) : null}
+
           <Field label="Customer" hint="Used to find the order again and to track spend.">
             <CustomerSearchInput
               value={customer}
@@ -138,7 +198,10 @@ export function SellSheet({
           </Field>
 
           <div className="flex items-center justify-between rounded-xl bg-surface-2 px-4 py-3">
-            <span className="text-sm font-semibold text-ink-2">Total</span>
+            <span className="text-sm font-semibold text-ink-2">
+              Total
+              {isRepair ? <span className="block text-xs font-normal text-ink-3">Screen + repair charge</span> : null}
+            </span>
             <span className="tnum font-display text-xl font-semibold text-accent">
               {formatKsh(total)}
             </span>
@@ -170,7 +233,7 @@ export function SellSheet({
               >
                 {mutation.isPending && mutation.variables === true
                   ? <Loader2 className="animate-spin" /> : <Check />}
-                Sell — paid
+                {isRepair ? 'Repair — paid' : 'Sell — paid'}
               </Button>
             </Tooltip>
           </div>

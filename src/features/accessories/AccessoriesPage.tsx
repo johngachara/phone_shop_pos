@@ -21,6 +21,7 @@ import { fetchCustomers } from '@/features/stock/api'
 import { CustomerSearchInput } from '@/components/CustomerSearchInput'
 import { formatKsh } from '@/lib/utils'
 import { useDebounced } from '@/lib/useDebounced'
+import { offerReceipt } from '@/features/printer/ReceiptPrompt'
 
 interface Accessory {
   id: number
@@ -276,7 +277,7 @@ function SellAccessory({
 
   const mutation = useMutation({
     mutationFn: (complete: boolean) =>
-      api(`/api/accessories/${item!.id}/sell/`, {
+      api<{ sale_id: number }>(`/api/accessories/${item!.id}/sell/`, {
         method: 'POST',
         json: {
           product_name: item!.product_name,
@@ -286,12 +287,20 @@ function SellAccessory({
           complete,
         },
       }),
-    onSuccess: (_data, complete) => {
+    onSuccess: (data, complete) => {
       toast.success(
         complete
           ? `Sold ${item!.product_name} to ${customer.trim()}`
           : `${item!.product_name} on hold for ${customer.trim()}`,
       )
+      if (complete) {
+        offerReceipt({
+          saleId: data.sale_id,
+          customer: customer.trim(),
+          saleType: 'CUSTOMER',
+          lines: [{ name: item!.product_name, quantity, unitPrice: Number(price) }],
+        })
+      }
       onDone()
       onOpenChange(false)
       setQuantity(1)

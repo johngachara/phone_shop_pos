@@ -98,20 +98,27 @@ export function ProductSheet({
         </DialogBody>
 
         <DialogFooter className="sm:justify-between">
-          <div className="flex gap-2">
-            <Tooltip label="Change the name, quantity or prices.">
-              <Button variant="secondary" onClick={onEdit}>
-                <Pencil /> Edit
-              </Button>
-            </Tooltip>
-            {isManager ? (
+          {/* Employees add and sell; changing or removing an item is a
+              manager decision. The API refuses both for an employee anyway --
+              this only avoids offering a button that cannot work. */}
+          {isManager ? (
+            <div className="flex gap-2">
+              <Tooltip label="Change the name, quantity or prices.">
+                <Button variant="secondary" onClick={onEdit}>
+                  <Pencil /> Edit
+                </Button>
+              </Tooltip>
               <Tooltip label={`Remove this ${kind}. Past sales of it are kept.`}>
                 <Button variant="secondary" onClick={onDelete}>
                   <Trash2 /> Delete
                 </Button>
               </Tooltip>
-            ) : null}
-          </div>
+            </div>
+          ) : (
+            <p className="text-xs text-ink-3 sm:max-w-56">
+              Only a manager can change or remove an item.
+            </p>
+          )}
           <Tooltip
             label={
               outOfStock

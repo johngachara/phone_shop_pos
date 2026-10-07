@@ -33,6 +33,8 @@ interface SaleRow {
   selling_price: string
   customer_name: string
   created_at: string
+  sale_type?: 'CUSTOMER' | 'REPAIR'
+  total_amount?: string
 }
 
 interface DashboardMetrics {
@@ -43,6 +45,9 @@ interface DashboardMetrics {
     sales_with_cost: number
     total_items_sold: number
     unique_customers: number
+    /** In-house repairs among today's sales, and the labour charged on them. */
+    repair_count?: number
+    repair_revenue?: string | number
   }
   yesterday_total_sales: string | number
   by_item_type?: Record<string, { total_sales: string | number; sales_count: number }>
@@ -105,12 +110,20 @@ export default function DashboardPage() {
               <Stat
                 label="Sales today"
                 value={formatNumber(metrics.data.today_metrics.sales_count)}
-                sub={`${formatNumber(metrics.data.today_metrics.total_items_sold)} items`}
+                sub={
+                  metrics.data.today_metrics.repair_count
+                    ? `${formatNumber(metrics.data.today_metrics.sales_count - metrics.data.today_metrics.repair_count)} to customers · ${formatNumber(metrics.data.today_metrics.repair_count)} in-house ${metrics.data.today_metrics.repair_count === 1 ? 'repair' : 'repairs'}`
+                    : `${formatNumber(metrics.data.today_metrics.total_items_sold)} items`
+                }
               />
               <Stat
                 label="Revenue today"
                 value={formatKsh(metrics.data.today_metrics.total_sales)}
-                sub={`Yesterday ${formatKsh(metrics.data.yesterday_total_sales)}`}
+                sub={
+                  Number(metrics.data.today_metrics.repair_revenue ?? 0) > 0
+                    ? `Incl. ${formatKsh(metrics.data.today_metrics.repair_revenue ?? 0)} repair charges · yesterday ${formatKsh(metrics.data.yesterday_total_sales)}`
+                    : `Yesterday ${formatKsh(metrics.data.yesterday_total_sales)}`
+                }
                 tone="accent"
               />
               <Stat
@@ -172,7 +185,11 @@ export default function DashboardPage() {
                       </span>
                       <span className="flex shrink-0 items-center gap-2">
                         <span className="tnum text-sm font-semibold">
-                          {formatKsh(Number(order.selling_price) * order.quantity)}
+                          {formatKsh(
+                            order.total_amount !== undefined
+                              ? Number(order.total_amount)
+                              : Number(order.selling_price) * order.quantity,
+                          )}
                         </span>
                         <ChevronRight className="size-4 text-ink-3" />
                       </span>

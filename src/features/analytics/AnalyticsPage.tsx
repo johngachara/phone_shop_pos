@@ -71,6 +71,7 @@ export default function AnalyticsPage() {
     profit: m.total_profit ?? 0,
     withCost: m.sales_with_cost ?? 0,
     orders: m.total_orders ?? 0,
+    repairs: m.repair_count ?? 0,
   }))
 
   // Profit is only computable where a cost was recorded. Saying so next to the
@@ -100,9 +101,9 @@ export default function AnalyticsPage() {
 
       {tab === 'overview' ? (
         <>
-          <section className="mb-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <section className="mb-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
             {yearly.isLoading ? (
-              Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-28 rounded-2xl" />)
+              Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-28 rounded-2xl" />)
             ) : summary ? (
               <>
                 <Stat label="Revenue this year" value={formatKsh(summary.total_sales)} tone="accent" />
@@ -120,6 +121,10 @@ export default function AnalyticsPage() {
                   sub={`${formatNumber(summary.total_items)} items`} />
                 <Stat label="Average order" value={formatKsh(summary.average_order_value)}
                   sub={`${formatNumber(summary.unique_customers)} customers`} />
+                {/* A screen the shop fitted itself. Its revenue is already in
+                    the totals above; this says how much of it was repair work. */}
+                <Stat label="In-house repairs" value={formatNumber(summary.repair_count ?? 0)}
+                  sub={`${formatKsh(summary.repair_revenue ?? 0)} in repair charges`} />
               </>
             ) : null}
           </section>
@@ -136,8 +141,8 @@ export default function AnalyticsPage() {
               }
               table={
                 <DataTable
-                  columns={['Month', 'Revenue', 'Profit', 'Orders']}
-                  rows={monthRows.map((r) => [r.month, formatKsh(r.revenue), formatKsh(r.profit), r.orders])}
+                  columns={['Month', 'Revenue', 'Profit', 'Orders', 'Repairs']}
+                  rows={monthRows.map((r) => [r.month, formatKsh(r.revenue), formatKsh(r.profit), r.orders, r.repairs])}
                 />
               }
             >
